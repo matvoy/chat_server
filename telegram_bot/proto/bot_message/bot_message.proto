@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package webitel.chat.service.telegrambot; 
+
+service TelegramBotService {
+  rpc ProcessMessageFromFlow(MessageFromFlow) returns (Response) {}
+}
+
+message MessageFromFlow {
+  string external_user_id = 1;
+  string session_id = 2;
+  string text = 3;
+}
+
+message Response {}

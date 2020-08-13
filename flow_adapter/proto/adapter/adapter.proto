@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package webitel.chat.service.flowadapter; 
+
+service AdapterService {
+  rpc SendMessageToFlow(MessageToFlow) returns (Response) {}
+}
+
+message MessageToFlow {
+  string external_user_id = 1;
+  string session_id = 2;
+  string username = 3;
+  string first_name = 4;
+  string last_name = 5;
+  string text = 6;
+  uint64 profile_id = 7;
+  string number = 8;
+}
+
+message Response {
+  bool success = 1;
+}
