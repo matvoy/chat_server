@@ -1,4 +1,9 @@
 bin
 .vscode
+.idea
 vendor
 .env
+models
+go.sum
+*.pb
+*.pb.*
