@@ -9,6 +9,7 @@ import (
 
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
+	"github.com/micro/go-micro/v2/config/cmd"
 	"github.com/micro/go-micro/v2/store"
 	"github.com/micro/go-plugins/store/redis/v2"
 	"github.com/rs/zerolog"
@@ -18,13 +19,8 @@ type Config struct {
 	LogLevel            string
 	TelegramBotToken    string
 	ProfileID           uint64
-	RedisURL            string
 	ConversationTimeout uint64
 }
-
-const (
-	redisTable = "chat:"
-)
 
 var (
 	client     pbstorage.StorageService
@@ -34,7 +30,13 @@ var (
 	service    micro.Service
 	redisStore store.Store
 	tgBot      ChatServer
+	redisTable string
 )
+
+func init() {
+	// plugins
+	cmd.DefaultStores["redis"] = redis.NewStore
+}
 
 func main() {
 	cfg = &Config{}
@@ -59,11 +61,6 @@ func main() {
 				EnvVars: []string{"PROFILE_ID"},
 				Usage:   "Profile id",
 			},
-			&cli.StringFlag{
-				Name:    "redis_url",
-				EnvVars: []string{"REDIS_URL"},
-				Usage:   "Redis URL",
-			},
 			&cli.Uint64Flag{
 				Name:    "conversation_timeout",
 				EnvVars: []string{"CONVERSATION_TIMEOUT"},
@@ -72,18 +69,13 @@ func main() {
 		),
 	)
 
-	redisStore = redis.NewStore(
-		store.Nodes("redis://10.9.8.111:6379"),
-		store.Table(redisTable),
-	)
-
 	service.Init(
 		micro.Action(func(c *cli.Context) error {
 			cfg.LogLevel = c.String("log_level")
 			cfg.TelegramBotToken = c.String("telegram_bot_token")
 			cfg.ProfileID = c.Uint64("profile_id")
-			cfg.RedisURL = c.String("redis_url")
 			cfg.ConversationTimeout = c.Uint64("conversation_timeout")
+			redisTable = c.String("store_table")
 
 			client = pbstorage.NewStorageService("webitel.chat.service.storage", service.Client())
 			flowClient = pbflow.NewAdapterService("webitel.chat.service.flowadapter", service.Client())
@@ -99,8 +91,9 @@ func main() {
 				return tgBot.Start()
 			},
 		),
-		micro.Store(redisStore),
 	)
+
+	service.Options().Store.Init(store.Table(redisTable))
 
 	if err := service.Run(); err != nil {
 		logger.Fatal().
@@ -116,7 +109,7 @@ func configureTelegram() error {
 		logger,
 		client,
 		flowClient,
-		redisStore,
+		service.Options().Store,
 		cfg.ConversationTimeout,
 	)
 	if err := pb.RegisterTelegramBotServiceHandler(service.Server(), tgBot); err != nil {
