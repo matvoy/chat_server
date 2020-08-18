@@ -19,4 +19,6 @@ type Repository interface {
 	CreateClient(ctx context.Context, c *models.Client) error
 	CreateUserConversation(ctx context.Context, uc *models.UserConversation) error
 	CreateAttachment(ctx context.Context, a *models.Attachment) error
+
+	CloseConversation(ctx context.Context, sessionID string) error
 }

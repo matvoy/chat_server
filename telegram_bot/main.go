@@ -9,14 +9,22 @@ import (
 
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
+	"github.com/micro/go-micro/v2/store"
+	"github.com/micro/go-plugins/store/redis/v2"
 	"github.com/rs/zerolog"
 )
 
 type Config struct {
-	LogLevel         string
-	TelegramBotToken string
-	ProfileID        uint64
+	LogLevel            string
+	TelegramBotToken    string
+	ProfileID           uint64
+	RedisURL            string
+	ConversationTimeout uint64
 }
+
+const (
+	redisTable = "chat:"
+)
 
 var (
 	client     pbstorage.StorageService
@@ -24,10 +32,12 @@ var (
 	logger     *zerolog.Logger
 	cfg        *Config
 	service    micro.Service
+	redisStore store.Store
 )
 
 func main() {
 	cfg = &Config{}
+
 	service = micro.NewService(
 		micro.Name("webitel.chat.service.telegrambot"),
 		micro.Version("latest"),
@@ -48,7 +58,22 @@ func main() {
 				EnvVars: []string{"PROFILE_ID"},
 				Usage:   "Profile id",
 			},
+			&cli.StringFlag{
+				Name:    "redis_url",
+				EnvVars: []string{"REDIS_URL"},
+				Usage:   "Redis URL",
+			},
+			&cli.Uint64Flag{
+				Name:    "conversation_timeout",
+				EnvVars: []string{"CONVERSATION_TIMEOUT"},
+				Usage:   "Conversation timeout",
+			},
 		),
+	)
+
+	redisStore = redis.NewStore(
+		store.Nodes("redis://10.9.8.111:6379"),
+		store.Table(redisTable),
 	)
 
 	service.Init(
@@ -56,6 +81,8 @@ func main() {
 			cfg.LogLevel = c.String("log_level")
 			cfg.TelegramBotToken = c.String("telegram_bot_token")
 			cfg.ProfileID = c.Uint64("profile_id")
+			cfg.RedisURL = c.String("redis_url")
+			cfg.ConversationTimeout = c.Uint64("conversation_timeout")
 
 			client = pbstorage.NewStorageService("webitel.chat.service.storage", service.Client())
 			flowClient = pbflow.NewAdapterService("webitel.chat.service.flowadapter", service.Client())
@@ -64,8 +91,9 @@ func main() {
 			return err
 		}),
 		micro.AfterStart(
-			startTelegram(),
+			startTelegram,
 		),
+		micro.Store(redisStore),
 	)
 
 	if err := service.Run(); err != nil {
@@ -75,17 +103,23 @@ func main() {
 	}
 }
 
-func startTelegram() func() error {
-	return func() error {
-		tgBot := NewTelegramBot(cfg.TelegramBotToken, cfg.ProfileID, logger, client, flowClient)
-		if err := pb.RegisterTelegramBotServiceHandler(service.Server(), tgBot); err != nil {
-			logger.Fatal().
-				Str("app", "failed to register service").
-				Msg(err.Error())
-			return err
-		}
-		return tgBot.Start()
+func startTelegram() error {
+	tgBot := NewTelegramBot(
+		cfg.TelegramBotToken,
+		cfg.ProfileID,
+		logger,
+		client,
+		flowClient,
+		redisStore,
+		cfg.ConversationTimeout,
+	)
+	if err := pb.RegisterTelegramBotServiceHandler(service.Server(), tgBot); err != nil {
+		logger.Fatal().
+			Str("app", "failed to register service").
+			Msg(err.Error())
+		return err
 	}
+	return tgBot.Start()
 }
 
 func NewLogger(logLevel string) (*zerolog.Logger, error) {
