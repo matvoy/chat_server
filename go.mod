@@ -17,10 +17,10 @@ require (
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/micro/cli/v2 v2.1.2
 	github.com/micro/go-micro/v2 v2.9.1
+	github.com/micro/go-plugins/store/redis/v2 v2.9.1
 	github.com/micro/micro/v2 v2.9.1 // indirect
 	github.com/mitchellh/mapstructure v1.3.3
-	github.com/onsi/ginkgo v1.8.0 // indirect
-	github.com/onsi/gomega v1.5.0 // indirect
+	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/rs/zerolog v1.19.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.3

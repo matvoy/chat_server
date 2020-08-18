@@ -16,6 +16,7 @@ message MessageRequest {
   string text = 6;
   uint64 profile_id = 7;
   string number = 8;
+  bool is_new = 9;
 }
 
 message MessageResponse {

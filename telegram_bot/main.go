@@ -9,13 +9,17 @@ import (
 
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
+	"github.com/micro/go-micro/v2/config/cmd"
+	"github.com/micro/go-micro/v2/store"
+	"github.com/micro/go-plugins/store/redis/v2"
 	"github.com/rs/zerolog"
 )
 
 type Config struct {
-	LogLevel         string
-	TelegramBotToken string
-	ProfileID        uint64
+	LogLevel            string
+	TelegramBotToken    string
+	ProfileID           uint64
+	ConversationTimeout uint64
 }
 
 var (
@@ -24,10 +28,19 @@ var (
 	logger     *zerolog.Logger
 	cfg        *Config
 	service    micro.Service
+	redisStore store.Store
+	tgBot      ChatServer
+	redisTable string
 )
+
+func init() {
+	// plugins
+	cmd.DefaultStores["redis"] = redis.NewStore
+}
 
 func main() {
 	cfg = &Config{}
+
 	service = micro.NewService(
 		micro.Name("webitel.chat.service.telegrambot"),
 		micro.Version("latest"),
@@ -48,6 +61,11 @@ func main() {
 				EnvVars: []string{"PROFILE_ID"},
 				Usage:   "Profile id",
 			},
+			&cli.Uint64Flag{
+				Name:    "conversation_timeout",
+				EnvVars: []string{"CONVERSATION_TIMEOUT"},
+				Usage:   "Conversation timeout",
+			},
 		),
 	)
 
@@ -56,17 +74,26 @@ func main() {
 			cfg.LogLevel = c.String("log_level")
 			cfg.TelegramBotToken = c.String("telegram_bot_token")
 			cfg.ProfileID = c.Uint64("profile_id")
+			cfg.ConversationTimeout = c.Uint64("conversation_timeout")
+			redisTable = c.String("store_table")
 
 			client = pbstorage.NewStorageService("webitel.chat.service.storage", service.Client())
 			flowClient = pbflow.NewAdapterService("webitel.chat.service.flowadapter", service.Client())
 			var err error
 			logger, err = NewLogger(cfg.LogLevel)
-			return err
+			if err != nil {
+				return err
+			}
+			return configureTelegram()
 		}),
 		micro.AfterStart(
-			startTelegram(),
+			func() error {
+				return tgBot.Start()
+			},
 		),
 	)
+
+	service.Options().Store.Init(store.Table(redisTable))
 
 	if err := service.Run(); err != nil {
 		logger.Fatal().
@@ -75,17 +102,23 @@ func main() {
 	}
 }
 
-func startTelegram() func() error {
-	return func() error {
-		tgBot := NewTelegramBot(cfg.TelegramBotToken, cfg.ProfileID, logger, client, flowClient)
-		if err := pb.RegisterTelegramBotServiceHandler(service.Server(), tgBot); err != nil {
-			logger.Fatal().
-				Str("app", "failed to register service").
-				Msg(err.Error())
-			return err
-		}
-		return tgBot.Start()
+func configureTelegram() error {
+	tgBot = NewTelegramBot(
+		cfg.TelegramBotToken,
+		cfg.ProfileID,
+		logger,
+		client,
+		flowClient,
+		service.Options().Store,
+		cfg.ConversationTimeout,
+	)
+	if err := pb.RegisterTelegramBotServiceHandler(service.Server(), tgBot); err != nil {
+		logger.Fatal().
+			Str("app", "failed to register service").
+			Msg(err.Error())
+		return err
 	}
+	return nil
 }
 
 func NewLogger(logLevel string) (*zerolog.Logger, error) {

@@ -30,7 +30,40 @@ func NewStorageService(repo repo.Repository, log *zerolog.Logger) *storageServic
 
 func (s *storageService) ProcessMessage(ctx context.Context, req *pb.MessageRequest, res *pb.MessageResponse) error {
 	client, _ := s.repo.GetClientByExternalID(ctx, req.ExternalUserId)
+	var conversation *models.Conversation
+	var err error
+
 	if client != nil {
+		s.log.Trace().Int64("client_id", client.ID).Msg("client found")
+		if req.IsNew {
+			s.log.Trace().Msg("creating new conversation")
+			if err = s.repo.CloseConversation(ctx, req.SessionId); err != nil {
+				s.log.Err(err)
+				return err
+			}
+			conversation = &models.Conversation{
+				ProfileID: int64(req.ProfileId),
+				SessionID: null.String{
+					req.SessionId,
+					true,
+				},
+				ClientID: null.Int64{
+					client.ID,
+					true,
+				},
+			}
+			if err = s.repo.CreateConversation(ctx, conversation); err != nil {
+				s.log.Err(err)
+				return err
+			}
+		} else {
+			s.log.Trace().Msg("fetching existing conversation")
+			conversation, err = s.repo.GetConversationBySessionID(ctx, req.SessionId)
+			if err != nil {
+				s.log.Err(err)
+				return err
+			}
+		}
 		message := &models.Message{
 			ClientID: null.Int64{
 				client.ID,
@@ -40,25 +73,18 @@ func (s *storageService) ProcessMessage(ctx context.Context, req *pb.MessageRequ
 				req.Text,
 				true,
 			},
-			ConversationID: client.ConversationID.Int64,
+			ConversationID: conversation.ID,
 		}
-		return s.repo.CreateMessage(ctx, message)
+		if err = s.repo.CreateMessage(ctx, message); err != nil {
+			s.log.Err(err)
+			return err
+		}
+		s.log.Trace().Msg("message processed")
+
+		return nil
 	}
-	conversation := &models.Conversation{
-		ProfileID: int64(req.ProfileId),
-		SessionID: null.String{
-			req.SessionId,
-			true,
-		},
-	}
-	if err := s.repo.CreateConversation(ctx, conversation); err != nil {
-		return err
-	}
+	s.log.Trace().Msg("creating new client")
 	client = &models.Client{
-		ConversationID: null.Int64{
-			conversation.ID,
-			true,
-		},
 		ExternalID: null.String{
 			req.ExternalUserId,
 			true,
@@ -81,8 +107,26 @@ func (s *storageService) ProcessMessage(ctx context.Context, req *pb.MessageRequ
 		},
 	}
 	if err := s.repo.CreateClient(ctx, client); err != nil {
+		s.log.Err(err)
 		return err
 	}
+	conversation = &models.Conversation{
+		ProfileID: int64(req.ProfileId),
+		SessionID: null.String{
+			req.SessionId,
+			true,
+		},
+		ClientID: null.Int64{
+			client.ID,
+			true,
+		},
+	}
+	s.log.Trace().Msg("creating new conversation")
+	if err := s.repo.CreateConversation(ctx, conversation); err != nil {
+		s.log.Err(err)
+		return err
+	}
+
 	message := &models.Message{
 		ClientID: null.Int64{
 			client.ID,
@@ -92,11 +136,13 @@ func (s *storageService) ProcessMessage(ctx context.Context, req *pb.MessageRequ
 			req.Text,
 			true,
 		},
-		ConversationID: client.ConversationID.Int64,
+		ConversationID: conversation.ID,
 	}
 	if err := s.repo.CreateMessage(ctx, message); err != nil {
+		s.log.Err(err)
 		return err
 	}
+	s.log.Trace().Msg("message processed")
 	res.Created = true
 	return nil
 }

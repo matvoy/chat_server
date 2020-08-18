@@ -10,6 +10,7 @@ message MessageFromFlow {
   string external_user_id = 1;
   string session_id = 2;
   string text = 3;
+  string application_id = 4;
 }
 
 message Response {}
