@@ -33,6 +33,7 @@ var (
 	cfg        *Config
 	service    micro.Service
 	redisStore store.Store
+	tgBot      ChatServer
 )
 
 func main() {
@@ -88,10 +89,15 @@ func main() {
 			flowClient = pbflow.NewAdapterService("webitel.chat.service.flowadapter", service.Client())
 			var err error
 			logger, err = NewLogger(cfg.LogLevel)
-			return err
+			if err != nil {
+				return err
+			}
+			return configureTelegram()
 		}),
 		micro.AfterStart(
-			startTelegram,
+			func() error {
+				return tgBot.Start()
+			},
 		),
 		micro.Store(redisStore),
 	)
@@ -103,8 +109,8 @@ func main() {
 	}
 }
 
-func startTelegram() error {
-	tgBot := NewTelegramBot(
+func configureTelegram() error {
+	tgBot = NewTelegramBot(
 		cfg.TelegramBotToken,
 		cfg.ProfileID,
 		logger,
@@ -119,7 +125,7 @@ func startTelegram() error {
 			Msg(err.Error())
 		return err
 	}
-	return tgBot.Start()
+	return nil
 }
 
 func NewLogger(logLevel string) (*zerolog.Logger, error) {

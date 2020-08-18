@@ -16,6 +16,7 @@ import (
 
 type ChatServer interface {
 	Start() error
+	ProcessMessageFromFlow(ctx context.Context, req *pb.MessageFromFlow, res *pb.Response) error
 }
 
 type telegramBot struct {
@@ -96,7 +97,7 @@ func (t *telegramBot) Start() error {
 		applicationID := "first"
 
 		session, err := t.redisStore.Read(strChatID)
-		if err != nil {
+		if err != nil && err.Error() != "not found" {
 			t.log.Err(err)
 			continue
 		}
@@ -146,18 +147,20 @@ func (t *telegramBot) Start() error {
 			ApplicationId:  applicationID,
 		}
 
-		go func() {
-			res, err := t.client.ProcessMessage(context.Background(), message)
-			if err != nil || res == nil {
-				t.log.Err(err)
-			}
-		}()
+		// go func() {
+		res, err := t.client.ProcessMessage(context.Background(), message)
+		if err != nil || res == nil {
+			t.log.Err(err)
+		}
+		t.log.Debug().Msg("records created in the storage")
+		// }()
 
 		resFlow, err := t.flowClient.SendMessageToFlow(context.Background(), messageFlow)
 		if err != nil || resFlow == nil {
 			t.log.Err(err)
 			continue
 		}
+		t.log.Debug().Msg("message sent to the flow")
 
 		// msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Created: %v", res.Created))
 		// msg.ReplyToMessageID = update.Message.MessageID
@@ -169,6 +172,7 @@ func (t *telegramBot) Start() error {
 
 func (t *telegramBot) ProcessMessageFromFlow(ctx context.Context, req *pb.MessageFromFlow, res *pb.Response) error {
 	id, err := strconv.ParseInt(req.SessionId, 10, 64)
+	t.log.Debug().Str("application_id", req.ApplicationId).Int64("chat_id", id).Msg("message sent to the flow")
 	if err != nil {
 		t.log.Err(err)
 		return err
@@ -184,5 +188,9 @@ func (t *telegramBot) ProcessMessageFromFlow(ctx context.Context, req *pb.Messag
 	msg := tgbotapi.NewMessage(id, req.Text)
 	// msg.ReplyToMessageID = update.Message.MessageID
 	_, err = t.bot.Send(msg)
-	return err
+	if err != nil {
+		t.log.Err(err)
+		return err
+	}
+	return nil
 }

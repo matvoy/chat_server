@@ -34,8 +34,11 @@ func (s *storageService) ProcessMessage(ctx context.Context, req *pb.MessageRequ
 	var err error
 
 	if client != nil {
+		s.log.Trace().Int64("client_id", client.ID).Msg("client found")
 		if req.IsNew {
+			s.log.Trace().Msg("creating new conversation")
 			if err = s.repo.CloseConversation(ctx, req.SessionId); err != nil {
+				s.log.Err(err)
 				return err
 			}
 			conversation = &models.Conversation{
@@ -50,11 +53,14 @@ func (s *storageService) ProcessMessage(ctx context.Context, req *pb.MessageRequ
 				},
 			}
 			if err = s.repo.CreateConversation(ctx, conversation); err != nil {
+				s.log.Err(err)
 				return err
 			}
 		} else {
+			s.log.Trace().Msg("fetching existing conversation")
 			conversation, err = s.repo.GetConversationBySessionID(ctx, req.SessionId)
 			if err != nil {
+				s.log.Err(err)
 				return err
 			}
 		}
@@ -69,9 +75,15 @@ func (s *storageService) ProcessMessage(ctx context.Context, req *pb.MessageRequ
 			},
 			ConversationID: conversation.ID,
 		}
-		return s.repo.CreateMessage(ctx, message)
-	}
+		if err = s.repo.CreateMessage(ctx, message); err != nil {
+			s.log.Err(err)
+			return err
+		}
+		s.log.Trace().Msg("message processed")
 
+		return nil
+	}
+	s.log.Trace().Msg("creating new client")
 	client = &models.Client{
 		ExternalID: null.String{
 			req.ExternalUserId,
@@ -95,6 +107,7 @@ func (s *storageService) ProcessMessage(ctx context.Context, req *pb.MessageRequ
 		},
 	}
 	if err := s.repo.CreateClient(ctx, client); err != nil {
+		s.log.Err(err)
 		return err
 	}
 	conversation = &models.Conversation{
@@ -108,7 +121,9 @@ func (s *storageService) ProcessMessage(ctx context.Context, req *pb.MessageRequ
 			true,
 		},
 	}
+	s.log.Trace().Msg("creating new conversation")
 	if err := s.repo.CreateConversation(ctx, conversation); err != nil {
+		s.log.Err(err)
 		return err
 	}
 
@@ -124,8 +139,10 @@ func (s *storageService) ProcessMessage(ctx context.Context, req *pb.MessageRequ
 		ConversationID: conversation.ID,
 	}
 	if err := s.repo.CreateMessage(ctx, message); err != nil {
+		s.log.Err(err)
 		return err
 	}
+	s.log.Trace().Msg("message processed")
 	res.Created = true
 	return nil
 }
