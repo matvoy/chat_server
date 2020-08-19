@@ -4,12 +4,6 @@
 vendor:
 	GO111MODULE=on go mod vendor
 
-# run dev chat server
-run:
-	docker-compose down
-	cp ./configs/.env.template ./.env
-	docker-compose up --build
-
 # start all unit tests
 tests:
 	go test ./...
