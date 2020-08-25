@@ -3,14 +3,26 @@ syntax = "proto3";
 package webitel.chat.service.telegrambot; 
 
 service TelegramBotService {
-  rpc ProcessMessageFromFlow(MessageFromFlow) returns (Response) {}
+  rpc MessageFromFlow(MessageFromFlowRequest) returns (MessageFromFlowResponse) {}
 }
 
-message MessageFromFlow {
-  string external_user_id = 1;
-  string session_id = 2;
-  string text = 3;
-  string application_id = 4;
+message Message {
+    int64 id = 1;
+    string type = 2;
+
+    message TextMessage {
+        string text = 1;
+    }
+
+    oneof value {
+        TextMessage text_message = 3;
+    }
 }
 
-message Response {}
+message MessageFromFlowRequest {
+  string session_id = 1;
+  int64 conversation_id = 2;
+  Message message = 3;
+}
+
+message MessageFromFlowResponse {}

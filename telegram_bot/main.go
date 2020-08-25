@@ -4,38 +4,32 @@ import (
 	"os"
 
 	pbstorage "github.com/matvoy/chat_server/chat_storage/proto/storage"
-	pbflow "github.com/matvoy/chat_server/flow_adapter/proto/adapter"
 	pb "github.com/matvoy/chat_server/telegram_bot/proto/bot_message"
 
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/config/cmd"
-	"github.com/micro/go-micro/v2/store"
-	"github.com/micro/go-plugins/store/redis/v2"
+	"github.com/micro/go-plugins/registry/consul/v2"
 	"github.com/rs/zerolog"
 )
 
 type Config struct {
-	LogLevel            string
-	TelegramBotToken    string
-	ProfileID           uint64
-	ConversationTimeout uint64
+	LogLevel         string
+	TelegramBotToken string
+	ProfileID        uint64
 }
 
 var (
-	client     pbstorage.StorageService
-	flowClient pbflow.AdapterService
-	logger     *zerolog.Logger
-	cfg        *Config
-	service    micro.Service
-	redisStore store.Store
-	tgBot      ChatServer
-	redisTable string
+	client  pbstorage.StorageService
+	logger  *zerolog.Logger
+	cfg     *Config
+	service micro.Service
+	tgBot   ChatServer
 )
 
 func init() {
 	// plugins
-	cmd.DefaultStores["redis"] = redis.NewStore
+	cmd.DefaultRegistries["consul"] = consul.NewRegistry
 }
 
 func main() {
@@ -61,11 +55,6 @@ func main() {
 				EnvVars: []string{"PROFILE_ID"},
 				Usage:   "Profile id",
 			},
-			&cli.Uint64Flag{
-				Name:    "conversation_timeout",
-				EnvVars: []string{"CONVERSATION_TIMEOUT"},
-				Usage:   "Conversation timeout",
-			},
 		),
 	)
 
@@ -74,11 +63,9 @@ func main() {
 			cfg.LogLevel = c.String("log_level")
 			cfg.TelegramBotToken = c.String("telegram_bot_token")
 			cfg.ProfileID = c.Uint64("profile_id")
-			cfg.ConversationTimeout = c.Uint64("conversation_timeout")
-			redisTable = c.String("store_table")
+			// cfg.ConversationTimeout = c.Uint64("conversation_timeout")
 
 			client = pbstorage.NewStorageService("webitel.chat.service.storage", service.Client())
-			flowClient = pbflow.NewAdapterService("webitel.chat.service.flowadapter", service.Client())
 			var err error
 			logger, err = NewLogger(cfg.LogLevel)
 			if err != nil {
@@ -93,8 +80,6 @@ func main() {
 		),
 	)
 
-	service.Options().Store.Init(store.Table(redisTable))
-
 	if err := service.Run(); err != nil {
 		logger.Fatal().
 			Str("app", "failed to run service").
@@ -108,9 +93,6 @@ func configureTelegram() error {
 		cfg.ProfileID,
 		logger,
 		client,
-		flowClient,
-		service.Options().Store,
-		cfg.ConversationTimeout,
 	)
 	if err := pb.RegisterTelegramBotServiceHandler(service.Server(), tgBot); err != nil {
 		logger.Fatal().
