@@ -21,11 +21,11 @@ build-telegrambot:
 	go build -mod=vendor -o bin/webitel.chat.service.telegrambot ./telegram_bot/*.go
 
 # build telegram bot service
-build-flowadapter:
-	go build -mod=vendor -o bin/webitel.chat.service.flowadapter ./flow_adapter/*.go
+build-flowclient:
+	go build -mod=vendor -o bin/webitel.chat.service.flowclient ./flow_client/*.go
 
 # build chat server
-build: build-storage build-telegrambot build-flowadapter
+build: build-storage build-telegrambot build-flowclient
 
 # start linter
 lint:
@@ -38,7 +38,8 @@ generate-boiler:
 
 proto: 
 	protoc --proto_path=. --go_out=. --micro_out=.  chat_storage/proto/storage/storage.proto
-	protoc --proto_path=. --go_out=. --micro_out=.  flow_adapter/proto/adapter/adapter.proto
+	protoc --proto_path=. --go_out=. --micro_out=.  flow_client/proto/flow_client/flow_client.proto
+	protoc --proto_path=. --go_out=. --micro_out=.  flow_client/proto/flow_manager/flow_manager.proto
 	protoc --proto_path=. --go_out=. --micro_out=.  telegram_bot/proto/bot_message/bot_message.proto
 
 run-storage: build-storage
@@ -47,10 +48,10 @@ run-storage: build-storage
 run-telegrambot: build-telegrambot
 	./bin/webitel.chat.service.telegrambot --store="redis" --store_table="chat:" --store_address="redis" --telegram_bot_token="token" --profile_id=1 --conversation_timeout=300
 
-run-flowadapter: build-flowadapter
-	./bin/webitel.chat.service.flowadapter
+run-flowclient: build-flowclient
+	./bin/webitel.chat.service.flowclient
 
 run-api:
 	./bin/webitel.chat.service.api start  --api_http_port=55020 --db_host="postgres" --db_user="postgres" --db_name="postgres" --db_password="postgres"
 
-run: run-storage run-telegrambot run-flowadapter
+run: run-storage run-telegrambot run-flowclient
