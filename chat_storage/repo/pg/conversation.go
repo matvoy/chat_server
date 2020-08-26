@@ -26,6 +26,21 @@ func (repo *PgRepository) GetConversationBySessionID(ctx context.Context, sessio
 	return result, nil
 }
 
+func (repo *PgRepository) GetConversationByID(ctx context.Context, id int64) (*models.Conversation, error) {
+	result, err := models.Conversations(
+		models.ConversationWhere.ID.EQ(id),
+		qm.Load(models.ConversationRels.Profile),
+	).One(ctx, repo.db)
+	if err != nil {
+		repo.log.Warn().Msg(err.Error())
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return result, nil
+}
+
 func (repo *PgRepository) CreateConversation(ctx context.Context, c *models.Conversation) error {
 	if err := c.Insert(ctx, repo.db, boil.Infer()); err != nil {
 		return err
@@ -33,8 +48,10 @@ func (repo *PgRepository) CreateConversation(ctx context.Context, c *models.Conv
 	return nil
 }
 
-func (repo *PgRepository) CloseConversation(ctx context.Context, sessionID string) error {
-	result, err := models.Conversations(qm.Where("LOWER(session_id) like ?", strings.ToLower(sessionID)), qm.Where("closed_at is null")).
+func (repo *PgRepository) CloseConversation(ctx context.Context, id int64) error {
+	// result, err := models.Conversations(qm.Where("LOWER(session_id) like ?", strings.ToLower(sessionID)), qm.Where("closed_at is null")).
+	// 	One(ctx, repo.db)
+	result, err := models.Conversations(models.ConversationWhere.ID.EQ(id)).
 		One(ctx, repo.db)
 	if err != nil {
 		repo.log.Warn().Msg(err.Error())

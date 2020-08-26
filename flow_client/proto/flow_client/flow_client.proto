@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package webitel.chat.service.flowadapter;
+package webitel.chat.service.flowclient;
 
 service FlowClientService {
     rpc SendMessage(SendMessageRequest) returns (SendMessageResponse) {}
@@ -42,7 +42,8 @@ message WaitMessageRequest {
 
 message WaitMessageResponse {
     int64 timeout_sec = 1;
-    Error error = 2;
+    repeated Message messages = 2;
+    Error error = 3;
 }
 
 message CloseConversationRequest {
@@ -51,5 +52,31 @@ message CloseConversationRequest {
 }
 
 message CloseConversationResponse {
+    Error error = 1;
+}
+
+service FlowAdapterService {
+    rpc Init(InitRequest) returns (InitResponse) {}
+    rpc SendMessageToFlow(SendMessageToFlowRequest) returns (SendMessageToFlowResponse) {}
+}
+
+message InitRequest {
+    int64 conversation_id = 1;
+    int64 profile_id = 2;
+    int64 domain_id = 3;
+    Message message = 4;
+    map<string, string>  variables = 5;
+}
+
+message InitResponse {
+    Error error = 1;
+}
+
+message SendMessageToFlowRequest {
+    int64 conversation_id = 1;
+    Message message = 2;
+}
+
+message SendMessageToFlowResponse {
     Error error = 1;
 }

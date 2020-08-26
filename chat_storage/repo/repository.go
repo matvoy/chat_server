@@ -11,6 +11,7 @@ import (
 type Repository interface {
 	GetProfileByID(ctx context.Context, id int64) (*models.Profile, error)
 	GetConversationBySessionID(ctx context.Context, sessionID string) (*models.Conversation, error)
+	GetConversationByID(ctx context.Context, id int64) (*models.Conversation, error)
 	GetClientByExternalID(ctx context.Context, externalID string) (*models.Client, error)
 
 	CreateProfile(ctx context.Context, p *models.Profile) error
@@ -20,5 +21,5 @@ type Repository interface {
 	CreateUserConversation(ctx context.Context, uc *models.UserConversation) error
 	CreateAttachment(ctx context.Context, a *models.Attachment) error
 
-	CloseConversation(ctx context.Context, sessionID string) error
+	CloseConversation(ctx context.Context, id int64) error
 }
