@@ -224,8 +224,11 @@ func (s *flowService) WaitMessage(ctx context.Context, req *pb.WaitMessageReques
 func (s *flowService) CloseConversation(ctx context.Context, req *pb.CloseConversationRequest, res *pb.CloseConversationResponse) error {
 	messagesKey := fmt.Sprintf("cached_messages:%v", req.GetConversationId())
 	confirmationKey := fmt.Sprintf("confirmations:%v", req.GetConversationId())
+	cachedMessages, _ := s.redisStore.Read(messagesKey)
+	for _, m := range cachedMessages {
+		s.redisStore.Delete(m.Key)
+	}
 	s.redisStore.Delete(confirmationKey)
-	s.redisStore.Delete(messagesKey)
 	if _, err := s.storageClient.CloseConversation(
 		context.Background(),
 		&pbstorage.CloseConversationRequest{
