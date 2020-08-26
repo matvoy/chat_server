@@ -202,10 +202,10 @@ func (s *flowService) WaitMessage(ctx context.Context, req *pb.WaitMessageReques
 				return nil
 			}
 			messages = append(messages, tmp)
+			s.redisStore.Delete(m.Key)
 		}
 		res.Messages = messages
 		s.redisStore.Delete(confirmationKey)
-		s.redisStore.Delete(messagesKey)
 		res.TimeoutSec = int64(timeout)
 		return nil
 	}
