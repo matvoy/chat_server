@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 	"time"
 
@@ -19,6 +20,7 @@ type Service interface {
 	ProcessMessage(ctx context.Context, req *pb.ProcessMessageRequest, res *pb.ProcessMessageResponse) error
 	GetConversationByID(ctx context.Context, req *pb.GetConversationByIDRequest, res *pb.GetConversationByIDResponse) error
 	CloseConversation(ctx context.Context, req *pb.CloseConversationRequest, res *pb.CloseConversationResponse) error
+	GetProfiles(ctx context.Context, req *pb.GetProfilesRequest, res *pb.GetProfilesResponse) error
 }
 
 type storageService struct {
@@ -173,6 +175,44 @@ func (s *storageService) CloseConversation(ctx context.Context, req *pb.CloseCon
 	return nil
 }
 
+func (s *storageService) GetProfileByID(ctx context.Context, req *pb.GetProfileByIDRequest, res *pb.GetProfileByIDResponse) error {
+	profile, err := s.repo.GetProfileByID(context.Background(), req.ProfileId)
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return nil
+	}
+	variableBytes, err := profile.Variables.MarshalJSON()
+	variables := make(map[string]string)
+	err = json.Unmarshal(variableBytes, &variables)
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return nil
+	}
+	res.Profile = &pb.Profile{
+		Id:        profile.ID,
+		Name:      profile.Name,
+		Type:      profile.Type,
+		DomainId:  profile.DomainID,
+		Variables: variables,
+	}
+	return nil
+}
+
+func (s *storageService) GetProfiles(ctx context.Context, req *pb.GetProfilesRequest, res *pb.GetProfilesResponse) error {
+	profiles, err := s.repo.GetProfiles(context.Background())
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return nil
+	}
+	result, err := transformProfilesFromRepoModel(profiles)
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return nil
+	}
+	res.Profiles = result
+	return nil
+}
+
 func (s *storageService) parseSession(ctx context.Context, req *pb.ProcessMessageRequest, clientID int64) (conversationID int64, isNew bool, err error) {
 	sessionKey := "session_id:" + req.SessionId
 	session, err := s.redisStore.Read(sessionKey)
@@ -242,4 +282,35 @@ func (s *storageService) createClient(ctx context.Context, req *pb.ProcessMessag
 	}
 	err = s.repo.CreateClient(ctx, client)
 	return
+}
+
+func transformProfileFromRepoModel(profile *models.Profile) (*pb.Profile, error) {
+	variableBytes, err := profile.Variables.MarshalJSON()
+	variables := make(map[string]string)
+	err = json.Unmarshal(variableBytes, &variables)
+	if err != nil {
+		return nil, err
+	}
+	result := &pb.Profile{
+		Id:        profile.ID,
+		Name:      profile.Name,
+		Type:      profile.Type,
+		DomainId:  profile.DomainID,
+		Variables: variables,
+	}
+	return result, nil
+}
+
+func transformProfilesFromRepoModel(profiles []*models.Profile) ([]*pb.Profile, error) {
+	result := make([]*pb.Profile, 0, len(profiles))
+	var tmp *pb.Profile
+	var err error
+	for _, item := range profiles {
+		tmp, err = transformProfileFromRepoModel(item)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, tmp)
+	}
+	return result, nil
 }

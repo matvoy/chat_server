@@ -10,6 +10,7 @@ import (
 
 type Repository interface {
 	GetProfileByID(ctx context.Context, id int64) (*models.Profile, error)
+	GetProfiles(ctx context.Context) ([]*models.Profile, error)
 	GetConversationBySessionID(ctx context.Context, sessionID string) (*models.Conversation, error)
 	GetConversationByID(ctx context.Context, id int64) (*models.Conversation, error)
 	GetClientByExternalID(ctx context.Context, externalID string) (*models.Client, error)

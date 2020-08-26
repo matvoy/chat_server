@@ -22,6 +22,10 @@ func (repo *PgRepository) GetProfileByID(ctx context.Context, id int64) (*models
 	return result, nil
 }
 
+func (repo *PgRepository) GetProfiles(ctx context.Context) ([]*models.Profile, error) {
+	return models.Profiles().All(ctx, repo.db)
+}
+
 func (repo *PgRepository) CreateProfile(ctx context.Context, p *models.Profile) error {
 	if err := p.Insert(ctx, repo.db, boil.Infer()); err != nil {
 		return err

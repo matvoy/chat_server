@@ -5,6 +5,8 @@ package webitel.chat.service.storage;
 service StorageService {
   rpc ProcessMessage(ProcessMessageRequest) returns (ProcessMessageResponse) {}
   rpc GetConversationByID(GetConversationByIDRequest) returns (GetConversationByIDResponse) {}
+  rpc GetProfileByID(GetProfileByIDRequest) returns (GetProfileByIDResponse) {}
+  rpc GetProfiles(GetProfilesRequest) returns (GetProfilesResponse) {}
   rpc CloseConversation(CloseConversationRequest) returns (CloseConversationResponse) {}
 }
 
@@ -41,6 +43,7 @@ message Profile {
   string name = 2;
   string type = 3;
   int64 domain_id = 4;
+  map<string, string>  variables = 5;
 }
 
 message CloseConversationRequest {
@@ -48,4 +51,19 @@ message CloseConversationRequest {
 }
 
 message CloseConversationResponse {
+}
+
+message GetProfileByIDRequest {
+  int64 profile_id = 1;
+}
+
+message GetProfileByIDResponse {
+  Profile profile = 1;
+}
+
+message GetProfilesRequest {
+}
+
+message GetProfilesResponse {
+  repeated Profile profiles = 1;
 }
