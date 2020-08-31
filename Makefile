@@ -43,15 +43,14 @@ proto:
 	protoc --proto_path=. --go_out=. --micro_out=.  telegram_bot/proto/bot_message/bot_message.proto
 
 run-storage: build-storage
-	./bin/webitel.chat.service.storage --db_host="postgres" --db_user="postgres" --db_name="postgres" --db_password="postgres" --log_level="trace"
+	./bin/webitel.chat.service.storage --registry="consul" --registry_address="consul" --store="redis" --store_table="chat:" --store_address="redis" --db_host="postgres" --db_user="postgres" --db_name="postgres" --db_password="postgres" --log_level="trace"
 
 run-telegrambot: build-telegrambot
-	./bin/webitel.chat.service.telegrambot --store="redis" --store_table="chat:" --store_address="redis" --telegram_bot_token="token" --profile_id=1 --conversation_timeout=300
+	./bin/webitel.chat.service.telegrambot --registry="consul" --registry_address="consul" --tg_webhook_address="example.com"
 
 run-flowclient: build-flowclient
-	./bin/webitel.chat.service.flowclient
+	./bin/webitel.chat.service.flowclient --registry="consul" --registry_address="consul" --store="redis" --store_table="chat:" --store_address="redis" --conversation_timeout_sec=600
 
-run-api:
-	./bin/webitel.chat.service.api start  --api_http_port=55020 --db_host="postgres" --db_user="postgres" --db_name="postgres" --db_password="postgres"
-
-run: run-storage run-telegrambot run-flowclient
+generate-ssl:
+	openssl genrsa -out server.key 2048
+	openssl req -new -x509 -sha256 -key server.key -out server.crt -days 3650

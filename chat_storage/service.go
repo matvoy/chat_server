@@ -199,7 +199,7 @@ func (s *storageService) GetProfileByID(ctx context.Context, req *pb.GetProfileB
 }
 
 func (s *storageService) GetProfiles(ctx context.Context, req *pb.GetProfilesRequest, res *pb.GetProfilesResponse) error {
-	profiles, err := s.repo.GetProfiles(context.Background())
+	profiles, err := s.repo.GetProfiles(context.Background(), req.Type)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
 		return nil

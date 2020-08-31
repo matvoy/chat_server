@@ -162,6 +162,7 @@ func (s *flowService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 	case "telegram":
 		{
 			message := &pbtelegram.MessageFromFlowRequest{
+				ProfileId:      conversation.ProfileId,
 				ConversationId: req.GetConversationId(),
 				SessionId:      conversation.SessionId,
 				Message: &pbtelegram.Message{
