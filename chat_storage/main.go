@@ -8,6 +8,7 @@ import (
 	pb "github.com/matvoy/chat_server/chat_storage/proto/storage"
 	"github.com/matvoy/chat_server/chat_storage/repo/pg"
 	pbflow "github.com/matvoy/chat_server/flow_client/proto/flow_client"
+	cache "github.com/matvoy/chat_server/pkg/chat_cache"
 
 	_ "github.com/lib/pq"
 	"github.com/micro/cli/v2"
@@ -124,7 +125,8 @@ func main() {
 		Msg("db connected")
 
 	repo := pg.NewPgRepository(db, logger)
-	serv := NewStorageService(repo, logger, service.Options().Store, flowClient)
+	cache := cache.NewChatCache(service.Options().Store)
+	serv := NewStorageService(repo, logger, flowClient, cache)
 
 	if err := pb.RegisterStorageServiceHandler(service.Server(), serv); err != nil {
 		logger.Fatal().

@@ -6,6 +6,7 @@ import (
 	pbstorage "github.com/matvoy/chat_server/chat_storage/proto/storage"
 	pb "github.com/matvoy/chat_server/flow_client/proto/flow_client"
 	pbmanager "github.com/matvoy/chat_server/flow_client/proto/flow_manager"
+	cache "github.com/matvoy/chat_server/pkg/chat_cache"
 	pbtelegram "github.com/matvoy/chat_server/telegram_bot/proto/bot_message"
 
 	"github.com/micro/cli/v2"
@@ -74,7 +75,8 @@ func main() {
 
 	service.Options().Store.Init(store.Table(redisTable))
 
-	serv := NewFlowService(logger, botClient, managerClient, service.Options().Store, storageClient)
+	cache := cache.NewChatCache(service.Options().Store)
+	serv := NewFlowService(logger, botClient, managerClient, storageClient, cache)
 
 	if err := pb.RegisterFlowAdapterServiceHandler(service.Server(), serv); err != nil {
 		logger.Fatal().

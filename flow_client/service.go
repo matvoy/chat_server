@@ -2,16 +2,14 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	pbstorage "github.com/matvoy/chat_server/chat_storage/proto/storage"
 	pb "github.com/matvoy/chat_server/flow_client/proto/flow_client"
 	pbmanager "github.com/matvoy/chat_server/flow_client/proto/flow_manager"
+	cache "github.com/matvoy/chat_server/pkg/chat_cache"
 	pbtelegram "github.com/matvoy/chat_server/telegram_bot/proto/bot_message"
 
 	proto "github.com/golang/protobuf/proto"
-	"github.com/micro/go-micro/v2/store"
 	"github.com/rs/zerolog"
 )
 
@@ -36,7 +34,7 @@ type flowService struct {
 	telegramClient    pbtelegram.TelegramBotService
 	flowManagerClient pbmanager.FlowChatServerService
 	storageClient     pbstorage.StorageService
-	redisStore        store.Store
+	chatCache         cache.ChatCache
 }
 
 // var cachedMessages []*pb.Message
@@ -45,26 +43,25 @@ func NewFlowService(
 	log *zerolog.Logger,
 	telegramClient pbtelegram.TelegramBotService,
 	flowManagerClient pbmanager.FlowChatServerService,
-	redisStore store.Store,
 	storageClient pbstorage.StorageService,
+	chatCache cache.ChatCache,
 ) *flowService {
 	return &flowService{
 		log,
 		telegramClient,
 		flowManagerClient,
 		storageClient,
-		redisStore,
+		chatCache,
 	}
 }
 
 func (s *flowService) SendMessageToFlow(ctx context.Context, req *pb.SendMessageToFlowRequest, res *pb.SendMessageToFlowResponse) error {
 	s.log.Info().Msg("confirmation")
-	confirmationKey := fmt.Sprintf("confirmations:%v", req.ConversationId)
-	confirmationID, err := s.redisStore.Read(confirmationKey)
-	if err != nil && err.Error() != "not found" {
+	confirmationID, err := s.chatCache.ReadConfirmation(req.ConversationId)
+	if err != nil {
 		return nil
 	}
-	if confirmationID != nil && len(confirmationID) > 0 && confirmationID[0] != nil {
+	if confirmationID != nil {
 		messages := []*pbmanager.Message{
 			{
 				Id:   req.Message.GetId(),
@@ -78,7 +75,7 @@ func (s *flowService) SendMessageToFlow(ctx context.Context, req *pb.SendMessage
 		}
 		message := &pbmanager.ConfirmationMessageRequest{
 			ConversationId: req.GetConversationId(),
-			ConfirmationId: string(confirmationID[0].Value),
+			ConfirmationId: string(confirmationID),
 			Messages:       messages,
 		}
 		if res, err := s.flowManagerClient.ConfirmationMessage(context.Background(), message); err != nil || res.Error != nil {
@@ -89,11 +86,10 @@ func (s *flowService) SendMessageToFlow(ctx context.Context, req *pb.SendMessage
 			}
 			return nil
 		}
-		s.redisStore.Delete(confirmationKey)
+		s.chatCache.DeleteConfirmation(req.ConversationId)
 		return nil
 	}
 	s.log.Info().Msg("confirmation messages sent")
-	messagesKey := fmt.Sprintf("cached_messages:%v", req.ConversationId)
 	message := &pb.Message{
 		Id:   req.Message.GetId(),
 		Type: req.Message.GetType(),
@@ -108,11 +104,7 @@ func (s *flowService) SendMessageToFlow(ctx context.Context, req *pb.SendMessage
 		s.log.Error().Msg(err.Error())
 		return nil
 	}
-	if err := s.redisStore.Write(&store.Record{
-		Key:    fmt.Sprintf("%s:%v", messagesKey, req.Message.GetId()),
-		Value:  messageBytes,
-		Expiry: time.Hour * time.Duration(24),
-	}); err != nil {
+	if err := s.chatCache.WriteCachedMessage(req.ConversationId, req.Message.GetId(), messageBytes); err != nil {
 		s.log.Error().Msg(err.Error())
 	}
 	return nil
@@ -184,14 +176,12 @@ func (s *flowService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 }
 
 func (s *flowService) WaitMessage(ctx context.Context, req *pb.WaitMessageRequest, res *pb.WaitMessageResponse) error {
-	messagesKey := fmt.Sprintf("cached_messages:%v", req.GetConversationId())
-	confirmationKey := fmt.Sprintf("confirmations:%v", req.GetConversationId())
-	cachedMessages, err := s.redisStore.Read(messagesKey)
-	if err != nil && err.Error() != "not found" {
+	cachedMessages, err := s.chatCache.ReadCachedMessages(req.GetConversationId())
+	if err != nil {
 		s.log.Error().Msg(err.Error())
 		return nil
 	}
-	if len(cachedMessages) > 0 {
+	if cachedMessages != nil {
 		messages := make([]*pb.Message, 0, len(cachedMessages))
 		var tmp *pb.Message
 		var err error
@@ -203,18 +193,14 @@ func (s *flowService) WaitMessage(ctx context.Context, req *pb.WaitMessageReques
 				return nil
 			}
 			messages = append(messages, tmp)
-			s.redisStore.Delete(m.Key)
+			s.chatCache.DeleteCachedMessage(m.Key)
 		}
 		res.Messages = messages
-		s.redisStore.Delete(confirmationKey)
+		s.chatCache.DeleteConfirmation(req.GetConversationId())
 		res.TimeoutSec = int64(timeout)
 		return nil
 	}
-	if err := s.redisStore.Write(&store.Record{
-		Key:    confirmationKey,
-		Value:  []byte(req.ConfirmationId),
-		Expiry: time.Second * time.Duration(timeout),
-	}); err != nil {
+	if err := s.chatCache.WriteConfirmation(req.GetConversationId(), []byte(req.ConfirmationId)); err != nil {
 		s.log.Error().Msg(err.Error())
 		return nil
 	}
@@ -223,13 +209,8 @@ func (s *flowService) WaitMessage(ctx context.Context, req *pb.WaitMessageReques
 }
 
 func (s *flowService) CloseConversation(ctx context.Context, req *pb.CloseConversationRequest, res *pb.CloseConversationResponse) error {
-	messagesKey := fmt.Sprintf("cached_messages:%v", req.GetConversationId())
-	confirmationKey := fmt.Sprintf("confirmations:%v", req.GetConversationId())
-	cachedMessages, _ := s.redisStore.Read(messagesKey)
-	for _, m := range cachedMessages {
-		s.redisStore.Delete(m.Key)
-	}
-	s.redisStore.Delete(confirmationKey)
+	s.chatCache.DeleteCachedMessages(req.GetConversationId())
+	s.chatCache.DeleteConfirmation(req.GetConversationId())
 	if _, err := s.storageClient.CloseConversation(
 		context.Background(),
 		&pbstorage.CloseConversationRequest{

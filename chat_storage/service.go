@@ -4,14 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"strconv"
-	"time"
 
 	pb "github.com/matvoy/chat_server/chat_storage/proto/storage"
 	"github.com/matvoy/chat_server/chat_storage/repo"
 	pbflow "github.com/matvoy/chat_server/flow_client/proto/flow_client"
 	"github.com/matvoy/chat_server/models"
+	cache "github.com/matvoy/chat_server/pkg/chat_cache"
 
-	"github.com/micro/go-micro/v2/store"
 	"github.com/rs/zerolog"
 	"github.com/volatiletech/null/v8"
 )
@@ -26,16 +25,16 @@ type Service interface {
 type storageService struct {
 	repo       repo.Repository
 	log        *zerolog.Logger
-	redisStore store.Store
 	flowClient pbflow.FlowAdapterService
+	chatCache  cache.ChatCache
 }
 
-func NewStorageService(repo repo.Repository, log *zerolog.Logger, redisStore store.Store, flowClient pbflow.FlowAdapterService) *storageService {
+func NewStorageService(repo repo.Repository, log *zerolog.Logger, flowClient pbflow.FlowAdapterService, chatCache cache.ChatCache) *storageService {
 	return &storageService{
 		repo,
 		log,
-		redisStore,
 		flowClient,
+		chatCache,
 	}
 }
 
@@ -167,8 +166,7 @@ func (s *storageService) CloseConversation(ctx context.Context, req *pb.CloseCon
 		s.log.Error().Msg(err.Error())
 		return nil
 	}
-	sessionKey := "session_id:" + c.SessionID.String
-	s.redisStore.Delete(sessionKey)
+	s.chatCache.DeleteSession(c.SessionID.String)
 	if err := s.repo.CloseConversation(context.Background(), req.ConversationId); err != nil {
 		s.log.Error().Msg(err.Error())
 	}
@@ -214,19 +212,14 @@ func (s *storageService) GetProfiles(ctx context.Context, req *pb.GetProfilesReq
 }
 
 func (s *storageService) parseSession(ctx context.Context, req *pb.ProcessMessageRequest, clientID int64) (conversationID int64, isNew bool, err error) {
-	sessionKey := "session_id:" + req.SessionId
-	session, err := s.redisStore.Read(sessionKey)
-	if err != nil && err.Error() != "not found" {
+	cachedConversationID, err := s.chatCache.ReadSession(req.SessionId)
+	if err != nil {
 		return
 	}
 	var conversation *models.Conversation
-	if session != nil && len(session) > 0 && session[0] != nil {
-		conversationID, _ = strconv.ParseInt(string(session[0].Value), 10, 64)
-		if err = s.redisStore.Write(&store.Record{
-			Key:    sessionKey,
-			Value:  session[0].Value,
-			Expiry: time.Hour * time.Duration(24),
-		}); err != nil {
+	if cachedConversationID != nil {
+		conversationID, _ = strconv.ParseInt(string(cachedConversationID), 10, 64)
+		if err = s.chatCache.WriteSession(req.SessionId, cachedConversationID); err != nil {
 			return
 		}
 	} else {
@@ -246,11 +239,8 @@ func (s *storageService) parseSession(ctx context.Context, req *pb.ProcessMessag
 		}
 		isNew = true
 		conversationID = conversation.ID
-		if err = s.redisStore.Write(&store.Record{
-			Key:    sessionKey,
-			Value:  []byte(strconv.Itoa(int(conversationID))),
-			Expiry: time.Hour * time.Duration(24),
-		}); err != nil {
+
+		if err = s.chatCache.WriteSession(req.SessionId, []byte(strconv.Itoa(int(conversationID)))); err != nil {
 			return
 		}
 	}
