@@ -7,3 +7,5 @@ models
 go.sum
 *.pb
 *.pb.*
+*.crt
+*.key

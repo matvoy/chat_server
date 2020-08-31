@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gorilla/mux"
 	pbstorage "github.com/matvoy/chat_server/chat_storage/proto/storage"
 	pb "github.com/matvoy/chat_server/telegram_bot/proto/bot_message"
 
@@ -19,6 +20,7 @@ import (
 type ChatServer interface {
 	WebhookHandler(w http.ResponseWriter, r *http.Request)
 	MessageFromFlow(ctx context.Context, req *pb.MessageFromFlowRequest, res *pb.MessageFromFlowResponse) error
+	StartWebhookServer() error
 }
 
 type webhookReqBody struct {
@@ -40,17 +42,23 @@ type webhookReqBody struct {
 type telegramBot struct {
 	log    *zerolog.Logger
 	client pbstorage.StorageService
+	router *mux.Router
 	bots   map[int64]*tgbotapi.BotAPI
 }
 
 func NewTelegramBot(
 	log *zerolog.Logger,
 	client pbstorage.StorageService,
+	router *mux.Router,
 ) *telegramBot {
 	t := &telegramBot{
 		log:    log,
 		client: client,
+		router: router,
 	}
+
+	t.router.HandleFunc("/telegram/{profile_id}", t.WebhookHandler).
+		Methods("POST")
 
 	res, err := t.client.GetProfiles(context.Background(), &pbstorage.GetProfilesRequest{Type: "telegram"})
 	if err != nil || res == nil {
@@ -70,12 +78,20 @@ func NewTelegramBot(
 			log.Error().Msg(err.Error())
 			return nil
 		}
-		webhookInfo := tgbotapi.NewWebhookWithCert(fmt.Sprintf("https://sdafsdf/telegram/%v", profile.Id), "")
+		// webhookInfo := tgbotapi.NewWebhookWithCert(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, profile.Id), cfg.CertPath)
+		webhookInfo := tgbotapi.NewWebhook(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, profile.Id))
 		_, err = bot.SetWebhook(webhookInfo)
 		bots[profile.Id] = bot
 	}
 	t.bots = bots
 	return t
+}
+
+func (t *telegramBot) StartWebhookServer() error {
+	t.log.Info().
+		Int("port", cfg.AppPort).
+		Msg("webhook started listening on port")
+	return http.ListenAndServe(fmt.Sprintf(":%v", cfg.AppPort), t.router) // srv.ListenAndServeTLS(cfg.CertPath, cfg.KeyPath)
 }
 
 func (t *telegramBot) WebhookHandler(w http.ResponseWriter, r *http.Request) {
