@@ -14,9 +14,7 @@ import (
 )
 
 type Config struct {
-	LogLevel         string
-	TelegramBotToken string
-	ProfileID        uint64
+	LogLevel string
 }
 
 var (
@@ -45,24 +43,12 @@ func main() {
 				Value:   "debug",
 				Usage:   "Log Level",
 			},
-			&cli.StringFlag{
-				Name:    "telegram_bot_token",
-				EnvVars: []string{"TELEGRAM_BOT_TOKEN"},
-				Usage:   "Telegram bot token",
-			},
-			&cli.Uint64Flag{
-				Name:    "profile_id",
-				EnvVars: []string{"PROFILE_ID"},
-				Usage:   "Profile id",
-			},
 		),
 	)
 
 	service.Init(
 		micro.Action(func(c *cli.Context) error {
 			cfg.LogLevel = c.String("log_level")
-			cfg.TelegramBotToken = c.String("telegram_bot_token")
-			cfg.ProfileID = c.Uint64("profile_id")
 			// cfg.ConversationTimeout = c.Uint64("conversation_timeout")
 
 			client = pbstorage.NewStorageService("webitel.chat.service.storage", service.Client())
@@ -73,11 +59,11 @@ func main() {
 			}
 			return configureTelegram()
 		}),
-		micro.AfterStart(
-			func() error {
-				return tgBot.Start()
-			},
-		),
+		// micro.AfterStart(
+		// 	func() error {
+		// 		return tgBot.Start()
+		// 	},
+		// ),
 	)
 
 	if err := service.Run(); err != nil {
@@ -89,8 +75,6 @@ func main() {
 
 func configureTelegram() error {
 	tgBot = NewTelegramBot(
-		cfg.TelegramBotToken,
-		cfg.ProfileID,
 		logger,
 		client,
 	)

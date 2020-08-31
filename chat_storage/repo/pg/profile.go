@@ -22,8 +22,8 @@ func (repo *PgRepository) GetProfileByID(ctx context.Context, id int64) (*models
 	return result, nil
 }
 
-func (repo *PgRepository) GetProfiles(ctx context.Context) ([]*models.Profile, error) {
-	return models.Profiles().All(ctx, repo.db)
+func (repo *PgRepository) GetProfiles(ctx context.Context, profileType string) ([]*models.Profile, error) {
+	return models.Profiles(models.ProfileWhere.Type.EQ(profileType)).All(ctx, repo.db)
 }
 
 func (repo *PgRepository) CreateProfile(ctx context.Context, p *models.Profile) error {
