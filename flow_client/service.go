@@ -8,6 +8,7 @@ import (
 	pbmanager "github.com/matvoy/chat_server/flow_client/proto/flow_manager"
 	cache "github.com/matvoy/chat_server/pkg/chat_cache"
 	pbtelegram "github.com/matvoy/chat_server/telegram_bot/proto/bot_message"
+	pbviber "github.com/matvoy/chat_server/viber_bot/proto/bot_message"
 
 	proto "github.com/golang/protobuf/proto"
 	"github.com/rs/zerolog"
@@ -32,6 +33,7 @@ type Service interface {
 type flowService struct {
 	log               *zerolog.Logger
 	telegramClient    pbtelegram.TelegramBotService
+	viberClient       pbviber.ViberBotService
 	flowManagerClient pbmanager.FlowChatServerService
 	storageClient     pbstorage.StorageService
 	chatCache         cache.ChatCache
@@ -42,6 +44,7 @@ type flowService struct {
 func NewFlowService(
 	log *zerolog.Logger,
 	telegramClient pbtelegram.TelegramBotService,
+	viberClient pbviber.ViberBotService,
 	flowManagerClient pbmanager.FlowChatServerService,
 	storageClient pbstorage.StorageService,
 	chatCache cache.ChatCache,
@@ -49,6 +52,7 @@ func NewFlowService(
 	return &flowService{
 		log,
 		telegramClient,
+		viberClient,
 		flowManagerClient,
 		storageClient,
 		chatCache,
@@ -167,6 +171,25 @@ func (s *flowService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 				},
 			}
 			if _, err := s.telegramClient.MessageFromFlow(context.Background(), message); err != nil {
+				s.log.Error().Msg(err.Error())
+			}
+		}
+	case "viber":
+		{
+			message := &pbviber.MessageFromFlowRequest{
+				ProfileId:      conversation.ProfileId,
+				ConversationId: req.GetConversationId(),
+				SessionId:      conversation.SessionId,
+				Message: &pbviber.Message{
+					Type: req.Messages.GetType(),
+					Value: &pbviber.Message_TextMessage_{
+						TextMessage: &pbviber.Message_TextMessage{
+							Text: req.GetMessages().GetTextMessage().GetText(),
+						},
+					},
+				},
+			}
+			if _, err := s.viberClient.MessageFromFlow(context.Background(), message); err != nil {
 				s.log.Error().Msg(err.Error())
 			}
 		}

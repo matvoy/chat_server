@@ -20,12 +20,16 @@ build-api:
 build-telegrambot:
 	go build -mod=vendor -o bin/webitel.chat.service.telegrambot ./telegram_bot/*.go
 
-# build telegram bot service
+# build viber bot service
+build-viberbot:
+	go build -mod=vendor -o bin/webitel.chat.service.viberbot ./viber_bot/*.go
+
+# build flow service
 build-flowclient:
 	go build -mod=vendor -o bin/webitel.chat.service.flowclient ./flow_client/*.go
 
 # build chat server
-build: build-storage build-telegrambot build-flowclient
+build: build-storage build-telegrambot build-flowclient build-viberbot
 
 # start linter
 lint:
@@ -41,12 +45,16 @@ proto:
 	protoc --proto_path=. --go_out=. --micro_out=.  flow_client/proto/flow_client/flow_client.proto
 	protoc --proto_path=. --go_out=. --micro_out=.  flow_client/proto/flow_manager/flow_manager.proto
 	protoc --proto_path=. --go_out=. --micro_out=.  telegram_bot/proto/bot_message/bot_message.proto
+	protoc --proto_path=. --go_out=. --micro_out=.  viber_bot/proto/bot_message/bot_message.proto
 
 run-storage: build-storage
 	./bin/webitel.chat.service.storage --registry="consul" --registry_address="consul" --store="redis" --store_table="chat:" --store_address="redis" --db_host="postgres" --db_user="postgres" --db_name="postgres" --db_password="postgres" --log_level="trace"
 
 run-telegrambot: build-telegrambot
-	./bin/webitel.chat.service.telegrambot --registry="consul" --registry_address="consul" --tg_webhook_address="example.com"
+	./bin/webitel.chat.service.telegrambot --registry="consul" --registry_address="consul" --tg_webhook_address="example.com" --app_port=8889
+
+run-viberbot: build-viberbot
+	./bin/webitel.chat.service.viberbot --registry="consul" --registry_address="consul" --viber_webhook_address="example.com" --app_port=8889
 
 run-flowclient: build-flowclient
 	./bin/webitel.chat.service.flowclient --registry="consul" --registry_address="consul" --store="redis" --store_table="chat:" --store_address="redis" --conversation_timeout_sec=600
