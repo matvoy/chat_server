@@ -8,6 +8,7 @@ import (
 	pbmanager "github.com/matvoy/chat_server/flow_client/proto/flow_manager"
 	cache "github.com/matvoy/chat_server/pkg/chat_cache"
 	pbtelegram "github.com/matvoy/chat_server/telegram_bot/proto/bot_message"
+	pbviber "github.com/matvoy/chat_server/viber_bot/proto/bot_message"
 
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
@@ -23,14 +24,15 @@ type Config struct {
 }
 
 var (
-	botClient     pbtelegram.TelegramBotService
-	managerClient pbmanager.FlowChatServerService
-	storageClient pbstorage.StorageService
-	logger        *zerolog.Logger
-	cfg           *Config
-	redisStore    store.Store
-	redisTable    string
-	timeout       uint64
+	telegramClient pbtelegram.TelegramBotService
+	viberClient    pbviber.ViberBotService
+	managerClient  pbmanager.FlowChatServerService
+	storageClient  pbstorage.StorageService
+	logger         *zerolog.Logger
+	cfg            *Config
+	redisStore     store.Store
+	redisTable     string
+	timeout        uint64
 )
 
 func init() {
@@ -66,7 +68,8 @@ func main() {
 			timeout = 600 //c.Uint64("conversation_timeout_sec")
 			var err error
 			logger, err = NewLogger(cfg.LogLevel)
-			botClient = pbtelegram.NewTelegramBotService("webitel.chat.service.telegrambot", service.Client())
+			telegramClient = pbtelegram.NewTelegramBotService("webitel.chat.service.telegrambot", service.Client())
+			viberClient = pbviber.NewViberBotService("webitel.chat.service.viberbot", service.Client())
 			managerClient = pbmanager.NewFlowChatServerService("workflow", service.Client())
 			storageClient = pbstorage.NewStorageService("webitel.chat.service.storage", service.Client())
 			return err
@@ -76,7 +79,7 @@ func main() {
 	service.Options().Store.Init(store.Table(redisTable))
 
 	cache := cache.NewChatCache(service.Options().Store)
-	serv := NewFlowService(logger, botClient, managerClient, storageClient, cache)
+	serv := NewFlowService(logger, telegramClient, viberClient, managerClient, storageClient, cache)
 
 	if err := pb.RegisterFlowAdapterServiceHandler(service.Server(), serv); err != nil {
 		logger.Fatal().
