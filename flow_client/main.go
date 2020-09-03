@@ -9,6 +9,7 @@ import (
 	cache "github.com/matvoy/chat_server/pkg/chat_cache"
 	pbtelegram "github.com/matvoy/chat_server/telegram_bot/proto/bot_message"
 	pbviber "github.com/matvoy/chat_server/viber_bot/proto/bot_message"
+	pbwhatsapp "github.com/matvoy/chat_server/whatsapp_bot/proto/bot_message"
 
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
@@ -26,6 +27,7 @@ type Config struct {
 var (
 	telegramClient pbtelegram.TelegramBotService
 	viberClient    pbviber.ViberBotService
+	whatsappClient pbwhatsapp.WhatsappBotService
 	managerClient  pbmanager.FlowChatServerService
 	storageClient  pbstorage.StorageService
 	logger         *zerolog.Logger
@@ -70,6 +72,7 @@ func main() {
 			logger, err = NewLogger(cfg.LogLevel)
 			telegramClient = pbtelegram.NewTelegramBotService("webitel.chat.service.telegrambot", service.Client())
 			viberClient = pbviber.NewViberBotService("webitel.chat.service.viberbot", service.Client())
+			whatsappClient = pbwhatsapp.NewWhatsappBotService("webitel.chat.service.whatsappbot", service.Client())
 			managerClient = pbmanager.NewFlowChatServerService("workflow", service.Client())
 			storageClient = pbstorage.NewStorageService("webitel.chat.service.storage", service.Client())
 			return err
@@ -79,7 +82,7 @@ func main() {
 	service.Options().Store.Init(store.Table(redisTable))
 
 	cache := cache.NewChatCache(service.Options().Store)
-	serv := NewFlowService(logger, telegramClient, viberClient, managerClient, storageClient, cache)
+	serv := NewFlowService(logger, telegramClient, viberClient, whatsappClient, managerClient, storageClient, cache)
 
 	if err := pb.RegisterFlowAdapterServiceHandler(service.Server(), serv); err != nil {
 		logger.Fatal().
