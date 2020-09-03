@@ -9,6 +9,7 @@ import (
 	cache "github.com/matvoy/chat_server/pkg/chat_cache"
 	pbtelegram "github.com/matvoy/chat_server/telegram_bot/proto/bot_message"
 	pbviber "github.com/matvoy/chat_server/viber_bot/proto/bot_message"
+	pbwhatsapp "github.com/matvoy/chat_server/whatsapp_bot/proto/bot_message"
 
 	proto "github.com/golang/protobuf/proto"
 	"github.com/rs/zerolog"
@@ -34,6 +35,7 @@ type flowService struct {
 	log               *zerolog.Logger
 	telegramClient    pbtelegram.TelegramBotService
 	viberClient       pbviber.ViberBotService
+	whatsappClient    pbwhatsapp.WhatsappBotService
 	flowManagerClient pbmanager.FlowChatServerService
 	storageClient     pbstorage.StorageService
 	chatCache         cache.ChatCache
@@ -45,6 +47,7 @@ func NewFlowService(
 	log *zerolog.Logger,
 	telegramClient pbtelegram.TelegramBotService,
 	viberClient pbviber.ViberBotService,
+	whatsappClient pbwhatsapp.WhatsappBotService,
 	flowManagerClient pbmanager.FlowChatServerService,
 	storageClient pbstorage.StorageService,
 	chatCache cache.ChatCache,
@@ -53,6 +56,7 @@ func NewFlowService(
 		log,
 		telegramClient,
 		viberClient,
+		whatsappClient,
 		flowManagerClient,
 		storageClient,
 		chatCache,
@@ -190,6 +194,26 @@ func (s *flowService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 				},
 			}
 			if _, err := s.viberClient.MessageFromFlow(context.Background(), message); err != nil {
+				s.log.Error().Msg(err.Error())
+			}
+		}
+
+	case "whatsapp":
+		{
+			message := &pbwhatsapp.MessageFromFlowRequest{
+				ProfileId:      conversation.ProfileId,
+				ConversationId: req.GetConversationId(),
+				SessionId:      conversation.SessionId,
+				Message: &pbwhatsapp.Message{
+					Type: req.Messages.GetType(),
+					Value: &pbwhatsapp.Message_TextMessage_{
+						TextMessage: &pbwhatsapp.Message_TextMessage{
+							Text: req.GetMessages().GetTextMessage().GetText(),
+						},
+					},
+				},
+			}
+			if _, err := s.whatsappClient.MessageFromFlow(context.Background(), message); err != nil {
 				s.log.Error().Msg(err.Error())
 			}
 		}
