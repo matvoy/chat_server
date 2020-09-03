@@ -4,6 +4,7 @@ import (
 	"context"
 
 	pbstorage "github.com/matvoy/chat_server/chat_storage/proto/storage"
+	pbfacebook "github.com/matvoy/chat_server/facebook_bot/proto/bot_message"
 	pb "github.com/matvoy/chat_server/flow_client/proto/flow_client"
 	pbmanager "github.com/matvoy/chat_server/flow_client/proto/flow_manager"
 	cache "github.com/matvoy/chat_server/pkg/chat_cache"
@@ -36,6 +37,7 @@ type flowService struct {
 	telegramClient    pbtelegram.TelegramBotService
 	viberClient       pbviber.ViberBotService
 	whatsappClient    pbwhatsapp.WhatsappBotService
+	facebookClient    pbfacebook.FacebookBotService
 	flowManagerClient pbmanager.FlowChatServerService
 	storageClient     pbstorage.StorageService
 	chatCache         cache.ChatCache
@@ -48,6 +50,7 @@ func NewFlowService(
 	telegramClient pbtelegram.TelegramBotService,
 	viberClient pbviber.ViberBotService,
 	whatsappClient pbwhatsapp.WhatsappBotService,
+	facebookClient pbfacebook.FacebookBotService,
 	flowManagerClient pbmanager.FlowChatServerService,
 	storageClient pbstorage.StorageService,
 	chatCache cache.ChatCache,
@@ -57,6 +60,7 @@ func NewFlowService(
 		telegramClient,
 		viberClient,
 		whatsappClient,
+		facebookClient,
 		flowManagerClient,
 		storageClient,
 		chatCache,
@@ -214,6 +218,26 @@ func (s *flowService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 				},
 			}
 			if _, err := s.whatsappClient.MessageFromFlow(context.Background(), message); err != nil {
+				s.log.Error().Msg(err.Error())
+			}
+		}
+
+	case "facebook":
+		{
+			message := &pbfacebook.MessageFromFlowRequest{
+				ProfileId:      conversation.ProfileId,
+				ConversationId: req.GetConversationId(),
+				SessionId:      conversation.SessionId,
+				Message: &pbfacebook.Message{
+					Type: req.Messages.GetType(),
+					Value: &pbfacebook.Message_TextMessage_{
+						TextMessage: &pbfacebook.Message_TextMessage{
+							Text: req.GetMessages().GetTextMessage().GetText(),
+						},
+					},
+				},
+			}
+			if _, err := s.facebookClient.MessageFromFlow(context.Background(), message); err != nil {
 				s.log.Error().Msg(err.Error())
 			}
 		}
