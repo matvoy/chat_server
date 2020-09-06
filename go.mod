@@ -22,6 +22,7 @@ require (
 	github.com/micro/go-plugins/registry/consul/v2 v2.9.1
 	github.com/micro/go-plugins/store/redis/v2 v2.9.1
 	github.com/micro/micro/v2 v2.9.1 // indirect
+	github.com/mileusna/facebook-messenger v0.6.0
 	github.com/mileusna/viber v1.0.1
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect

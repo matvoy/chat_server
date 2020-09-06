@@ -28,6 +28,10 @@ build-viberbot:
 build-whatsappbot:
 	go build -mod=vendor -o bin/webitel.chat.service.whatsappbot ./whatsapp_bot/*.go
 
+# build facebook bot service
+build-facebookbot:
+	go build -mod=vendor -o bin/webitel.chat.service.facebookbot ./facebook_bot/*.go
+
 # build flow service
 build-flowclient:
 	go build -mod=vendor -o bin/webitel.chat.service.flowclient ./flow_client/*.go
@@ -51,6 +55,7 @@ proto:
 	protoc --proto_path=. --go_out=. --micro_out=.  telegram_bot/proto/bot_message/bot_message.proto
 	protoc --proto_path=. --go_out=. --micro_out=.  viber_bot/proto/bot_message/bot_message.proto
 	protoc --proto_path=. --go_out=. --micro_out=.  whatsapp_bot/proto/bot_message/bot_message.proto
+	protoc --proto_path=. --go_out=. --micro_out=.  facebook_bot/proto/bot_message/bot_message.proto
 
 run-storage: build-storage
 	./bin/webitel.chat.service.storage --registry="consul" --registry_address="consul" --store="redis" --store_table="chat:" --store_address="redis" --db_host="postgres" --db_user="postgres" --db_name="postgres" --db_password="postgres" --log_level="trace"
@@ -62,7 +67,10 @@ run-viberbot: build-viberbot
 	./bin/webitel.chat.service.viberbot --registry="consul" --registry_address="consul" --viber_webhook_address="example.com" --app_port=8889
 
 run-whatsappbot: build-whatsappbot
-	./bin/webitel.chat.service.whatsappbot
+	./bin/webitel.chat.service.whatsappbot --registry="consul" --registry_address="consul"
+
+run-facebookbot: build-facebookbot
+	./bin/webitel.chat.service.facebookbot --registry="consul" --registry_address="consul" --fb_webhook_address="example.com" --app_port=8889
 
 run-flowclient: build-flowclient
 	./bin/webitel.chat.service.flowclient --registry="consul" --registry_address="consul" --store="redis" --store_table="chat:" --store_address="redis" --conversation_timeout_sec=600
