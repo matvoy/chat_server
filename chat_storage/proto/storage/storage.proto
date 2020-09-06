@@ -8,6 +8,24 @@ service StorageService {
   rpc GetProfileByID(GetProfileByIDRequest) returns (GetProfileByIDResponse) {}
   rpc GetProfiles(GetProfilesRequest) returns (GetProfilesResponse) {}
   rpc CloseConversation(CloseConversationRequest) returns (CloseConversationResponse) {}
+  rpc SaveMessageFromFlow(SaveMessageFromFlowRequest) returns (SaveMessageFromFlowResponse) {}
+}
+
+message Error {
+    string id = 1;
+    string message = 2;
+}
+
+message Message {
+    string type = 1;
+
+    message TextMessage {
+        string text = 1;
+    }
+
+    oneof value {
+        TextMessage text_message = 2;
+    }
 }
 
 message ProcessMessageRequest {
@@ -67,4 +85,13 @@ message GetProfilesRequest {
 
 message GetProfilesResponse {
   repeated Profile profiles = 1;
+}
+
+message SaveMessageFromFlowRequest {
+    int64 conversation_id = 1;
+    Message message = 2;
+}
+
+message SaveMessageFromFlowResponse {
+    Error error = 1;
 }

@@ -211,6 +211,23 @@ func (s *storageService) GetProfiles(ctx context.Context, req *pb.GetProfilesReq
 	return nil
 }
 
+func (s *storageService) SaveMessageFromFlow(ctx context.Context, req *pb.SaveMessageFromFlowRequest, res *pb.SaveMessageFromFlowResponse) error {
+	message := &models.Message{
+		Text: null.String{
+			req.GetMessage().GetTextMessage().GetText(),
+			true,
+		},
+		ConversationID: req.GetConversationId(),
+	}
+	if err := s.repo.CreateMessage(context.Background(), message); err != nil {
+		s.log.Error().Msg(err.Error())
+		res.Error = &pb.Error{
+			Message: err.Error(),
+		}
+	}
+	return nil
+}
+
 func (s *storageService) parseSession(ctx context.Context, req *pb.ProcessMessageRequest, clientID int64) (conversationID int64, isNew bool, err error) {
 	cachedConversationID, err := s.chatCache.ReadSession(req.SessionId)
 	if err != nil {

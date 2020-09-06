@@ -242,7 +242,20 @@ func (s *flowService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 			}
 		}
 	}
-
+	storageMessage := &pbstorage.SaveMessageFromFlowRequest{
+		ConversationId: req.GetConversationId(),
+		Message: &pbstorage.Message{
+			Type: req.Messages.GetType(),
+			Value: &pbstorage.Message_TextMessage_{
+				TextMessage: &pbstorage.Message_TextMessage{
+					Text: req.GetMessages().GetTextMessage().GetText(),
+				},
+			},
+		},
+	}
+	if _, err := s.storageClient.SaveMessageFromFlow(context.Background(), storageMessage); err != nil {
+		s.log.Error().Msg(err.Error())
+	}
 	return nil
 }
 
