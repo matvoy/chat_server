@@ -78,6 +78,11 @@ func main() {
 				return vbBot.StartWebhookServer()
 			},
 		),
+		micro.AfterStop(
+			func() error {
+				return vbBot.StopWebhookServer()
+			},
+		),
 	)
 
 	if err := service.Run(); err != nil {

@@ -20,7 +20,10 @@ import (
 type ChatServer interface {
 	WebhookHandler(w http.ResponseWriter, r *http.Request)
 	MessageFromFlow(ctx context.Context, req *pb.MessageFromFlowRequest, res *pb.MessageFromFlowResponse) error
+	AddProfile(ctx context.Context, req *pb.AddProfileRequest, res *pb.AddProfileResponse) error
+	DeleteProfile(ctx context.Context, req *pb.DeleteProfileRequest, res *pb.DeleteProfileResponse) error
 	StartWebhookServer() error
+	StopWebhookServer() error
 }
 
 type webhookReqBody struct {
@@ -94,6 +97,18 @@ func (t *telegramBot) StartWebhookServer() error {
 	return http.ListenAndServe(fmt.Sprintf(":%v", cfg.AppPort), t.router) // srv.ListenAndServeTLS(cfg.CertPath, cfg.KeyPath)
 }
 
+func (t *telegramBot) StopWebhookServer() error {
+	t.log.Info().
+		Msg("removing webhooks")
+	for k := range t.bots {
+		if _, err := t.bots[k].RemoveWebhook(); err != nil {
+			t.log.Error().Msg(err.Error())
+		}
+		delete(t.bots, k)
+	}
+	return nil
+}
+
 func (t *telegramBot) WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	p := strings.TrimPrefix(r.URL.Path, "/telegram/")
 	profileID, err := strconv.ParseInt(p, 10, 64)
@@ -151,5 +166,32 @@ func (t *telegramBot) MessageFromFlow(ctx context.Context, req *pb.MessageFromFl
 	if err != nil {
 		t.log.Error().Msg(err.Error())
 	}
+	return nil
+}
+
+func (t *telegramBot) AddProfile(ctx context.Context, req *pb.AddProfileRequest, res *pb.AddProfileResponse) error {
+	token, ok := req.Profile.Variables["token"]
+	if !ok {
+		t.log.Error().Msg("token not found")
+		return nil
+	}
+	bot, err := tgbotapi.NewBotAPI(token)
+	if err != nil {
+		t.log.Error().Msg(err.Error())
+		return nil
+	}
+	// webhookInfo := tgbotapi.NewWebhookWithCert(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, profile.Id), cfg.CertPath)
+	webhookInfo := tgbotapi.NewWebhook(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, req.Profile.Id))
+	_, err = bot.SetWebhook(webhookInfo)
+	t.bots[req.Profile.Id] = bot
+	return nil
+}
+
+func (t *telegramBot) DeleteProfile(ctx context.Context, req *pb.DeleteProfileRequest, res *pb.DeleteProfileResponse) error {
+	if _, err := t.bots[req.ProfileId].RemoveWebhook(); err != nil {
+		t.log.Error().Msg(err.Error())
+		return nil
+	}
+	delete(t.bots, req.ProfileId)
 	return nil
 }

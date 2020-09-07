@@ -1,4 +1,5 @@
 syntax = "proto3";
+import "entity.proto";
 
 package webitel.chat.service.viberbot; 
 
@@ -6,32 +7,6 @@ service ViberBotService {
   rpc MessageFromFlow(MessageFromFlowRequest) returns (MessageFromFlowResponse) {}
   rpc AddProfile(AddProfileRequest) returns (AddProfileResponse) {}
   rpc DeleteProfile(DeleteProfileRequest) returns (DeleteProfileResponse) {}
-}
-
-message Error {
-    string id = 1;
-    string message = 2;
-}
-
-message Message {
-    int64 id = 1;
-    string type = 2;
-
-    message TextMessage {
-        string text = 1;
-    }
-
-    oneof value {
-        TextMessage text_message = 3;
-    }
-}
-
-message Profile {
-  int64 id = 1;
-  string name = 2;
-  string type = 3;
-  int64 domain_id = 4;
-  map<string, string>  variables = 5;
 }
 
 message MessageFromFlowRequest {

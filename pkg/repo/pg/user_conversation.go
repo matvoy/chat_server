@@ -6,6 +6,7 @@ import (
 	"github.com/matvoy/chat_server/models"
 
 	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 func (repo *PgRepository) CreateUserConversation(ctx context.Context, uc *models.UserConversation) error {
@@ -13,4 +14,8 @@ func (repo *PgRepository) CreateUserConversation(ctx context.Context, uc *models
 		return err
 	}
 	return nil
+}
+
+func (repo *PgRepository) GetUserConversations(ctx context.Context, limit, offset int) ([]*models.UserConversation, error) {
+	return models.UserConversations(qm.Limit(limit), qm.Offset(offset)).All(ctx, repo.db)
 }

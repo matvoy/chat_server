@@ -16,7 +16,10 @@ import (
 
 type ChatServer interface {
 	MessageFromFlow(ctx context.Context, req *pb.MessageFromFlowRequest, res *pb.MessageFromFlowResponse) error
+	AddProfile(ctx context.Context, req *pb.AddProfileRequest, res *pb.AddProfileResponse) error
+	DeleteProfile(ctx context.Context, req *pb.DeleteProfileRequest, res *pb.DeleteProfileResponse) error
 	StartWebhookServer() error
+	StopWebhookServer() error
 }
 
 type viberBotServer struct {
@@ -78,6 +81,19 @@ func (b *viberBotServer) StartWebhookServer() error {
 	return http.ListenAndServe(fmt.Sprintf(":%v", cfg.AppPort), nil) // srv.ListenAndServeTLS(cfg.CertPath, cfg.KeyPath)
 }
 
+func (b *viberBotServer) StopWebhookServer() error {
+	b.log.Info().
+		Msg("removing webhooks")
+	for k := range b.bots {
+		if _, err := b.bots[k].SetWebhook("", nil); err != nil {
+			b.log.Error().Msg(err.Error())
+		}
+		delete(b.profiles, b.bots[k].AppKey)
+		delete(b.bots, k)
+	}
+	return nil
+}
+
 func (b *viberBotServer) MsgReceivedFunc(v *viber.Viber, u viber.User, m viber.Message, token uint64, t time.Time) {
 	switch m.(type) {
 
@@ -112,5 +128,37 @@ func (b *viberBotServer) MessageFromFlow(ctx context.Context, req *pb.MessageFro
 	if err != nil {
 		b.log.Error().Msg(err.Error())
 	}
+	return nil
+}
+
+func (b *viberBotServer) AddProfile(ctx context.Context, req *pb.AddProfileRequest, res *pb.AddProfileResponse) error {
+	token, ok := req.Profile.Variables["token"]
+	if !ok {
+		b.log.Error().Msg("token not found")
+		return nil
+	}
+	bot := &viber.Viber{
+		AppKey: token,
+		Sender: viber.Sender{
+			Name:   "",
+			Avatar: "",
+		},
+		Message: b.MsgReceivedFunc,
+	}
+	http.Handle(fmt.Sprintf("/viber/%v", req.Profile.Id), bot)
+	bot.SetWebhook(fmt.Sprintf("%s/viber/%v", cfg.ViberWebhook, req.Profile.Id), []string{"message", "subscribed", "unsubscribed", "conversation_started"})
+	b.bots[req.Profile.Id] = bot
+	b.profiles[token] = req.Profile.Id
+	return nil
+}
+
+func (b *viberBotServer) DeleteProfile(ctx context.Context, req *pb.DeleteProfileRequest, res *pb.DeleteProfileResponse) error {
+	token := b.bots[req.ProfileId].AppKey
+	if _, err := b.bots[req.ProfileId].SetWebhook("", nil); err != nil {
+		b.log.Error().Msg(err.Error())
+		return nil
+	}
+	delete(b.bots, req.ProfileId)
+	delete(b.profiles, token)
 	return nil
 }

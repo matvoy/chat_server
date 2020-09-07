@@ -93,6 +93,11 @@ func main() {
 				return tgBot.StartWebhookServer()
 			},
 		),
+		micro.AfterStop(
+			func() error {
+				return tgBot.StopWebhookServer()
+			},
+		),
 	)
 
 	if err := service.Run(); err != nil {

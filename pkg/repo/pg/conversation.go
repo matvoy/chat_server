@@ -67,3 +67,7 @@ func (repo *PgRepository) CloseConversation(ctx context.Context, id int64) error
 	_, err = result.Update(ctx, repo.db, boil.Infer())
 	return err
 }
+
+func (repo *PgRepository) GetConversations(ctx context.Context, limit, offset int) ([]*models.Conversation, error) {
+	return models.Conversations(qm.Limit(limit), qm.Offset(offset)).All(ctx, repo.db)
+}

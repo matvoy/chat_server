@@ -6,9 +6,9 @@ import (
 	"os"
 
 	pb "github.com/matvoy/chat_server/chat_storage/proto/storage"
-	"github.com/matvoy/chat_server/chat_storage/repo/pg"
 	pbflow "github.com/matvoy/chat_server/flow_client/proto/flow_client"
 	cache "github.com/matvoy/chat_server/pkg/chat_cache"
+	"github.com/matvoy/chat_server/pkg/repo/pg"
 
 	_ "github.com/lib/pq"
 	"github.com/micro/cli/v2"
