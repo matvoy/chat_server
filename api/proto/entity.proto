@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package webitel.chat.entity;
+
 message Error {
     string id = 1;
     string message = 2;

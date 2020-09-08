@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	pbstorage "github.com/matvoy/chat_server/chat_storage/proto/storage"
-	pb "github.com/matvoy/chat_server/whatsapp_bot/proto/bot_message"
+	pbstorage "github.com/matvoy/chat_server/cmd/chat_storage/proto/storage"
+	pb "github.com/matvoy/chat_server/cmd/viber_bot/proto/bot_message"
 
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
@@ -14,7 +14,9 @@ import (
 )
 
 type Config struct {
-	LogLevel string
+	LogLevel     string
+	ViberWebhook string
+	AppPort      int
 }
 
 var (
@@ -22,7 +24,7 @@ var (
 	logger  *zerolog.Logger
 	cfg     *Config
 	service micro.Service
-	wtsBot  ChatServer
+	vbBot   ChatServer
 )
 
 func init() {
@@ -43,12 +45,25 @@ func main() {
 				Value:   "debug",
 				Usage:   "Log Level",
 			},
+			&cli.StringFlag{
+				Name:    "viber_webhook_address",
+				EnvVars: []string{"VIBER_WEBHOOK_ADDRESS"},
+				Usage:   "Viber webhook address",
+			},
+			&cli.IntFlag{
+				Name:    "app_port",
+				EnvVars: []string{"APP_PORT"},
+				Usage:   "Local webhook port",
+			},
 		),
 	)
 
 	service.Init(
 		micro.Action(func(c *cli.Context) error {
 			cfg.LogLevel = c.String("log_level")
+			cfg.ViberWebhook = c.String("viber_webhook_address")
+			cfg.AppPort = c.Int("app_port")
+			// cfg.ConversationTimeout = c.Uint64("conversation_timeout")
 
 			client = pbstorage.NewStorageService("webitel.chat.service.storage", service.Client())
 			var err error
@@ -60,7 +75,12 @@ func main() {
 		}),
 		micro.AfterStart(
 			func() error {
-				return wtsBot.StartServer()
+				return vbBot.StartWebhookServer()
+			},
+		),
+		micro.AfterStop(
+			func() error {
+				return vbBot.StopWebhookServer()
 			},
 		),
 	)
@@ -74,12 +94,12 @@ func main() {
 
 func configureViber() error {
 
-	wtsBot = NewWhatsappBotServer(
+	vbBot = NewViberBotServer(
 		logger,
 		client,
 	)
 
-	if err := pb.RegisterWhatsappBotServiceHandler(service.Server(), wtsBot); err != nil {
+	if err := pb.RegisterViberBotServiceHandler(service.Server(), vbBot); err != nil {
 		logger.Fatal().
 			Str("app", "failed to register service").
 			Msg(err.Error())

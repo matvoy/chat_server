@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	pbstorage "github.com/matvoy/chat_server/chat_storage/proto/storage"
-	pb "github.com/matvoy/chat_server/whatsapp_bot/proto/bot_message"
+	pbstorage "github.com/matvoy/chat_server/cmd/chat_storage/proto/storage"
+	pb "github.com/matvoy/chat_server/cmd/whatsapp_bot/proto/bot_message"
 
 	qrcodeTerminal "github.com/Baozisoftware/qrcode-terminal-go"
 	whatsapp "github.com/Rhymen/go-whatsapp"

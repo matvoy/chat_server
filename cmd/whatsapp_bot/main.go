@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	pbstorage "github.com/matvoy/chat_server/chat_storage/proto/storage"
-	pb "github.com/matvoy/chat_server/facebook_bot/proto/bot_message"
+	pbstorage "github.com/matvoy/chat_server/cmd/chat_storage/proto/storage"
+	pb "github.com/matvoy/chat_server/cmd/whatsapp_bot/proto/bot_message"
 
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
@@ -14,9 +14,7 @@ import (
 )
 
 type Config struct {
-	LogLevel        string
-	FacebookWebhook string
-	AppPort         int
+	LogLevel string
 }
 
 var (
@@ -24,7 +22,7 @@ var (
 	logger  *zerolog.Logger
 	cfg     *Config
 	service micro.Service
-	vbBot   ChatServer
+	wtsBot  ChatServer
 )
 
 func init() {
@@ -45,25 +43,12 @@ func main() {
 				Value:   "debug",
 				Usage:   "Log Level",
 			},
-			&cli.StringFlag{
-				Name:    "fb_webhook_address",
-				EnvVars: []string{"FB_WEBHOOK_ADDRESS"},
-				Usage:   "Facebook webhook address",
-			},
-			&cli.IntFlag{
-				Name:    "app_port",
-				EnvVars: []string{"APP_PORT"},
-				Usage:   "Local webhook port",
-			},
 		),
 	)
 
 	service.Init(
 		micro.Action(func(c *cli.Context) error {
 			cfg.LogLevel = c.String("log_level")
-			cfg.FacebookWebhook = c.String("fb_webhook_address")
-			cfg.AppPort = c.Int("app_port")
-			// cfg.ConversationTimeout = c.Uint64("conversation_timeout")
 
 			client = pbstorage.NewStorageService("webitel.chat.service.storage", service.Client())
 			var err error
@@ -71,11 +56,11 @@ func main() {
 			if err != nil {
 				return err
 			}
-			return configureFacebook()
+			return configureViber()
 		}),
 		micro.AfterStart(
 			func() error {
-				return vbBot.StartWebhookServer()
+				return wtsBot.StartServer()
 			},
 		),
 	)
@@ -87,14 +72,14 @@ func main() {
 	}
 }
 
-func configureFacebook() error {
+func configureViber() error {
 
-	vbBot = NewFacebookBotServer(
+	wtsBot = NewWhatsappBotServer(
 		logger,
 		client,
 	)
 
-	if err := pb.RegisterFacebookBotServiceHandler(service.Server(), vbBot); err != nil {
+	if err := pb.RegisterWhatsappBotServiceHandler(service.Server(), wtsBot); err != nil {
 		logger.Fatal().
 			Str("app", "failed to register service").
 			Msg(err.Error())

@@ -3,8 +3,9 @@ package main
 import (
 	"os"
 
-	pbstorage "github.com/matvoy/chat_server/chat_storage/proto/storage"
-	pb "github.com/matvoy/chat_server/viber_bot/proto/bot_message"
+	"github.com/gorilla/mux"
+	pbstorage "github.com/matvoy/chat_server/cmd/chat_storage/proto/storage"
+	pb "github.com/matvoy/chat_server/cmd/telegram_bot/proto/bot_message"
 
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
@@ -14,9 +15,11 @@ import (
 )
 
 type Config struct {
-	LogLevel     string
-	ViberWebhook string
-	AppPort      int
+	LogLevel  string
+	TgWebhook string
+	CertPath  string
+	KeyPath   string
+	AppPort   int
 }
 
 var (
@@ -24,7 +27,7 @@ var (
 	logger  *zerolog.Logger
 	cfg     *Config
 	service micro.Service
-	vbBot   ChatServer
+	tgBot   ChatServer
 )
 
 func init() {
@@ -46,14 +49,24 @@ func main() {
 				Usage:   "Log Level",
 			},
 			&cli.StringFlag{
-				Name:    "viber_webhook_address",
-				EnvVars: []string{"VIBER_WEBHOOK_ADDRESS"},
-				Usage:   "Viber webhook address",
+				Name:    "tg_webhook_address",
+				EnvVars: []string{"TG_WEBHOOK_ADDRESS"},
+				Usage:   "Telegram webhook address",
 			},
 			&cli.IntFlag{
 				Name:    "app_port",
 				EnvVars: []string{"APP_PORT"},
 				Usage:   "Local webhook port",
+			},
+			&cli.StringFlag{
+				Name:    "cert_path",
+				EnvVars: []string{"CERT_PATH"},
+				Usage:   "SSl certificate",
+			},
+			&cli.StringFlag{
+				Name:    "key_path",
+				EnvVars: []string{"KEY_PATH"},
+				Usage:   "SSl key",
 			},
 		),
 	)
@@ -61,7 +74,9 @@ func main() {
 	service.Init(
 		micro.Action(func(c *cli.Context) error {
 			cfg.LogLevel = c.String("log_level")
-			cfg.ViberWebhook = c.String("viber_webhook_address")
+			cfg.TgWebhook = c.String("tg_webhook_address")
+			cfg.CertPath = c.String("cert_path")
+			cfg.KeyPath = c.String("key_path")
 			cfg.AppPort = c.Int("app_port")
 			// cfg.ConversationTimeout = c.Uint64("conversation_timeout")
 
@@ -71,16 +86,16 @@ func main() {
 			if err != nil {
 				return err
 			}
-			return configureViber()
+			return configureTelegram()
 		}),
 		micro.AfterStart(
 			func() error {
-				return vbBot.StartWebhookServer()
+				return tgBot.StartWebhookServer()
 			},
 		),
 		micro.AfterStop(
 			func() error {
-				return vbBot.StopWebhookServer()
+				return tgBot.StopWebhookServer()
 			},
 		),
 	)
@@ -92,14 +107,16 @@ func main() {
 	}
 }
 
-func configureViber() error {
+func configureTelegram() error {
+	r := mux.NewRouter()
 
-	vbBot = NewViberBotServer(
+	tgBot = NewTelegramBot(
 		logger,
 		client,
+		r,
 	)
 
-	if err := pb.RegisterViberBotServiceHandler(service.Server(), vbBot); err != nil {
+	if err := pb.RegisterTelegramBotServiceHandler(service.Server(), tgBot); err != nil {
 		logger.Fatal().
 			Str("app", "failed to register service").
 			Msg(err.Error())

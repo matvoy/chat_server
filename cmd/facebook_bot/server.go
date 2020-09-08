@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strconv"
 
-	pbstorage "github.com/matvoy/chat_server/chat_storage/proto/storage"
-	pb "github.com/matvoy/chat_server/facebook_bot/proto/bot_message"
+	pbstorage "github.com/matvoy/chat_server/cmd/chat_storage/proto/storage"
+	pb "github.com/matvoy/chat_server/cmd/facebook_bot/proto/bot_message"
 
 	"github.com/gorilla/mux"
-	"github.com/mileusna/facebook-messenger"
+	messenger "github.com/mileusna/facebook-messenger"
 	"github.com/rs/zerolog"
 )
 

@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"strconv"
 
-	pbflow "github.com/matvoy/chat_server/flow_client/proto/flow_client"
+	pb "github.com/matvoy/chat_server/cmd/chat_storage/proto/storage"
+	pbflow "github.com/matvoy/chat_server/cmd/flow_client/proto/flow_client"
+	cache "github.com/matvoy/chat_server/internal/chat_cache"
+	"github.com/matvoy/chat_server/internal/repo"
 	"github.com/matvoy/chat_server/models"
-	cache "github.com/matvoy/chat_server/pkg/chat_cache"
-	pb "github.com/matvoy/chat_server/pkg/proto/chat_storage"
-	"github.com/matvoy/chat_server/pkg/repo"
 
 	"github.com/rs/zerolog"
 	"github.com/volatiletech/null/v8"

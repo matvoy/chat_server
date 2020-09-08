@@ -3,14 +3,14 @@ package main
 import (
 	"context"
 
-	pbstorage "github.com/matvoy/chat_server/chat_storage/proto/storage"
-	pbfacebook "github.com/matvoy/chat_server/facebook_bot/proto/bot_message"
-	pb "github.com/matvoy/chat_server/flow_client/proto/flow_client"
-	pbmanager "github.com/matvoy/chat_server/flow_client/proto/flow_manager"
-	cache "github.com/matvoy/chat_server/pkg/chat_cache"
-	pbtelegram "github.com/matvoy/chat_server/telegram_bot/proto/bot_message"
-	pbviber "github.com/matvoy/chat_server/viber_bot/proto/bot_message"
-	pbwhatsapp "github.com/matvoy/chat_server/whatsapp_bot/proto/bot_message"
+	pbstorage "github.com/matvoy/chat_server/cmd/chat_storage/proto/storage"
+	pbfacebook "github.com/matvoy/chat_server/cmd/facebook_bot/proto/bot_message"
+	pb "github.com/matvoy/chat_server/cmd/flow_client/proto/flow_client"
+	pbmanager "github.com/matvoy/chat_server/cmd/flow_client/proto/flow_manager"
+	pbtelegram "github.com/matvoy/chat_server/cmd/telegram_bot/proto/bot_message"
+	pbviber "github.com/matvoy/chat_server/cmd/viber_bot/proto/bot_message"
+	pbwhatsapp "github.com/matvoy/chat_server/cmd/whatsapp_bot/proto/bot_message"
+	cache "github.com/matvoy/chat_server/internal/chat_cache"
 
 	proto "github.com/golang/protobuf/proto"
 	"github.com/rs/zerolog"

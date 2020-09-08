@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	pb "github.com/matvoy/chat_server/chat_api/proto/chat_api"
-	"github.com/matvoy/chat_server/chat_api/repo"
+	pb "github.com/matvoy/chat_server/cmd/chat_api/proto/chat_api"
+	"github.com/matvoy/chat_server/internal/repo"
 	"github.com/matvoy/chat_server/models"
 
 	"github.com/rs/zerolog"

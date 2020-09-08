@@ -49,13 +49,13 @@ generate-boiler:
 	sqlboiler --wipe --no-tests -o ./models -c ./configs/sqlboiler.toml psql
 
 proto: 
-	protoc --proto_path=. --go_out=. --micro_out=.  chat_storage/proto/storage/storage.proto
-	protoc --proto_path=. --go_out=. --micro_out=.  flow_client/proto/flow_client/flow_client.proto
-	protoc --proto_path=. --go_out=. --micro_out=.  flow_client/proto/flow_manager/flow_manager.proto
-	protoc --proto_path=. --go_out=. --micro_out=.  telegram_bot/proto/bot_message/bot_message.proto
-	protoc --proto_path=. --go_out=. --micro_out=.  viber_bot/proto/bot_message/bot_message.proto
-	protoc --proto_path=. --go_out=. --micro_out=.  whatsapp_bot/proto/bot_message/bot_message.proto
-	protoc --proto_path=. --go_out=. --micro_out=.  facebook_bot/proto/bot_message/bot_message.proto
+	protoc --proto_path=. --go_out=. --micro_out=.  cmd/chat_storage/proto/storage/storage.proto
+	protoc --proto_path=. --go_out=. --micro_out=.  cmd/flow_client/proto/flow_client/flow_client.proto
+	protoc --proto_path=. --go_out=. --micro_out=.  cmd/flow_client/proto/flow_manager/flow_manager.proto
+	protoc --proto_path=. --go_out=. --micro_out=.  cmd/telegram_bot/proto/bot_message/bot_message.proto
+	protoc --proto_path=. --go_out=. --micro_out=.  cmd/viber_bot/proto/bot_message/bot_message.proto
+	protoc --proto_path=. --go_out=. --micro_out=.  cmd/whatsapp_bot/proto/bot_message/bot_message.proto
+	protoc --proto_path=. --go_out=. --micro_out=.  cmd/facebook_bot/proto/bot_message/bot_message.proto
 
 run-storage: build-storage
 	./bin/webitel.chat.service.storage --registry="consul" --registry_address="consul" --store="redis" --store_table="chat:" --store_address="redis" --db_host="postgres" --db_user="postgres" --db_name="postgres" --db_password="postgres" --log_level="trace"

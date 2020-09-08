@@ -13,12 +13,12 @@ message StartRequest {
     int64 conversation_id = 1;
     int64 profile_id = 2;
     int64 domain_id = 3;
-    Message message = 4;
+    entity.Message message = 4;
     map<string, string>  variables = 5;
 }
 
 message StartResponse {
-    Error error = 1;
+    entity.Error error = 1;
 }
 
 message BreakRequest {
@@ -26,15 +26,15 @@ message BreakRequest {
 }
 
 message BreakResponse {
-    Error error = 1;
+    entity.Error error = 1;
 }
 
 message ConfirmationMessageRequest {
     int64 conversation_id = 1;
     string confirmation_id = 2;
-    repeated Message messages = 3;
+    repeated entity.Message messages = 3;
 }
 
 message ConfirmationMessageResponse {
-    Error error = 1;
+    entity.Error error = 1;
 }

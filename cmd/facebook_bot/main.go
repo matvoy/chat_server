@@ -3,9 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/gorilla/mux"
-	pbstorage "github.com/matvoy/chat_server/chat_storage/proto/storage"
-	pb "github.com/matvoy/chat_server/telegram_bot/proto/bot_message"
+	pbstorage "github.com/matvoy/chat_server/cmd/chat_storage/proto/storage"
+	pb "github.com/matvoy/chat_server/cmd/facebook_bot/proto/bot_message"
 
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
@@ -15,11 +14,9 @@ import (
 )
 
 type Config struct {
-	LogLevel  string
-	TgWebhook string
-	CertPath  string
-	KeyPath   string
-	AppPort   int
+	LogLevel        string
+	FacebookWebhook string
+	AppPort         int
 }
 
 var (
@@ -27,7 +24,7 @@ var (
 	logger  *zerolog.Logger
 	cfg     *Config
 	service micro.Service
-	tgBot   ChatServer
+	vbBot   ChatServer
 )
 
 func init() {
@@ -49,24 +46,14 @@ func main() {
 				Usage:   "Log Level",
 			},
 			&cli.StringFlag{
-				Name:    "tg_webhook_address",
-				EnvVars: []string{"TG_WEBHOOK_ADDRESS"},
-				Usage:   "Telegram webhook address",
+				Name:    "fb_webhook_address",
+				EnvVars: []string{"FB_WEBHOOK_ADDRESS"},
+				Usage:   "Facebook webhook address",
 			},
 			&cli.IntFlag{
 				Name:    "app_port",
 				EnvVars: []string{"APP_PORT"},
 				Usage:   "Local webhook port",
-			},
-			&cli.StringFlag{
-				Name:    "cert_path",
-				EnvVars: []string{"CERT_PATH"},
-				Usage:   "SSl certificate",
-			},
-			&cli.StringFlag{
-				Name:    "key_path",
-				EnvVars: []string{"KEY_PATH"},
-				Usage:   "SSl key",
 			},
 		),
 	)
@@ -74,9 +61,7 @@ func main() {
 	service.Init(
 		micro.Action(func(c *cli.Context) error {
 			cfg.LogLevel = c.String("log_level")
-			cfg.TgWebhook = c.String("tg_webhook_address")
-			cfg.CertPath = c.String("cert_path")
-			cfg.KeyPath = c.String("key_path")
+			cfg.FacebookWebhook = c.String("fb_webhook_address")
 			cfg.AppPort = c.Int("app_port")
 			// cfg.ConversationTimeout = c.Uint64("conversation_timeout")
 
@@ -86,16 +71,11 @@ func main() {
 			if err != nil {
 				return err
 			}
-			return configureTelegram()
+			return configureFacebook()
 		}),
 		micro.AfterStart(
 			func() error {
-				return tgBot.StartWebhookServer()
-			},
-		),
-		micro.AfterStop(
-			func() error {
-				return tgBot.StopWebhookServer()
+				return vbBot.StartWebhookServer()
 			},
 		),
 	)
@@ -107,16 +87,14 @@ func main() {
 	}
 }
 
-func configureTelegram() error {
-	r := mux.NewRouter()
+func configureFacebook() error {
 
-	tgBot = NewTelegramBot(
+	vbBot = NewFacebookBotServer(
 		logger,
 		client,
-		r,
 	)
 
-	if err := pb.RegisterTelegramBotServiceHandler(service.Server(), tgBot); err != nil {
+	if err := pb.RegisterFacebookBotServiceHandler(service.Server(), vbBot); err != nil {
 		logger.Fatal().
 			Str("app", "failed to register service").
 			Msg(err.Error())

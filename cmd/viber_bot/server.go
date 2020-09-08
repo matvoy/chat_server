@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	pbstorage "github.com/matvoy/chat_server/chat_storage/proto/storage"
-	pb "github.com/matvoy/chat_server/viber_bot/proto/bot_message"
+	pbstorage "github.com/matvoy/chat_server/cmd/chat_storage/proto/storage"
+	pb "github.com/matvoy/chat_server/cmd/viber_bot/proto/bot_message"
 
 	"github.com/gorilla/mux"
 	"github.com/mileusna/viber"

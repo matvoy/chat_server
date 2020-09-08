@@ -5,18 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	pb "github.com/matvoy/chat_server/chat_storage/proto/storage"
-	pbflow "github.com/matvoy/chat_server/flow_client/proto/flow_client"
-	cache "github.com/matvoy/chat_server/pkg/chat_cache"
-	"github.com/matvoy/chat_server/pkg/repo/pg"
+	pb "github.com/matvoy/chat_server/cmd/chat_api/proto/chat_api"
+	"github.com/matvoy/chat_server/internal/repo/pg"
 
 	_ "github.com/lib/pq"
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
-	"github.com/micro/go-micro/v2/config/cmd"
-	"github.com/micro/go-micro/v2/store"
-	"github.com/micro/go-plugins/registry/consul/v2"
-	"github.com/micro/go-plugins/store/redis/v2"
 	"github.com/rs/zerolog"
 )
 
@@ -30,24 +24,15 @@ type Config struct {
 }
 
 var (
-	logger     *zerolog.Logger
-	cfg        *Config
-	service    micro.Service
-	redisStore store.Store
-	redisTable string
-	flowClient pbflow.FlowAdapterService
+	logger  *zerolog.Logger
+	cfg     *Config
+	service micro.Service
 )
-
-func init() {
-	// plugins
-	cmd.DefaultStores["redis"] = redis.NewStore
-	cmd.DefaultRegistries["consul"] = consul.NewRegistry
-}
 
 func main() {
 	cfg = &Config{}
 	service = micro.NewService(
-		micro.Name("webitel.chat.service.storage"),
+		micro.Name("webitel.chat.service.chatapi"),
 		micro.Version("latest"),
 		micro.Flags(
 			&cli.StringFlag{
@@ -92,7 +77,6 @@ func main() {
 			cfg.DBName = c.String("db_name")
 			cfg.DBSSLMode = c.String("db_sslmode")
 			cfg.DBPassword = c.String("db_password")
-			redisTable = c.String("store_table")
 			var err error
 			logger, err = NewLogger(cfg.LogLevel)
 			if err != nil {
@@ -101,12 +85,9 @@ func main() {
 					Msg(err.Error())
 				return err
 			}
-			flowClient = pbflow.NewFlowAdapterService("webitel.chat.service.flowclient", service.Client())
 			return nil
 		}),
 	)
-
-	service.Options().Store.Init(store.Table(redisTable))
 
 	db, err := sql.Open("postgres", DbSource(cfg.DBHost, cfg.DBUser, cfg.DBName, cfg.DBPassword, cfg.DBSSLMode))
 	if err != nil {
@@ -125,10 +106,9 @@ func main() {
 		Msg("db connected")
 
 	repo := pg.NewPgRepository(db, logger)
-	cache := cache.NewChatCache(service.Options().Store)
-	serv := NewStorageService(repo, logger, flowClient, cache)
+	serv := NewChatApiService(repo, logger)
 
-	if err := pb.RegisterStorageServiceHandler(service.Server(), serv); err != nil {
+	if err := pb.RegisterChatApiServiceHandler(service.Server(), serv); err != nil {
 		logger.Fatal().
 			Str("app", "failed to register service").
 			Msg(err.Error())
