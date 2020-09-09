@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	pbstorage "github.com/matvoy/chat_server/cmd/chat_storage/proto/storage"
-	pb "github.com/matvoy/chat_server/cmd/telegram_bot/proto/bot_message"
+	pbstorage "github.com/matvoy/chat_server/api/proto/chat_storage"
+	pb "github.com/matvoy/chat_server/api/proto/telegram_bot"
 
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"

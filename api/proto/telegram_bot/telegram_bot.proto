@@ -1,7 +1,8 @@
 syntax = "proto3";
-import "entity.proto";
 
-package webitel.chat.service.telegrambot; 
+package webitel.chat.service.telegrambot;
+
+import "entity.proto";
 
 service TelegramBotService {
   rpc MessageFromFlow(MessageFromFlowRequest) returns (MessageFromFlowResponse) {}
@@ -13,19 +14,19 @@ message MessageFromFlowRequest {
   string session_id = 1;
   int64 profile_id = 2;
   int64 conversation_id = 3;
-  Message message = 4;
+  entity.Message message = 4;
 }
 
 message MessageFromFlowResponse {
-  Error error = 1;
+  entity.Error error = 1;
 }
 
 message AddProfileRequest {
-  Profile profile = 1;
+  entity.Profile profile = 1;
 }
 
 message AddProfileResponse {
-  Error error = 1;
+  entity.Error error = 1;
 }
 
 message DeleteProfileRequest {
@@ -33,5 +34,5 @@ message DeleteProfileRequest {
 }
 
 message DeleteProfileResponse {
-  Error error = 1;
+  entity.Error error = 1;
 }

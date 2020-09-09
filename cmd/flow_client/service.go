@@ -3,13 +3,11 @@ package main
 import (
 	"context"
 
-	pbstorage "github.com/matvoy/chat_server/cmd/chat_storage/proto/storage"
-	pbfacebook "github.com/matvoy/chat_server/cmd/facebook_bot/proto/bot_message"
-	pb "github.com/matvoy/chat_server/cmd/flow_client/proto/flow_client"
-	pbmanager "github.com/matvoy/chat_server/cmd/flow_client/proto/flow_manager"
-	pbtelegram "github.com/matvoy/chat_server/cmd/telegram_bot/proto/bot_message"
-	pbviber "github.com/matvoy/chat_server/cmd/viber_bot/proto/bot_message"
-	pbwhatsapp "github.com/matvoy/chat_server/cmd/whatsapp_bot/proto/bot_message"
+	pbstorage "github.com/matvoy/chat_server/api/proto/chat_storage"
+	pbentity "github.com/matvoy/chat_server/api/proto/entity"
+	pb "github.com/matvoy/chat_server/api/proto/flow_client"
+	pbmanager "github.com/matvoy/chat_server/api/proto/flow_manager"
+	pbtelegram "github.com/matvoy/chat_server/api/proto/telegram_bot"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 
 	proto "github.com/golang/protobuf/proto"
@@ -35,9 +33,6 @@ type Service interface {
 type flowService struct {
 	log               *zerolog.Logger
 	telegramClient    pbtelegram.TelegramBotService
-	viberClient       pbviber.ViberBotService
-	whatsappClient    pbwhatsapp.WhatsappBotService
-	facebookClient    pbfacebook.FacebookBotService
 	flowManagerClient pbmanager.FlowChatServerService
 	storageClient     pbstorage.StorageService
 	chatCache         cache.ChatCache
@@ -48,9 +43,6 @@ type flowService struct {
 func NewFlowService(
 	log *zerolog.Logger,
 	telegramClient pbtelegram.TelegramBotService,
-	viberClient pbviber.ViberBotService,
-	whatsappClient pbwhatsapp.WhatsappBotService,
-	facebookClient pbfacebook.FacebookBotService,
 	flowManagerClient pbmanager.FlowChatServerService,
 	storageClient pbstorage.StorageService,
 	chatCache cache.ChatCache,
@@ -58,9 +50,6 @@ func NewFlowService(
 	return &flowService{
 		log,
 		telegramClient,
-		viberClient,
-		whatsappClient,
-		facebookClient,
 		flowManagerClient,
 		storageClient,
 		chatCache,
@@ -102,11 +91,11 @@ func (s *flowService) SendMessageToFlow(ctx context.Context, req *pb.SendMessage
 		return nil
 	}
 	s.log.Info().Msg("confirmation messages sent")
-	message := &pb.Message{
+	message := &pbentity.Message{
 		Id:   req.Message.GetId(),
 		Type: req.Message.GetType(),
-		Value: &pb.Message_TextMessage_{
-			TextMessage: &pb.Message_TextMessage{
+		Value: &pbentity.Message_TextMessage_{
+			TextMessage: &pbentity.Message_TextMessage{
 				Text: req.GetMessage().GetTextMessage().GetText(),
 			},
 		},
@@ -169,10 +158,10 @@ func (s *flowService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 				ProfileId:      conversation.ProfileId,
 				ConversationId: req.GetConversationId(),
 				SessionId:      conversation.SessionId,
-				Message: &pbtelegram.Message{
+				Message: &pbentity.Message{
 					Type: req.Messages.GetType(),
-					Value: &pbtelegram.Message_TextMessage_{
-						TextMessage: &pbtelegram.Message_TextMessage{
+					Value: &pbentity.Message_TextMessage_{
+						TextMessage: &pbentity.Message_TextMessage{
 							Text: req.GetMessages().GetTextMessage().GetText(),
 						},
 					},
@@ -182,72 +171,13 @@ func (s *flowService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 				s.log.Error().Msg(err.Error())
 			}
 		}
-	case "viber":
-		{
-			message := &pbviber.MessageFromFlowRequest{
-				ProfileId:      conversation.ProfileId,
-				ConversationId: req.GetConversationId(),
-				SessionId:      conversation.SessionId,
-				Message: &pbviber.Message{
-					Type: req.Messages.GetType(),
-					Value: &pbviber.Message_TextMessage_{
-						TextMessage: &pbviber.Message_TextMessage{
-							Text: req.GetMessages().GetTextMessage().GetText(),
-						},
-					},
-				},
-			}
-			if _, err := s.viberClient.MessageFromFlow(context.Background(), message); err != nil {
-				s.log.Error().Msg(err.Error())
-			}
-		}
-
-	case "whatsapp":
-		{
-			message := &pbwhatsapp.MessageFromFlowRequest{
-				ProfileId:      conversation.ProfileId,
-				ConversationId: req.GetConversationId(),
-				SessionId:      conversation.SessionId,
-				Message: &pbwhatsapp.Message{
-					Type: req.Messages.GetType(),
-					Value: &pbwhatsapp.Message_TextMessage_{
-						TextMessage: &pbwhatsapp.Message_TextMessage{
-							Text: req.GetMessages().GetTextMessage().GetText(),
-						},
-					},
-				},
-			}
-			if _, err := s.whatsappClient.MessageFromFlow(context.Background(), message); err != nil {
-				s.log.Error().Msg(err.Error())
-			}
-		}
-
-	case "facebook":
-		{
-			message := &pbfacebook.MessageFromFlowRequest{
-				ProfileId:      conversation.ProfileId,
-				ConversationId: req.GetConversationId(),
-				SessionId:      conversation.SessionId,
-				Message: &pbfacebook.Message{
-					Type: req.Messages.GetType(),
-					Value: &pbfacebook.Message_TextMessage_{
-						TextMessage: &pbfacebook.Message_TextMessage{
-							Text: req.GetMessages().GetTextMessage().GetText(),
-						},
-					},
-				},
-			}
-			if _, err := s.facebookClient.MessageFromFlow(context.Background(), message); err != nil {
-				s.log.Error().Msg(err.Error())
-			}
-		}
 	}
 	storageMessage := &pbstorage.SaveMessageFromFlowRequest{
 		ConversationId: req.GetConversationId(),
-		Message: &pbstorage.Message{
+		Message: &pbentity.Message{
 			Type: req.Messages.GetType(),
-			Value: &pbstorage.Message_TextMessage_{
-				TextMessage: &pbstorage.Message_TextMessage{
+			Value: &pbentity.Message_TextMessage_{
+				TextMessage: &pbentity.Message_TextMessage{
 					Text: req.GetMessages().GetTextMessage().GetText(),
 				},
 			},
@@ -266,8 +196,8 @@ func (s *flowService) WaitMessage(ctx context.Context, req *pb.WaitMessageReques
 		return nil
 	}
 	if cachedMessages != nil {
-		messages := make([]*pb.Message, 0, len(cachedMessages))
-		var tmp *pb.Message
+		messages := make([]*pbentity.Message, 0, len(cachedMessages))
+		var tmp *pbentity.Message
 		var err error
 		s.log.Info().Msg("send cached messages")
 		for _, m := range cachedMessages {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	pb "github.com/matvoy/chat_server/cmd/chat_storage/proto/storage"
-	pbflow "github.com/matvoy/chat_server/cmd/flow_client/proto/flow_client"
+	pb "github.com/matvoy/chat_server/api/proto/chat_storage"
+	pbflow "github.com/matvoy/chat_server/api/proto/flow_client"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 	"github.com/matvoy/chat_server/internal/repo/pg"
 

@@ -2,37 +2,21 @@ syntax = "proto3";
 
 package webitel.chat.service.flowclient;
 
+import "entity.proto";
+
 service FlowClientService {
     rpc SendMessage(SendMessageRequest) returns (SendMessageResponse) {}
     rpc WaitMessage(WaitMessageRequest) returns (WaitMessageResponse) {}
     rpc CloseConversation(CloseConversationRequest) returns (CloseConversationResponse) {}
 }
 
-message Message {
-    int64 id = 1;
-    string type = 2;
-
-    message TextMessage {
-        string text = 1;
-    }
-
-    oneof value {
-        TextMessage text_message = 3;
-    }
-}
-
-message Error {
-    string id = 1;
-    string message = 2;
-}
-
 message SendMessageRequest {
     int64 conversation_id = 1;
-    Message messages = 2;
+    entity.Message messages = 2;
 }
 
 message SendMessageResponse {
-    Error error = 1;
+    entity.Error error = 1;
 }
 
 message WaitMessageRequest {
@@ -42,8 +26,8 @@ message WaitMessageRequest {
 
 message WaitMessageResponse {
     int64 timeout_sec = 1;
-    repeated Message messages = 2;
-    Error error = 3;
+    repeated entity.Message messages = 2;
+    entity.Error error = 3;
 }
 
 message CloseConversationRequest {
@@ -52,7 +36,7 @@ message CloseConversationRequest {
 }
 
 message CloseConversationResponse {
-    Error error = 1;
+    entity.Error error = 1;
 }
 
 service FlowAdapterService {
@@ -64,19 +48,19 @@ message InitRequest {
     int64 conversation_id = 1;
     int64 profile_id = 2;
     int64 domain_id = 3;
-    Message message = 4;
+    entity.Message message = 4;
     map<string, string>  variables = 5;
 }
 
 message InitResponse {
-    Error error = 1;
+    entity.Error error = 1;
 }
 
 message SendMessageToFlowRequest {
     int64 conversation_id = 1;
-    Message message = 2;
+    entity.Message message = 2;
 }
 
 message SendMessageToFlowResponse {
-    Error error = 1;
+    entity.Error error = 1;
 }

@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	pbstorage "github.com/matvoy/chat_server/cmd/chat_storage/proto/storage"
-	pb "github.com/matvoy/chat_server/cmd/telegram_bot/proto/bot_message"
+	pbstorage "github.com/matvoy/chat_server/api/proto/chat_storage"
+	pb "github.com/matvoy/chat_server/api/proto/telegram_bot"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/rs/zerolog"

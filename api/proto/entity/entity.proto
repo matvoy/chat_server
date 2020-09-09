@@ -1,6 +1,8 @@
 syntax = "proto3";
 
-package webitel.chat.entity;
+package entity;
+
+option go_package = "github.com/matvoy/chat_server/api/proto/entity;api/proto/entity";
 
 message Error {
     string id = 1;

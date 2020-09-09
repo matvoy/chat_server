@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"strconv"
 
-	pb "github.com/matvoy/chat_server/cmd/chat_storage/proto/storage"
-	pbflow "github.com/matvoy/chat_server/cmd/flow_client/proto/flow_client"
+	pb "github.com/matvoy/chat_server/api/proto/chat_storage"
+	pbentity "github.com/matvoy/chat_server/api/proto/entity"
+	pbflow "github.com/matvoy/chat_server/api/proto/flow_client"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 	"github.com/matvoy/chat_server/internal/repo"
 	"github.com/matvoy/chat_server/models"
@@ -95,11 +96,11 @@ func (s *storageService) ProcessMessage(ctx context.Context, req *pb.ProcessMess
 			ConversationId: conversationID,
 			ProfileId:      int64(req.GetProfileId()),
 			DomainId:       1,
-			Message: &pbflow.Message{
+			Message: &pbentity.Message{
 				Id:   message.ID,
 				Type: "text",
-				Value: &pbflow.Message_TextMessage_{
-					TextMessage: &pbflow.Message_TextMessage{
+				Value: &pbentity.Message_TextMessage_{
+					TextMessage: &pbentity.Message_TextMessage{
 						Text: req.Text,
 					},
 				},
@@ -117,11 +118,11 @@ func (s *storageService) ProcessMessage(ctx context.Context, req *pb.ProcessMess
 		s.log.Trace().Msg("send to existing")
 		sendMessage := &pbflow.SendMessageToFlowRequest{
 			ConversationId: conversationID,
-			Message: &pbflow.Message{
+			Message: &pbentity.Message{
 				Id:   message.ID,
 				Type: "text",
-				Value: &pbflow.Message_TextMessage_{
-					TextMessage: &pbflow.Message_TextMessage{
+				Value: &pbentity.Message_TextMessage_{
+					TextMessage: &pbentity.Message_TextMessage{
 						Text: req.Text,
 					},
 				},
@@ -151,7 +152,7 @@ func (s *storageService) GetConversationByID(ctx context.Context, req *pb.GetCon
 	res.ProfileId = conversation.ProfileID
 	res.SessionId = conversation.SessionID.String
 	profile := conversation.R.Profile
-	res.Profile = &pb.Profile{
+	res.Profile = &pbentity.Profile{
 		Id:       profile.ID,
 		Name:     profile.Name,
 		Type:     profile.Type,
@@ -186,7 +187,7 @@ func (s *storageService) GetProfileByID(ctx context.Context, req *pb.GetProfileB
 		s.log.Error().Msg(err.Error())
 		return nil
 	}
-	res.Profile = &pb.Profile{
+	res.Profile = &pbentity.Profile{
 		Id:        profile.ID,
 		Name:      profile.Name,
 		Type:      profile.Type,
@@ -221,7 +222,7 @@ func (s *storageService) SaveMessageFromFlow(ctx context.Context, req *pb.SaveMe
 	}
 	if err := s.repo.CreateMessage(context.Background(), message); err != nil {
 		s.log.Error().Msg(err.Error())
-		res.Error = &pb.Error{
+		res.Error = &pbentity.Error{
 			Message: err.Error(),
 		}
 	}
@@ -291,14 +292,14 @@ func (s *storageService) createClient(ctx context.Context, req *pb.ProcessMessag
 	return
 }
 
-func transformProfileFromRepoModel(profile *models.Profile) (*pb.Profile, error) {
+func transformProfileFromRepoModel(profile *models.Profile) (*pbentity.Profile, error) {
 	variableBytes, err := profile.Variables.MarshalJSON()
 	variables := make(map[string]string)
 	err = json.Unmarshal(variableBytes, &variables)
 	if err != nil {
 		return nil, err
 	}
-	result := &pb.Profile{
+	result := &pbentity.Profile{
 		Id:        profile.ID,
 		Name:      profile.Name,
 		Type:      profile.Type,
@@ -308,9 +309,9 @@ func transformProfileFromRepoModel(profile *models.Profile) (*pb.Profile, error)
 	return result, nil
 }
 
-func transformProfilesFromRepoModel(profiles []*models.Profile) ([]*pb.Profile, error) {
-	result := make([]*pb.Profile, 0, len(profiles))
-	var tmp *pb.Profile
+func transformProfilesFromRepoModel(profiles []*models.Profile) ([]*pbentity.Profile, error) {
+	result := make([]*pbentity.Profile, 0, len(profiles))
+	var tmp *pbentity.Profile
 	var err error
 	for _, item := range profiles {
 		tmp, err = transformProfileFromRepoModel(item)

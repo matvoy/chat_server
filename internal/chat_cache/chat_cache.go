@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	sessionStr            = "session_id:%s"    // %s - session id, value - conversation id
-	confirmationStr       = "confirmations:%v" // %s - conversation id, value - confirmation id
-	writeCachedMessageStr = "cached_messages:%v:%v"
-	readCachedMessageStr  = "cached_messages:%v"
+	sessionStr            = "session_id:%s"         // %s - session id, value - conversation id
+	confirmationStr       = "confirmations:%v"      // %s - conversation id, value - confirmation id
+	writeCachedMessageStr = "cached_messages:%v:%v" // %v - conversation id, %v - message id
+	readCachedMessageStr  = "cached_messages:%v"    // %v - conversation id
 )
 
 type ChatCache interface {

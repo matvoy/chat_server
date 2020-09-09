@@ -1,7 +1,8 @@
 syntax = "proto3";
-import "entity.proto";
 
 package webitel.chat.service.storage; 
+
+import "entity.proto";
 
 service StorageService {
   rpc ProcessMessage(ProcessMessageRequest) returns (ProcessMessageResponse) {}
@@ -37,7 +38,7 @@ message GetConversationByIDResponse {
   int64 profile_id = 2;
   string title = 3;
   string session_id = 4;
-  Profile profile = 5;
+  entity.Profile profile = 5;
 }
 
 message Profile {
@@ -60,7 +61,7 @@ message GetProfileByIDRequest {
 }
 
 message GetProfileByIDResponse {
-  Profile profile = 1;
+  entity.Profile profile = 1;
 }
 
 message GetProfilesRequest {
@@ -68,14 +69,14 @@ message GetProfilesRequest {
 }
 
 message GetProfilesResponse {
-  repeated Profile profiles = 1;
+  repeated entity.Profile profiles = 1;
 }
 
 message SaveMessageFromFlowRequest {
     int64 conversation_id = 1;
-    Message message = 2;
+    entity.Message message = 2;
 }
 
 message SaveMessageFromFlowResponse {
-    Error error = 1;
+    entity.Error error = 1;
 }
