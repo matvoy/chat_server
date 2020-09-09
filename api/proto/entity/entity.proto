@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package entity;
+
+option go_package = "github.com/matvoy/chat_server/api/proto/entity;api/proto/entity";
+
+message Error {
+    string id = 1;
+    string message = 2;
+}
+
+message Message {
+    int64 id = 1;
+    string type = 2;
+
+    message TextMessage {
+        string text = 1;
+    }
+
+    oneof value {
+        TextMessage text_message = 3;
+    }
+}
+
+message Profile {
+  int64 id = 1;
+  string name = 2;
+  string type = 3;
+  int64 domain_id = 4;
+  int64 schema_id = 5;
+  map<string, string>  variables = 6;
+}
