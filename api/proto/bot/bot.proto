@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package webitel.chat.service.telegrambot;
+package webitel.chat.bot;
 
 import "entity.proto";
 
-service TelegramBotService {
+service BotService {
   rpc MessageFromFlow(MessageFromFlowRequest) returns (MessageFromFlowResponse) {}
   rpc AddProfile(AddProfileRequest) returns (AddProfileResponse) {}
   rpc DeleteProfile(DeleteProfileRequest) returns (DeleteProfileResponse) {}

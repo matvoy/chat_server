@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 
-	pb "github.com/matvoy/chat_server/api/proto/chat_storage"
+	pb "github.com/matvoy/chat_server/api/proto/chat"
 	pbentity "github.com/matvoy/chat_server/api/proto/entity"
 	pbflow "github.com/matvoy/chat_server/api/proto/flow_client"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"

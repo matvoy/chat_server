@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package webitel.chat.service.flowclient;
+package webitel.chat.flowclient;
 
 import "entity.proto";
 

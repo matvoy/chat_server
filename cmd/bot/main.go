@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	pbstorage "github.com/matvoy/chat_server/api/proto/chat_storage"
-	pb "github.com/matvoy/chat_server/api/proto/telegram_bot"
+	pb "github.com/matvoy/chat_server/api/proto/bot"
+	pbchat "github.com/matvoy/chat_server/api/proto/chat"
 
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
@@ -23,7 +23,7 @@ type Config struct {
 }
 
 var (
-	client  pbstorage.StorageService
+	client  pbchat.ChatService
 	logger  *zerolog.Logger
 	cfg     *Config
 	service micro.Service
@@ -39,7 +39,7 @@ func main() {
 	cfg = &Config{}
 
 	service = micro.NewService(
-		micro.Name("webitel.chat.service.telegrambot"),
+		micro.Name("webitel.chat.bot"),
 		micro.Version("latest"),
 		micro.Flags(
 			&cli.StringFlag{
@@ -80,13 +80,13 @@ func main() {
 			cfg.AppPort = c.Int("app_port")
 			// cfg.ConversationTimeout = c.Uint64("conversation_timeout")
 
-			client = pbstorage.NewStorageService("webitel.chat.service.storage", service.Client())
+			client = pbchat.NewChatService("webitel.chat.server", service.Client())
 			var err error
 			logger, err = NewLogger(cfg.LogLevel)
 			if err != nil {
 				return err
 			}
-			return configureTelegram()
+			return configure()
 		}),
 		micro.AfterStart(
 			func() error {
@@ -107,16 +107,16 @@ func main() {
 	}
 }
 
-func configureTelegram() error {
+func configure() error {
 	r := mux.NewRouter()
 
-	tgBot = NewTelegramBot(
+	tgBot = NewBotService(
 		logger,
 		client,
 		r,
 	)
 
-	if err := pb.RegisterTelegramBotServiceHandler(service.Server(), tgBot); err != nil {
+	if err := pb.RegisterBotServiceHandler(service.Server(), tgBot); err != nil {
 		logger.Fatal().
 			Str("app", "failed to register service").
 			Msg(err.Error())

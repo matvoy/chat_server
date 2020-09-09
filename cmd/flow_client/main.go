@@ -3,10 +3,10 @@ package main
 import (
 	"os"
 
-	pbstorage "github.com/matvoy/chat_server/api/proto/chat_storage"
+	pbbot "github.com/matvoy/chat_server/api/proto/bot"
+	pbchat "github.com/matvoy/chat_server/api/proto/chat"
 	pb "github.com/matvoy/chat_server/api/proto/flow_client"
 	pbmanager "github.com/matvoy/chat_server/api/proto/flow_manager"
-	pbtelegram "github.com/matvoy/chat_server/api/proto/telegram_bot"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 
 	"github.com/micro/cli/v2"
@@ -23,14 +23,14 @@ type Config struct {
 }
 
 var (
-	telegramClient pbtelegram.TelegramBotService
-	managerClient  pbmanager.FlowChatServerService
-	storageClient  pbstorage.StorageService
-	logger         *zerolog.Logger
-	cfg            *Config
-	redisStore     store.Store
-	redisTable     string
-	timeout        uint64
+	botClient     pbbot.BotService
+	managerClient pbmanager.FlowChatServerService
+	chatClient    pbchat.ChatService
+	logger        *zerolog.Logger
+	cfg           *Config
+	redisStore    store.Store
+	redisTable    string
+	timeout       uint64
 )
 
 func init() {
@@ -42,7 +42,7 @@ func init() {
 func main() {
 	cfg = &Config{}
 	service := micro.NewService(
-		micro.Name("webitel.chat.service.flowclient"),
+		micro.Name("webitel.chat.flowclient"),
 		micro.Version("latest"),
 		micro.Flags(
 			&cli.StringFlag{
@@ -66,9 +66,9 @@ func main() {
 			timeout = 600 //c.Uint64("conversation_timeout_sec")
 			var err error
 			logger, err = NewLogger(cfg.LogLevel)
-			telegramClient = pbtelegram.NewTelegramBotService("webitel.chat.service.telegrambot", service.Client())
+			botClient = pbbot.NewBotService("webitel.chat.bot", service.Client())
 			managerClient = pbmanager.NewFlowChatServerService("workflow", service.Client())
-			storageClient = pbstorage.NewStorageService("webitel.chat.service.storage", service.Client())
+			chatClient = pbchat.NewChatService("webitel.chat.server", service.Client())
 			return err
 		}),
 	)
@@ -76,7 +76,7 @@ func main() {
 	service.Options().Store.Init(store.Table(redisTable))
 
 	cache := cache.NewChatCache(service.Options().Store)
-	serv := NewFlowService(logger, telegramClient, managerClient, storageClient, cache)
+	serv := NewFlowService(logger, botClient, managerClient, chatClient, cache)
 
 	if err := pb.RegisterFlowAdapterServiceHandler(service.Server(), serv); err != nil {
 		logger.Fatal().

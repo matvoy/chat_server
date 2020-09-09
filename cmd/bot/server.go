@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	pbstorage "github.com/matvoy/chat_server/api/proto/chat_storage"
-	pb "github.com/matvoy/chat_server/api/proto/telegram_bot"
+	pb "github.com/matvoy/chat_server/api/proto/bot"
+	pbchat "github.com/matvoy/chat_server/api/proto/chat"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/rs/zerolog"
@@ -26,35 +26,19 @@ type ChatServer interface {
 	StopWebhookServer() error
 }
 
-type webhookReqBody struct {
-	Message struct {
-		MessageID int64  `json:"message_id"`
-		Text      string `json:"text"`
-		From      struct {
-			Username  string `json:"username"`
-			ID        int64  `json:"id"`
-			FirstName string `json:"first_name"`
-			LastName  string `json:"last_name"`
-		} `json:"from"`
-		Chat struct {
-			ID int64 `json:"id"`
-		} `json:"chat"`
-	} `json:"message"`
-}
-
-type telegramBot struct {
+type botService struct {
 	log    *zerolog.Logger
-	client pbstorage.StorageService
+	client pbchat.ChatService
 	router *mux.Router
 	bots   map[int64]*tgbotapi.BotAPI
 }
 
-func NewTelegramBot(
+func NewBotService(
 	log *zerolog.Logger,
-	client pbstorage.StorageService,
+	client pbchat.ChatService,
 	router *mux.Router,
-) *telegramBot {
-	t := &telegramBot{
+) *botService {
+	t := &botService{
 		log:    log,
 		client: client,
 		router: router,
@@ -63,7 +47,7 @@ func NewTelegramBot(
 	t.router.HandleFunc("/telegram/{profile_id}", t.WebhookHandler).
 		Methods("POST")
 
-	res, err := t.client.GetProfiles(context.Background(), &pbstorage.GetProfilesRequest{Type: "telegram"})
+	res, err := t.client.GetProfiles(context.Background(), &pbchat.GetProfilesRequest{Type: "telegram"})
 	if err != nil || res == nil {
 		t.log.Error().Msg(err.Error())
 		return nil
@@ -90,14 +74,14 @@ func NewTelegramBot(
 	return t
 }
 
-func (t *telegramBot) StartWebhookServer() error {
+func (t *botService) StartWebhookServer() error {
 	t.log.Info().
 		Int("port", cfg.AppPort).
 		Msg("webhook started listening on port")
 	return http.ListenAndServe(fmt.Sprintf(":%v", cfg.AppPort), t.router) // srv.ListenAndServeTLS(cfg.CertPath, cfg.KeyPath)
 }
 
-func (t *telegramBot) StopWebhookServer() error {
+func (t *botService) StopWebhookServer() error {
 	t.log.Info().
 		Msg("removing webhooks")
 	for k := range t.bots {
@@ -109,7 +93,7 @@ func (t *telegramBot) StopWebhookServer() error {
 	return nil
 }
 
-func (t *telegramBot) WebhookHandler(w http.ResponseWriter, r *http.Request) {
+func (t *botService) WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	p := strings.TrimPrefix(r.URL.Path, "/telegram/")
 	profileID, err := strconv.ParseInt(p, 10, 64)
 	if err != nil {
@@ -136,7 +120,7 @@ func (t *telegramBot) WebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 	strChatID := strconv.FormatInt(update.Message.Chat.ID, 10)
 
-	message := &pbstorage.ProcessMessageRequest{
+	message := &pbchat.ProcessMessageRequest{
 		SessionId:      strChatID,
 		ExternalUserId: strconv.FormatInt(update.Message.From.ID, 10),
 		Username:       update.Message.From.Username,
@@ -154,7 +138,7 @@ func (t *telegramBot) WebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (t *telegramBot) MessageFromFlow(ctx context.Context, req *pb.MessageFromFlowRequest, res *pb.MessageFromFlowResponse) error {
+func (t *botService) MessageFromFlow(ctx context.Context, req *pb.MessageFromFlowRequest, res *pb.MessageFromFlowResponse) error {
 	id, err := strconv.ParseInt(req.SessionId, 10, 64)
 	if err != nil {
 		t.log.Error().Msg(err.Error())
@@ -169,7 +153,7 @@ func (t *telegramBot) MessageFromFlow(ctx context.Context, req *pb.MessageFromFl
 	return nil
 }
 
-func (t *telegramBot) AddProfile(ctx context.Context, req *pb.AddProfileRequest, res *pb.AddProfileResponse) error {
+func (t *botService) AddProfile(ctx context.Context, req *pb.AddProfileRequest, res *pb.AddProfileResponse) error {
 	token, ok := req.Profile.Variables["token"]
 	if !ok {
 		t.log.Error().Msg("token not found")
@@ -187,7 +171,7 @@ func (t *telegramBot) AddProfile(ctx context.Context, req *pb.AddProfileRequest,
 	return nil
 }
 
-func (t *telegramBot) DeleteProfile(ctx context.Context, req *pb.DeleteProfileRequest, res *pb.DeleteProfileResponse) error {
+func (t *botService) DeleteProfile(ctx context.Context, req *pb.DeleteProfileRequest, res *pb.DeleteProfileResponse) error {
 	if _, err := t.bots[req.ProfileId].RemoveWebhook(); err != nil {
 		t.log.Error().Msg(err.Error())
 		return nil

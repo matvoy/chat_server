@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 
-	pbstorage "github.com/matvoy/chat_server/api/proto/chat_storage"
+	pbbot "github.com/matvoy/chat_server/api/proto/bot"
+	pbchat "github.com/matvoy/chat_server/api/proto/chat"
 	pbentity "github.com/matvoy/chat_server/api/proto/entity"
 	pb "github.com/matvoy/chat_server/api/proto/flow_client"
 	pbmanager "github.com/matvoy/chat_server/api/proto/flow_manager"
-	pbtelegram "github.com/matvoy/chat_server/api/proto/telegram_bot"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 
 	proto "github.com/golang/protobuf/proto"
@@ -32,9 +32,9 @@ type Service interface {
 
 type flowService struct {
 	log               *zerolog.Logger
-	telegramClient    pbtelegram.TelegramBotService
+	telegramClient    pbbot.BotService
 	flowManagerClient pbmanager.FlowChatServerService
-	storageClient     pbstorage.StorageService
+	storageClient     pbchat.ChatService
 	chatCache         cache.ChatCache
 }
 
@@ -42,9 +42,9 @@ type flowService struct {
 
 func NewFlowService(
 	log *zerolog.Logger,
-	telegramClient pbtelegram.TelegramBotService,
+	telegramClient pbbot.BotService,
 	flowManagerClient pbmanager.FlowChatServerService,
-	storageClient pbstorage.StorageService,
+	storageClient pbchat.ChatService,
 	chatCache cache.ChatCache,
 ) *flowService {
 	return &flowService{
@@ -140,7 +140,7 @@ func (s *flowService) Init(ctx context.Context, req *pb.InitRequest, res *pb.Ini
 }
 
 func (s *flowService) SendMessage(ctx context.Context, req *pb.SendMessageRequest, res *pb.SendMessageResponse) error {
-	conversation, err := s.storageClient.GetConversationByID(context.Background(), &pbstorage.GetConversationByIDRequest{
+	conversation, err := s.storageClient.GetConversationByID(context.Background(), &pbchat.GetConversationByIDRequest{
 		ConversationId: req.GetConversationId(),
 	})
 	if err != nil {
@@ -154,7 +154,7 @@ func (s *flowService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 	switch conversation.Profile.Type {
 	case "telegram":
 		{
-			message := &pbtelegram.MessageFromFlowRequest{
+			message := &pbbot.MessageFromFlowRequest{
 				ProfileId:      conversation.ProfileId,
 				ConversationId: req.GetConversationId(),
 				SessionId:      conversation.SessionId,
@@ -172,7 +172,7 @@ func (s *flowService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 			}
 		}
 	}
-	storageMessage := &pbstorage.SaveMessageFromFlowRequest{
+	storageMessage := &pbchat.SaveMessageFromFlowRequest{
 		ConversationId: req.GetConversationId(),
 		Message: &pbentity.Message{
 			Type: req.Messages.GetType(),
@@ -227,7 +227,7 @@ func (s *flowService) CloseConversation(ctx context.Context, req *pb.CloseConver
 	s.chatCache.DeleteConfirmation(req.GetConversationId())
 	if _, err := s.storageClient.CloseConversation(
 		context.Background(),
-		&pbstorage.CloseConversationRequest{
+		&pbchat.CloseConversationRequest{
 			ConversationId: req.ConversationId,
 		}); err != nil {
 		s.log.Error().Msg(err.Error())

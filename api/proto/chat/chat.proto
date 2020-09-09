@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package webitel.chat.service.storage; 
+package webitel.chat.server; 
 
 import "entity.proto";
 
-service StorageService {
+service ChatService {
   rpc ProcessMessage(ProcessMessageRequest) returns (ProcessMessageResponse) {}
   rpc GetConversationByID(GetConversationByIDRequest) returns (GetConversationByIDResponse) {}
   rpc GetProfileByID(GetProfileByIDRequest) returns (GetProfileByIDResponse) {}

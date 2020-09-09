@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	pb "github.com/matvoy/chat_server/api/proto/chat_storage"
+	pb "github.com/matvoy/chat_server/api/proto/chat"
 	pbflow "github.com/matvoy/chat_server/api/proto/flow_client"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 	"github.com/matvoy/chat_server/internal/repo/pg"
@@ -101,7 +101,7 @@ func main() {
 					Msg(err.Error())
 				return err
 			}
-			flowClient = pbflow.NewFlowAdapterService("webitel.chat.service.flowclient", service.Client())
+			flowClient = pbflow.NewFlowAdapterService("webitel.chat.flowclient", service.Client())
 			return nil
 		}),
 	)
@@ -128,7 +128,7 @@ func main() {
 	cache := cache.NewChatCache(service.Options().Store)
 	serv := NewStorageService(repo, logger, flowClient, cache)
 
-	if err := pb.RegisterStorageServiceHandler(service.Server(), serv); err != nil {
+	if err := pb.RegisterChatServiceHandler(service.Server(), serv); err != nil {
 		logger.Fatal().
 			Str("app", "failed to register service").
 			Msg(err.Error())
