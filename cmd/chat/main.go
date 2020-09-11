@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	pbbot "github.com/matvoy/chat_server/api/proto/bot"
 	pb "github.com/matvoy/chat_server/api/proto/chat"
 	pbflow "github.com/matvoy/chat_server/api/proto/flow_client"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
@@ -36,6 +37,7 @@ var (
 	redisStore store.Store
 	redisTable string
 	flowClient pbflow.FlowAdapterService
+	botClient  pbbot.BotService
 )
 
 func init() {
@@ -102,6 +104,7 @@ func main() {
 				return err
 			}
 			flowClient = pbflow.NewFlowAdapterService("webitel.chat.flowclient", service.Client())
+			botClient = pbbot.NewBotService("webitel.chat.bot", service.Client())
 			return nil
 		}),
 	)
@@ -126,7 +129,7 @@ func main() {
 
 	repo := pg.NewPgRepository(db, logger)
 	cache := cache.NewChatCache(service.Options().Store)
-	serv := NewChatService(repo, logger, flowClient, cache)
+	serv := NewChatService(repo, logger, flowClient, botClient, cache)
 
 	if err := pb.RegisterChatServiceHandler(service.Server(), serv); err != nil {
 		logger.Fatal().

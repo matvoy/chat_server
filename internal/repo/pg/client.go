@@ -11,6 +11,19 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
+func (repo *PgRepository) GetClientByID(ctx context.Context, id int64) (*models.Client, error) {
+	result, err := models.Clients(models.ClientWhere.ID.EQ(id)).
+		One(ctx, repo.db)
+	if err != nil {
+		repo.log.Warn().Msg(err.Error())
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return result, nil
+}
+
 func (repo *PgRepository) GetClientByExternalID(ctx context.Context, externalID string) (*models.Client, error) {
 	result, err := models.Clients(qm.Where("LOWER(external_id) like ?", strings.ToLower(externalID))).
 		One(ctx, repo.db)

@@ -9,19 +9,55 @@ import (
 // TODO TRANSFORM TO DOMAIN MODELS
 
 type Repository interface {
+	ProfileRepository
+	ConversationRepository
+	ChannelRepository
+	ClientRepository
+	InviteRepository
+	MessageRepository
+}
+
+type ProfileRepository interface {
 	GetProfileByID(ctx context.Context, id int64) (*models.Profile, error)
 	GetProfiles(ctx context.Context, profileType string) ([]*models.Profile, error)
-	GetConversationByID(ctx context.Context, id int64) (*models.Conversation, error)
-	GetClientByExternalID(ctx context.Context, externalID string) (*models.Client, error)
-
 	CreateProfile(ctx context.Context, p *models.Profile) error
-	CreateConversation(ctx context.Context, c *models.Conversation) error
-	CreateMessage(ctx context.Context, m *models.Message) error
-	CreateClient(ctx context.Context, c *models.Client) error
+}
 
+type ConversationRepository interface {
 	CloseConversation(ctx context.Context, id int64) error
-
 	GetConversations(ctx context.Context, limit, offset int) ([]*models.Conversation, error)
-	GetMessages(ctx context.Context, limit, offset int) ([]*models.Message, error)
+	CreateConversation(ctx context.Context, c *models.Conversation) error
+	GetConversationByID(ctx context.Context, id int64) (*models.Conversation, error)
+}
+
+type ChannelRepository interface {
+	CloseChannel(ctx context.Context, id int64) error
+	GetChannels(
+		ctx context.Context,
+		userID *int64,
+		conversationID *int64,
+		connection *string,
+		internal *bool,
+		exceptID *int64,
+	) ([]*models.Channel, error)
+	CreateChannel(ctx context.Context, c *models.Channel) error
+	GetChannelByID(ctx context.Context, id int64) (*models.Channel, error)
+}
+
+type ClientRepository interface {
+	GetClientByID(ctx context.Context, id int64) (*models.Client, error)
+	GetClientByExternalID(ctx context.Context, externalID string) (*models.Client, error)
+	CreateClient(ctx context.Context, c *models.Client) error
 	GetClients(ctx context.Context, limit, offset int) ([]*models.Client, error)
+}
+
+type InviteRepository interface {
+	CreateInvite(ctx context.Context, m *models.Invite) error
+	DeleteInvite(ctx context.Context, inviteID int64) error
+	GetInviteByID(ctx context.Context, id int64) (*models.Invite, error)
+}
+
+type MessageRepository interface {
+	CreateMessage(ctx context.Context, m *models.Message) error
+	GetMessages(ctx context.Context, limit, offset int) ([]*models.Message, error)
 }

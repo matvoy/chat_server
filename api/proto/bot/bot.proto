@@ -11,9 +11,9 @@ service BotService {
 }
 
 message SendMessageRequest {
-  string session_id = 1;
+  string external_user_id = 1;
   int64 profile_id = 2;
-  int64 conversation_id = 3;
+  // int64 conversation_id = 3;
   entity.Message message = 4;
 }
 

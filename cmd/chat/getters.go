@@ -9,6 +9,11 @@ import (
 	"github.com/matvoy/chat_server/models"
 )
 
+func (s *chatService) CheckSession(ctx context.Context, req *pb.CheckSessionRequest, res *pb.CheckSessionResponse) error {
+
+	return nil
+}
+
 func (s *chatService) GetConversationByID(ctx context.Context, req *pb.GetConversationByIDRequest, res *pb.GetConversationByIDResponse) error {
 	conversation, err := s.repo.GetConversationByID(context.Background(), req.ConversationId)
 	if err != nil {
@@ -16,7 +21,7 @@ func (s *chatService) GetConversationByID(ctx context.Context, req *pb.GetConver
 		return nil
 	}
 	res.Id = conversation.ID
-	res.DomainId = conversation.DomainID.Int64
+	res.DomainId = conversation.DomainID
 	return nil
 }
 

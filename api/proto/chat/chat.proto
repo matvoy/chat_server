@@ -21,20 +21,34 @@ service ChatService {
 
   rpc GetConversationByID(GetConversationByIDRequest) returns (GetConversationByIDResponse) {}
   rpc GetProfiles(GetProfilesRequest) returns (GetProfilesResponse) {} 
-  rpc GetProfileByID(GetProfileByIDRequest) returns (GetProfileByIDResponse) {} 
+  rpc GetProfileByID(GetProfileByIDRequest) returns (GetProfileByIDResponse) {}
+
+  rpc CheckSession(CheckSessionRequest) returns (CheckSessionResponse) {}
+}
+
+message CheckSessionRequest {
+  string external_id = 1;
+  int64 profile_id = 2;
+}
+
+message CheckSessionResponse {
+  bool exists = 1;
+  int64 channel_id = 2;
 }
 
 message User {
   int64 user_id = 1;
   string type = 2;
-  string communication = 3;
+  string connection = 3;
   bool internal = 4;
 }
 
 message SendMessageRequest {
-  User from = 1;
-  entity.Message message = 2;
-  int64 conversation_id = 3;
+  // User from = 1;
+  entity.Message message = 1;
+  // int64 conversation_id = 3;
+  int64 channel_id = 2;
+  bool from_flow = 3;
 }
 
 message SendMessageResponse {
@@ -42,6 +56,7 @@ message SendMessageResponse {
 
 message StartConversationRequest {
   User user = 1;
+  int64 domain_id = 2;
 }
 message StartConversationResponse {
   int64 conversation_id = 1;
@@ -56,8 +71,9 @@ message CloseConversationResponse {
 }
 
 message JoinConversationRequest {
-  User user = 1;
-  int64 conversation_id = 2;
+  int64 invite_id = 1;
+  // User user = 1;
+  // int64 conversation_id = 2;
 }
 message JoinConversationResponse {
   int64 channel_id = 1;
@@ -75,11 +91,11 @@ message InviteToConversationRequest {
   int64 conversation_id = 2;
 }
 message InviteToConversationResponse {
-  int64 invitation_id = 1;
+  int64 invite_id = 1;
 }
 
 message DeclineInvitationRequest {
-  int64 invitation_id = 1;
+  int64 invite_id = 1;
 }
 message DeclineInvitationResponse {
 }
