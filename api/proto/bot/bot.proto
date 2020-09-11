@@ -5,19 +5,19 @@ package webitel.chat.bot;
 import "entity.proto";
 
 service BotService {
-  rpc MessageFromFlow(MessageFromFlowRequest) returns (MessageFromFlowResponse) {}
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse) {}
   rpc AddProfile(AddProfileRequest) returns (AddProfileResponse) {}
   rpc DeleteProfile(DeleteProfileRequest) returns (DeleteProfileResponse) {}
 }
 
-message MessageFromFlowRequest {
+message SendMessageRequest {
   string session_id = 1;
   int64 profile_id = 2;
   int64 conversation_id = 3;
   entity.Message message = 4;
 }
 
-message MessageFromFlowResponse {
+message SendMessageResponse {
   entity.Error error = 1;
 }
 

@@ -19,14 +19,10 @@ type Repository interface {
 	CreateConversation(ctx context.Context, c *models.Conversation) error
 	CreateMessage(ctx context.Context, m *models.Message) error
 	CreateClient(ctx context.Context, c *models.Client) error
-	CreateUserConversation(ctx context.Context, uc *models.UserConversation) error
-	CreateAttachment(ctx context.Context, a *models.Attachment) error
 
 	CloseConversation(ctx context.Context, id int64) error
 
 	GetConversations(ctx context.Context, limit, offset int) ([]*models.Conversation, error)
 	GetMessages(ctx context.Context, limit, offset int) ([]*models.Message, error)
 	GetClients(ctx context.Context, limit, offset int) ([]*models.Client, error)
-	GetUserConversations(ctx context.Context, limit, offset int) ([]*models.UserConversation, error)
-	GetAttachments(ctx context.Context, limit, offset int) ([]*models.Attachment, error)
 }

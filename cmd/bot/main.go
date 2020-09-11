@@ -27,7 +27,7 @@ var (
 	logger  *zerolog.Logger
 	cfg     *Config
 	service micro.Service
-	tgBot   ChatServer
+	bot     ChatServer
 )
 
 func init() {
@@ -90,12 +90,12 @@ func main() {
 		}),
 		micro.AfterStart(
 			func() error {
-				return tgBot.StartWebhookServer()
+				return bot.StartWebhookServer()
 			},
 		),
 		micro.AfterStop(
 			func() error {
-				return tgBot.StopWebhookServer()
+				return bot.StopWebhookServer()
 			},
 		),
 	)
@@ -110,13 +110,13 @@ func main() {
 func configure() error {
 	r := mux.NewRouter()
 
-	tgBot = NewBotService(
+	bot = NewBotService(
 		logger,
 		client,
 		r,
 	)
 
-	if err := pb.RegisterBotServiceHandler(service.Server(), tgBot); err != nil {
+	if err := pb.RegisterBotServiceHandler(service.Server(), bot); err != nil {
 		logger.Fatal().
 			Str("app", "failed to register service").
 			Msg(err.Error())

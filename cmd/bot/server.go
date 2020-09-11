@@ -2,11 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
-	"strings"
 
 	"github.com/gorilla/mux"
 	pb "github.com/matvoy/chat_server/api/proto/bot"
@@ -14,12 +11,11 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 type ChatServer interface {
-	WebhookHandler(w http.ResponseWriter, r *http.Request)
-	MessageFromFlow(ctx context.Context, req *pb.MessageFromFlowRequest, res *pb.MessageFromFlowResponse) error
+	TelegramWebhookHandler(w http.ResponseWriter, r *http.Request)
+	SendMessage(ctx context.Context, req *pb.SendMessageRequest, res *pb.SendMessageResponse) error
 	AddProfile(ctx context.Context, req *pb.AddProfileRequest, res *pb.AddProfileResponse) error
 	DeleteProfile(ctx context.Context, req *pb.DeleteProfileRequest, res *pb.DeleteProfileResponse) error
 	StartWebhookServer() error
@@ -27,10 +23,11 @@ type ChatServer interface {
 }
 
 type botService struct {
-	log    *zerolog.Logger
-	client pbchat.ChatService
-	router *mux.Router
-	bots   map[int64]*tgbotapi.BotAPI
+	log          *zerolog.Logger
+	client       pbchat.ChatService
+	router       *mux.Router
+	telegramBots map[int64]*tgbotapi.BotAPI
+	botMap       map[int64]string
 }
 
 func NewBotService(
@@ -38,144 +35,67 @@ func NewBotService(
 	client pbchat.ChatService,
 	router *mux.Router,
 ) *botService {
-	t := &botService{
+	b := &botService{
 		log:    log,
 		client: client,
 		router: router,
 	}
-
-	t.router.HandleFunc("/telegram/{profile_id}", t.WebhookHandler).
-		Methods("POST")
-
-	res, err := t.client.GetProfiles(context.Background(), &pbchat.GetProfilesRequest{Type: "telegram"})
-	if err != nil || res == nil {
-		t.log.Error().Msg(err.Error())
-		return nil
-	}
-
-	bots := make(map[int64]*tgbotapi.BotAPI)
-	for _, profile := range res.Profiles {
-		token, ok := profile.Variables["token"]
-		if !ok {
-			log.Error().Msg("token not found")
-			return nil
-		}
-		bot, err := tgbotapi.NewBotAPI(token)
-		if err != nil {
-			log.Error().Msg(err.Error())
-			return nil
-		}
-		// webhookInfo := tgbotapi.NewWebhookWithCert(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, profile.Id), cfg.CertPath)
-		webhookInfo := tgbotapi.NewWebhook(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, profile.Id))
-		_, err = bot.SetWebhook(webhookInfo)
-		bots[profile.Id] = bot
-	}
-	t.bots = bots
-	return t
+	b.botMap = make(map[int64]string)
+	b.configureTelegram()
+	return b
 }
 
-func (t *botService) StartWebhookServer() error {
-	t.log.Info().
+func (b *botService) StartWebhookServer() error {
+	b.log.Info().
 		Int("port", cfg.AppPort).
 		Msg("webhook started listening on port")
-	return http.ListenAndServe(fmt.Sprintf(":%v", cfg.AppPort), t.router) // srv.ListenAndServeTLS(cfg.CertPath, cfg.KeyPath)
+	return http.ListenAndServe(fmt.Sprintf(":%v", cfg.AppPort), b.router) // srv.ListenAndServeTLS(cfg.CertPath, cfg.KeyPath)
 }
 
-func (t *botService) StopWebhookServer() error {
-	t.log.Info().
+func (b *botService) StopWebhookServer() error {
+	b.log.Info().
 		Msg("removing webhooks")
-	for k := range t.bots {
-		if _, err := t.bots[k].RemoveWebhook(); err != nil {
-			t.log.Error().Msg(err.Error())
+	for k := range b.telegramBots {
+		if _, err := b.telegramBots[k].RemoveWebhook(); err != nil {
+			b.log.Error().Msg(err.Error())
 		}
-		delete(t.bots, k)
+		delete(b.telegramBots, k)
 	}
 	return nil
 }
 
-func (t *botService) WebhookHandler(w http.ResponseWriter, r *http.Request) {
-	p := strings.TrimPrefix(r.URL.Path, "/telegram/")
-	profileID, err := strconv.ParseInt(p, 10, 64)
-	if err != nil {
-		t.log.Error().Msg(err.Error())
-		return
-	}
-	update := &webhookReqBody{}
-	if err := json.NewDecoder(r.Body).Decode(update); err != nil {
-		log.Error().Msgf("could not decode request body: %s", err)
-		return
-	}
-
-	if update.Message.Text == "" { // ignore any non-Message Updates
-		return
-	}
-
-	t.log.Debug().
-		Int64("id", update.Message.From.ID).
-		Str("username", update.Message.From.Username).
-		Str("first_name", update.Message.From.FirstName).
-		Str("last_name", update.Message.From.LastName).
-		Str("text", update.Message.Text).
-		Msg("receive message")
-
-	strChatID := strconv.FormatInt(update.Message.Chat.ID, 10)
-
-	message := &pbchat.ProcessMessageRequest{
-		SessionId:      strChatID,
-		ExternalUserId: strconv.FormatInt(update.Message.From.ID, 10),
-		Username:       update.Message.From.Username,
-		FirstName:      update.Message.From.FirstName,
-		LastName:       update.Message.From.LastName,
-		Text:           update.Message.Text,
-		ProfileId:      profileID,
-	}
-
-	res, err := t.client.ProcessMessage(context.Background(), message)
-	if err != nil || res == nil {
-		t.log.Error().Msg(err.Error())
-	}
-	t.log.Debug().Msg("records created in the storage")
-
-}
-
-func (t *botService) MessageFromFlow(ctx context.Context, req *pb.MessageFromFlowRequest, res *pb.MessageFromFlowResponse) error {
-	id, err := strconv.ParseInt(req.SessionId, 10, 64)
-	if err != nil {
-		t.log.Error().Msg(err.Error())
-		return nil
-	}
-	msg := tgbotapi.NewMessage(id, req.GetMessage().GetTextMessage().GetText())
-	// msg.ReplyToMessageID = update.Message.MessageID
-	_, err = t.bots[req.ProfileId].Send(msg)
-	if err != nil {
-		t.log.Error().Msg(err.Error())
+func (b *botService) SendMessage(ctx context.Context, req *pb.SendMessageRequest, res *pb.SendMessageResponse) error {
+	switch b.botMap[req.ProfileId] {
+	case "telegram":
+		{
+			if err := b.sendMessageTelegram(req); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
 
-func (t *botService) AddProfile(ctx context.Context, req *pb.AddProfileRequest, res *pb.AddProfileResponse) error {
-	token, ok := req.Profile.Variables["token"]
-	if !ok {
-		t.log.Error().Msg("token not found")
-		return nil
+func (b *botService) AddProfile(ctx context.Context, req *pb.AddProfileRequest, res *pb.AddProfileResponse) error {
+	switch req.Profile.Type {
+	case "telegram":
+		{
+			if err := b.addProfileTelegram(req); err != nil {
+				return err
+			}
+		}
 	}
-	bot, err := tgbotapi.NewBotAPI(token)
-	if err != nil {
-		t.log.Error().Msg(err.Error())
-		return nil
-	}
-	// webhookInfo := tgbotapi.NewWebhookWithCert(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, profile.Id), cfg.CertPath)
-	webhookInfo := tgbotapi.NewWebhook(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, req.Profile.Id))
-	_, err = bot.SetWebhook(webhookInfo)
-	t.bots[req.Profile.Id] = bot
 	return nil
 }
 
-func (t *botService) DeleteProfile(ctx context.Context, req *pb.DeleteProfileRequest, res *pb.DeleteProfileResponse) error {
-	if _, err := t.bots[req.ProfileId].RemoveWebhook(); err != nil {
-		t.log.Error().Msg(err.Error())
-		return nil
+func (b *botService) DeleteProfile(ctx context.Context, req *pb.DeleteProfileRequest, res *pb.DeleteProfileResponse) error {
+	switch b.botMap[req.ProfileId] {
+	case "telegram":
+		{
+			if err := b.deleteProfileTelegram(req); err != nil {
+				return err
+			}
+		}
 	}
-	delete(t.bots, req.ProfileId)
 	return nil
 }

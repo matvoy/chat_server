@@ -5,28 +5,74 @@ package webitel.chat.server;
 import "entity.proto";
 
 service ChatService {
-  rpc ProcessMessage(ProcessMessageRequest) returns (ProcessMessageResponse) {}
-  rpc GetConversationByID(GetConversationByIDRequest) returns (GetConversationByIDResponse) {}
-  rpc GetProfileByID(GetProfileByIDRequest) returns (GetProfileByIDResponse) {}
-  rpc GetProfiles(GetProfilesRequest) returns (GetProfilesResponse) {}
+  // rpc ProcessMessage(ProcessMessageRequest) returns (ProcessMessageResponse) {}
+  
+  // rpc GetProfileByID(GetProfileByIDRequest) returns (GetProfileByIDResponse) {}
+  
+  // rpc SaveMessageFromFlow(SaveMessageFromFlowRequest) returns (SaveMessageFromFlowResponse) {}
+
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse) {}
+  rpc StartConversation(StartConversationRequest) returns (StartConversationResponse) {}
   rpc CloseConversation(CloseConversationRequest) returns (CloseConversationResponse) {}
-  rpc SaveMessageFromFlow(SaveMessageFromFlowRequest) returns (SaveMessageFromFlowResponse) {}
+  rpc JoinConversation(JoinConversationRequest) returns (JoinConversationResponse) {}
+  rpc LeaveConversation(LeaveConversationRequest) returns (LeaveConversationResponse) {}
+  rpc InviteToConversation(InviteToConversationRequest) returns (InviteToConversationResponse) {}
+
+  rpc GetConversationByID(GetConversationByIDRequest) returns (GetConversationByIDResponse) {}
+  rpc GetProfiles(GetProfilesRequest) returns (GetProfilesResponse) {}  
 }
 
-message ProcessMessageRequest {
-  string external_user_id = 1;
-  string session_id = 2;
-  string username = 3;
-  string first_name = 4;
-  string last_name = 5;
-  string text = 6;
-  int64 profile_id = 7;
-  string number = 8;
+message User {
+  int64 user_id = 1;
+  string type = 2;
+  string communication = 3;
+  bool internal = 4;
 }
 
-message ProcessMessageResponse {
-  bool created = 1;
+message SendMessageRequest {
+  User from = 1;
+  entity.Message message = 2;
+  int64 conversation_id = 3;
+}
+
+message SendMessageResponse {
+}
+
+message StartConversationRequest {
+  User user = 1;
+}
+message StartConversationResponse {
+  int64 conversation_id = 1;
+  int64 channel_id = 2;
+}
+
+message CloseConversationRequest {
+  int64 conversation_id = 1;
+}
+
+message CloseConversationResponse {
+}
+
+message JoinConversationRequest {
+  User user = 1;
   int64 conversation_id = 2;
+}
+message JoinConversationResponse {
+  int64 channel_id = 1;
+}
+
+message LeaveConversationRequest {
+  int64 channel_id = 1;
+  int64 conversation_id = 2;
+}
+message LeaveConversationResponse {
+}
+
+message InviteToConversationRequest {
+  User user = 1;
+  int64 conversation_id = 2;
+}
+message InviteToConversationResponse {
 }
 
 message GetConversationByIDRequest {
@@ -49,21 +95,6 @@ message Profile {
   map<string, string>  variables = 5;
 }
 
-message CloseConversationRequest {
-  int64 conversation_id = 1;
-}
-
-message CloseConversationResponse {
-}
-
-message GetProfileByIDRequest {
-  int64 profile_id = 1;
-}
-
-message GetProfileByIDResponse {
-  entity.Profile profile = 1;
-}
-
 message GetProfilesRequest {
   string type = 1;
 }
@@ -72,11 +103,35 @@ message GetProfilesResponse {
   repeated entity.Profile profiles = 1;
 }
 
-message SaveMessageFromFlowRequest {
-    int64 conversation_id = 1;
-    entity.Message message = 2;
-}
+// message SaveMessageFromFlowRequest {
+//     int64 conversation_id = 1;
+//     entity.Message message = 2;
+// }
 
-message SaveMessageFromFlowResponse {
-    entity.Error error = 1;
-}
+// message SaveMessageFromFlowResponse {
+//     entity.Error error = 1;
+// }
+
+// message GetProfileByIDRequest {
+//   int64 profile_id = 1;
+// }
+
+// message GetProfileByIDResponse {
+//   entity.Profile profile = 1;
+// }
+
+// message ProcessMessageRequest {
+//   string external_user_id = 1;
+//   string session_id = 2;
+//   string username = 3;
+//   string first_name = 4;
+//   string last_name = 5;
+//   string text = 6;
+//   int64 profile_id = 7;
+//   string number = 8;
+// }
+
+// message ProcessMessageResponse {
+//   bool created = 1;
+//   int64 conversation_id = 2;
+// }
