@@ -126,7 +126,7 @@ func main() {
 
 	repo := pg.NewPgRepository(db, logger)
 	cache := cache.NewChatCache(service.Options().Store)
-	serv := NewStorageService(repo, logger, flowClient, cache)
+	serv := NewChatService(repo, logger, flowClient, cache)
 
 	if err := pb.RegisterChatServiceHandler(service.Server(), serv); err != nil {
 		logger.Fatal().

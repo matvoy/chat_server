@@ -9,26 +9,18 @@ import (
 	"github.com/matvoy/chat_server/models"
 )
 
-func (s *storageService) GetConversationByID(ctx context.Context, req *pb.GetConversationByIDRequest, res *pb.GetConversationByIDResponse) error {
+func (s *chatService) GetConversationByID(ctx context.Context, req *pb.GetConversationByIDRequest, res *pb.GetConversationByIDResponse) error {
 	conversation, err := s.repo.GetConversationByID(context.Background(), req.ConversationId)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
 		return nil
 	}
 	res.Id = conversation.ID
-	res.ProfileId = conversation.ProfileID
-	res.SessionId = conversation.SessionID.String
-	profile := conversation.R.Profile
-	res.Profile = &pbentity.Profile{
-		Id:       profile.ID,
-		Name:     profile.Name,
-		Type:     profile.Type,
-		DomainId: profile.DomainID,
-	}
+	res.DomainId = conversation.DomainID.Int64
 	return nil
 }
 
-func (s *storageService) GetProfiles(ctx context.Context, req *pb.GetProfilesRequest, res *pb.GetProfilesResponse) error {
+func (s *chatService) GetProfiles(ctx context.Context, req *pb.GetProfilesRequest, res *pb.GetProfilesResponse) error {
 	profiles, err := s.repo.GetProfiles(context.Background(), req.Type)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
@@ -74,25 +66,24 @@ func transformProfilesFromRepoModel(profiles []*models.Profile) ([]*pbentity.Pro
 	return result, nil
 }
 
-// func (s *storageService) GetProfileByID(ctx context.Context, req *pb.GetProfileByIDRequest, res *pb.GetProfileByIDResponse) error {
-// 	profile, err := s.repo.GetProfileByID(context.Background(), req.ProfileId)
-// 	if err != nil {
-// 		s.log.Error().Msg(err.Error())
-// 		return nil
-// 	}
-// 	variableBytes, err := profile.Variables.MarshalJSON()
-// 	variables := make(map[string]string)
-// 	err = json.Unmarshal(variableBytes, &variables)
-// 	if err != nil {
-// 		s.log.Error().Msg(err.Error())
-// 		return nil
-// 	}
-// 	res.Profile = &pbentity.Profile{
-// 		Id:        profile.ID,
-// 		Name:      profile.Name,
-// 		Type:      profile.Type,
-// 		DomainId:  profile.DomainID,
-// 		Variables: variables,
-// 	}
-// 	return nil
-// }
+func (s *chatService) GetProfileByID(ctx context.Context, req *pb.GetProfileByIDRequest, res *pb.GetProfileByIDResponse) error {
+	profile, err := s.repo.GetProfileByID(context.Background(), req.ProfileId)
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	variableBytes, err := profile.Variables.MarshalJSON()
+	variables := make(map[string]string)
+	err = json.Unmarshal(variableBytes, &variables)
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	result, err := transformProfileFromRepoModel(profile)
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	res.Profile = result
+	return nil
+}

@@ -7,7 +7,7 @@ import "entity.proto";
 service ChatService {
   // rpc ProcessMessage(ProcessMessageRequest) returns (ProcessMessageResponse) {}
   
-  // rpc GetProfileByID(GetProfileByIDRequest) returns (GetProfileByIDResponse) {}
+  // 
   
   // rpc SaveMessageFromFlow(SaveMessageFromFlowRequest) returns (SaveMessageFromFlowResponse) {}
 
@@ -17,9 +17,11 @@ service ChatService {
   rpc JoinConversation(JoinConversationRequest) returns (JoinConversationResponse) {}
   rpc LeaveConversation(LeaveConversationRequest) returns (LeaveConversationResponse) {}
   rpc InviteToConversation(InviteToConversationRequest) returns (InviteToConversationResponse) {}
+  rpc DeclineInvitation(DeclineInvitationRequest) returns (DeclineInvitationResponse) {}
 
   rpc GetConversationByID(GetConversationByIDRequest) returns (GetConversationByIDResponse) {}
-  rpc GetProfiles(GetProfilesRequest) returns (GetProfilesResponse) {}  
+  rpc GetProfiles(GetProfilesRequest) returns (GetProfilesResponse) {} 
+  rpc GetProfileByID(GetProfileByIDRequest) returns (GetProfileByIDResponse) {} 
 }
 
 message User {
@@ -73,6 +75,13 @@ message InviteToConversationRequest {
   int64 conversation_id = 2;
 }
 message InviteToConversationResponse {
+  int64 invitation_id = 1;
+}
+
+message DeclineInvitationRequest {
+  int64 invitation_id = 1;
+}
+message DeclineInvitationResponse {
 }
 
 message GetConversationByIDRequest {
@@ -81,10 +90,8 @@ message GetConversationByIDRequest {
 
 message GetConversationByIDResponse {
   int64 id = 1;
-  int64 profile_id = 2;
+  int64 domain_id = 2;
   string title = 3;
-  string session_id = 4;
-  entity.Profile profile = 5;
 }
 
 message Profile {
@@ -103,6 +110,14 @@ message GetProfilesResponse {
   repeated entity.Profile profiles = 1;
 }
 
+message GetProfileByIDRequest {
+  int64 profile_id = 1;
+}
+
+message GetProfileByIDResponse {
+  entity.Profile profile = 1;
+}
+
 // message SaveMessageFromFlowRequest {
 //     int64 conversation_id = 1;
 //     entity.Message message = 2;
@@ -110,14 +125,6 @@ message GetProfilesResponse {
 
 // message SaveMessageFromFlowResponse {
 //     entity.Error error = 1;
-// }
-
-// message GetProfileByIDRequest {
-//   int64 profile_id = 1;
-// }
-
-// message GetProfileByIDResponse {
-//   entity.Profile profile = 1;
 // }
 
 // message ProcessMessageRequest {
