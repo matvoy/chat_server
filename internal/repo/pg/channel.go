@@ -36,7 +36,8 @@ func (repo *PgRepository) GetChannels(
 	internal *bool,
 	exceptID *int64,
 ) ([]*models.Channel, error) {
-	query := make([]qm.QueryMod, 0, 5)
+	query := make([]qm.QueryMod, 0, 6)
+	query = append(query, models.ChannelWhere.ClosedAt.IsNull())
 	if userID != nil {
 		query = append(query, models.ChannelWhere.UserID.EQ(*userID))
 	}

@@ -60,25 +60,39 @@ func (s *chatService) SendMessage(
 	req *pb.SendMessageRequest,
 	res *pb.SendMessageResponse,
 ) error {
+	if req.FromFlow {
+		message := &models.Message{
+			Type:           "text",
+			ConversationID: req.ConversationId,
+			Text: null.String{
+				req.Message.GetTextMessage().GetText(),
+				true,
+			},
+		}
+		if err := s.repo.CreateMessage(context.Background(), message); err != nil {
+			logger.Error().Msg(err.Error())
+			return err
+		}
+		s.routeMessageFromFlow(&req.ConversationId, req.Message)
+		return nil
+	}
+
 	channel, err := s.repo.GetChannelByID(context.Background(), req.ChannelId)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
 		return err
 	}
-	if channel == nil && !req.FromFlow {
-		s.log.Warn().Msg("invitation not found")
-		return errors.New("invitation not found")
+	if channel == nil {
+		s.log.Warn().Msg("channel not found")
+		return errors.New("channel not found")
 	}
-	var channelID null.Int64
-	if !req.FromFlow {
-		channelID = null.Int64{
+
+	message := &models.Message{
+		Type: "text",
+		ChannelID: null.Int64{
 			channel.ID,
 			true,
-		}
-	}
-	message := &models.Message{
-		Type:           "text",
-		ChannelID:      channelID,
+		},
 		ConversationID: channel.ConversationID,
 		Text: null.String{
 			req.Message.GetTextMessage().GetText(),
@@ -145,22 +159,20 @@ func (s *chatService) CloseConversation(
 	req *pb.CloseConversationRequest,
 	res *pb.CloseConversationResponse,
 ) error {
-	if err := s.repo.CloseConversation(context.Background(), req.ConversationId); err != nil {
-		s.log.Error().Msg(err.Error())
-		return err
+	if req.FromFlow {
+		if err := s.routeCloseConversationFromFlow(&req.ConversationId, req.Cause); err != nil {
+			s.log.Error().Msg(err.Error())
+			return err
+		}
+		return s.closeConversation(&req.ConversationId)
 	}
-	channels, err := s.repo.GetChannels(context.Background(), nil, &req.ConversationId, nil, nil, nil)
+	closerChannel, err := s.repo.GetChannelByID(context.Background(), req.CloserChannelId)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
 		return err
 	}
-	for _, channel := range channels {
-		if err := s.repo.CloseChannel(context.Background(), channel.ID); err != nil {
-			s.log.Error().Msg(err.Error())
-			return err
-		}
-	}
-	return nil
+	s.routeCloseConversation(closerChannel, req.Cause)
+	return s.closeConversation(&req.ConversationId)
 }
 
 func (s *chatService) JoinConversation(
@@ -187,6 +199,10 @@ func (s *chatService) JoinConversation(
 		logger.Error().Msg(err.Error())
 		return err
 	}
+	if err := s.routeJoinConversation(&channel.ID, &invite.ConversationID); err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
 	res.ChannelId = channel.ID
 	return nil
 }
@@ -200,6 +216,10 @@ func (s *chatService) LeaveConversation(
 		s.log.Error().Msg(err.Error())
 		return err
 	}
+	if err := s.routeLeaveConversation(&req.ChannelId, &req.ConversationId); err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
 	return nil
 }
 
@@ -208,11 +228,20 @@ func (s *chatService) InviteToConversation(
 	req *pb.InviteToConversationRequest,
 	res *pb.InviteToConversationResponse,
 ) error {
+	// _, err := s.repo.GetChannelByID(context.Background(), req.InviterChannelId)
+	// if err != nil {
+	// 	s.log.Error().Msg(err.Error())
+	// 	return err
+	// }
 	invite := &models.Invite{
 		ConversationID: req.ConversationId,
 		UserID:         req.User.UserId,
 	}
 	if err := s.repo.CreateInvite(context.Background(), invite); err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	if err := s.routeInvite(&req.ConversationId, &req.User.UserId); err != nil {
 		s.log.Error().Msg(err.Error())
 		return err
 	}
@@ -229,174 +258,25 @@ func (s *chatService) DeclineInvitation(
 		s.log.Error().Msg(err.Error())
 		return err
 	}
+	s.routeDeclineInvite(&req.ConversationId)
 	return nil
 }
 
-// func (s *chatService) CloseConversation(ctx context.Context, req *pb.CloseConversationRequest, res *pb.CloseConversationResponse) error {
-// 	c, err := s.repo.GetConversationByID(context.Background(), req.ConversationId)
-// 	if err != nil {
-// 		s.log.Error().Msg(err.Error())
-// 		return nil
-// 	}
-// 	s.chatCache.DeleteSession(c.SessionID.String)
-// 	if err := s.repo.CloseConversation(context.Background(), req.ConversationId); err != nil {
-// 		s.log.Error().Msg(err.Error())
-// 	}
-// 	return nil
-// }
-
-// func (s *chatService) parseSession(ctx context.Context, req *pb.ProcessMessageRequest, clientID int64) (conversationID int64, isNew bool, err error) {
-// 	cachedConversationID, err := s.chatCache.ReadSession(req.SessionId)
-// 	if err != nil {
-// 		return
-// 	}
-// 	var conversation *models.Conversation
-// 	if cachedConversationID != nil {
-// 		conversationID, _ = strconv.ParseInt(string(cachedConversationID), 10, 64)
-// 		if err = s.chatCache.WriteSession(req.SessionId, cachedConversationID); err != nil {
-// 			return
-// 		}
-// 	} else {
-// 		conversation = &models.Conversation{
-// 			ProfileID: int64(req.ProfileId),
-// 			SessionID: null.String{
-// 				req.SessionId,
-// 				true,
-// 			},
-// 			ClientID: null.Int64{
-// 				clientID,
-// 				true,
-// 			},
-// 		}
-// 		if err = s.repo.CreateConversation(ctx, conversation); err != nil {
-// 			return
-// 		}
-// 		isNew = true
-// 		conversationID = conversation.ID
-
-// 		if err = s.chatCache.WriteSession(req.SessionId, []byte(strconv.Itoa(int(conversationID)))); err != nil {
-// 			return
-// 		}
-// 	}
-// 	return
-// }
-
-// func (s *storageService) ProcessMessage(ctx context.Context, req *pb.ProcessMessageRequest, res *pb.ProcessMessageResponse) error {
-// 	client, _ := s.repo.GetClientByExternalID(ctx, req.ExternalUserId)
-// 	var conversationID int64
-// 	var err error
-// 	var isNew bool
-// 	if client != nil {
-// 		s.log.Trace().Msg("client found")
-// 		conversationID, isNew, err = s.parseSession(context.Background(), req, client.ID)
-// 		if err != nil {
-// 			s.log.Error().Msg(err.Error())
-// 			return nil
-// 		}
-// 		s.log.Trace().
-// 			Int64("conversation_id", conversationID).
-// 			Int64("client_id", client.ID).
-// 			Msg("info")
-// 	} else {
-// 		s.log.Trace().Msg("creating new client")
-// 		client, err = s.createClient(context.Background(), req)
-// 		if err != nil {
-// 			s.log.Error().Msg(err.Error())
-// 			return nil
-// 		}
-// 		conversationID, _, err = s.parseSession(context.Background(), req, client.ID)
-// 		isNew = true
-// 		if err != nil {
-// 			s.log.Error().Msg(err.Error())
-// 			return nil
-// 		}
-// 		s.log.Trace().
-// 			Int64("conversation_id", conversationID).
-// 			Int64("client_id", client.ID).
-// 			Msg("info")
-// 	}
-
-// 	message := &models.Message{
-// 		ClientID: null.Int64{
-// 			client.ID,
-// 			true,
-// 		},
-// 		Text: null.String{
-// 			req.Text,
-// 			true,
-// 		},
-// 		ConversationID: conversationID,
-// 	}
-// 	if err := s.repo.CreateMessage(context.Background(), message); err != nil {
-// 		s.log.Error().Msg(err.Error())
-// 		return nil
-// 	}
-
-// 	if isNew {
-// 		s.log.Trace().Msg("init")
-// 		init := &pbflow.InitRequest{
-// 			ConversationId: conversationID,
-// 			ProfileId:      int64(req.GetProfileId()),
-// 			DomainId:       1,
-// 			Message: &pbentity.Message{
-// 				Id:   message.ID,
-// 				Type: "text",
-// 				Value: &pbentity.Message_TextMessage_{
-// 					TextMessage: &pbentity.Message_TextMessage{
-// 						Text: req.Text,
-// 					},
-// 				},
-// 			},
-// 		}
-// 		if res, err := s.flowClient.Init(context.Background(), init); err != nil || res.Error != nil {
-// 			if res != nil {
-// 				s.log.Error().Msg(res.Error.Message)
-// 			} else {
-// 				s.log.Error().Msg(err.Error())
-// 			}
-// 			return nil
-// 		}
-// 	} else {
-// 		s.log.Trace().Msg("send to existing")
-// 		sendMessage := &pbflow.SendMessageToFlowRequest{
-// 			ConversationId: conversationID,
-// 			Message: &pbentity.Message{
-// 				Id:   message.ID,
-// 				Type: "text",
-// 				Value: &pbentity.Message_TextMessage_{
-// 					TextMessage: &pbentity.Message_TextMessage{
-// 						Text: req.Text,
-// 					},
-// 				},
-// 			},
-// 		}
-// 		if res, err := s.flowClient.SendMessageToFlow(context.Background(), sendMessage); err != nil || res.Error != nil {
-// 			if res != nil {
-// 				s.log.Error().Msg(res.Error.Message)
-// 			} else {
-// 				s.log.Error().Msg(err.Error())
-// 			}
-// 			return nil
-// 		}
-// 	}
-
-// 	res.Created = true
-// 	return nil
-// }
-
-// func (s *storageService) SaveMessageFromFlow(ctx context.Context, req *pb.SaveMessageFromFlowRequest, res *pb.SaveMessageFromFlowResponse) error {
-// 	message := &models.Message{
-// 		Text: null.String{
-// 			req.GetMessage().GetTextMessage().GetText(),
-// 			true,
-// 		},
-// 		ConversationID: req.GetConversationId(),
-// 	}
-// 	if err := s.repo.CreateMessage(context.Background(), message); err != nil {
-// 		s.log.Error().Msg(err.Error())
-// 		res.Error = &pbentity.Error{
-// 			Message: err.Error(),
-// 		}
-// 	}
-// 	return nil
-// }
+func (s *chatService) closeConversation(conversationID *int64) error {
+	if err := s.repo.CloseConversation(context.Background(), *conversationID); err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	channels, err := s.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, nil)
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	for _, channel := range channels {
+		if err := s.repo.CloseChannel(context.Background(), channel.ID); err != nil {
+			s.log.Error().Msg(err.Error())
+			return err
+		}
+	}
+	return nil
+}

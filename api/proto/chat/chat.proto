@@ -67,6 +67,9 @@ message StartConversationResponse {
 
 message CloseConversationRequest {
   int64 conversation_id = 1;
+  int64 closer_channel_id = 2;
+  bool from_flow = 3;
+  string cause = 4;
 }
 
 message CloseConversationResponse {
@@ -91,6 +94,7 @@ message LeaveConversationResponse {
 message InviteToConversationRequest {
   User user = 1;
   int64 conversation_id = 2;
+  int64 inviter_channel_id = 3;
 }
 message InviteToConversationResponse {
   int64 invite_id = 1;
@@ -98,6 +102,7 @@ message InviteToConversationResponse {
 
 message DeclineInvitationRequest {
   int64 invite_id = 1;
+  int64 conversation_id = 2;
 }
 message DeclineInvitationResponse {
 }
