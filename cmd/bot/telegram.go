@@ -9,9 +9,11 @@ import (
 	"strconv"
 	"strings"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	pb "github.com/matvoy/chat_server/api/proto/bot"
 	pbchat "github.com/matvoy/chat_server/api/proto/chat"
+	pbentity "github.com/matvoy/chat_server/api/proto/entity"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/rs/zerolog/log"
 )
 
@@ -99,7 +101,7 @@ func (b *botService) deleteProfileTelegram(req *pb.DeleteProfileRequest) error {
 }
 
 func (b *botService) sendMessageTelegram(req *pb.SendMessageRequest) error {
-	id, err := strconv.ParseInt(req.SessionId, 10, 64)
+	id, err := strconv.ParseInt(req.ExternalUserId, 10, 64)
 	if err != nil {
 		b.log.Error().Msg(err.Error())
 		return err
@@ -141,19 +143,67 @@ func (b *botService) TelegramWebhookHandler(w http.ResponseWriter, r *http.Reque
 
 	strChatID := strconv.FormatInt(update.Message.Chat.ID, 10)
 
-	message := &pbchat.ProcessMessageRequest{
-		SessionId:      strChatID,
-		ExternalUserId: strconv.FormatInt(update.Message.From.ID, 10),
-		Username:       update.Message.From.Username,
-		FirstName:      update.Message.From.FirstName,
-		LastName:       update.Message.From.LastName,
-		Text:           update.Message.Text,
-		ProfileId:      profileID,
+	check := &pbchat.CheckSessionRequest{
+		ExternalId: strChatID,
+		ProfileId:  profileID,
+		Username:   update.Message.From.Username,
 	}
-
-	res, err := b.client.ProcessMessage(context.Background(), message)
-	if err != nil || res == nil {
+	resCheck, err := b.client.CheckSession(context.Background(), check)
+	if err != nil {
 		b.log.Error().Msg(err.Error())
+		return
 	}
-	b.log.Debug().Msg("records created in the storage")
+	if !resCheck.Exists {
+		start := &pbchat.StartConversationRequest{
+			User: &pbchat.User{
+				UserId:     resCheck.ClientId,
+				Type:       "telegram",
+				Connection: p,
+				Internal:   false,
+			},
+			DomainId: 1,
+		}
+		resStart, err := b.client.StartConversation(context.Background(), start)
+		if err != nil {
+			b.log.Error().Msg(err.Error())
+			return
+		}
+		if update.Message.Text != "/start" {
+			textMessage := &pbentity.Message{
+				Type: "text",
+				Value: &pbentity.Message_TextMessage_{
+					TextMessage: &pbentity.Message_TextMessage{
+						Text: update.Message.Text,
+					},
+				},
+			}
+			message := &pbchat.SendMessageRequest{
+				Message:   textMessage,
+				ChannelId: resStart.ChannelId,
+				FromFlow:  false,
+			}
+			_, err = b.client.SendMessage(context.Background(), message)
+			if err != nil {
+				b.log.Error().Msg(err.Error())
+			}
+		}
+	} else {
+		textMessage := &pbentity.Message{
+			Type: "text",
+			Value: &pbentity.Message_TextMessage_{
+				TextMessage: &pbentity.Message_TextMessage{
+					Text: update.Message.Text,
+				},
+			},
+		}
+		message := &pbchat.SendMessageRequest{
+			Message:   textMessage,
+			ChannelId: resCheck.ChannelId,
+			FromFlow:  false,
+		}
+		_, err := b.client.SendMessage(context.Background(), message)
+		if err != nil {
+			b.log.Error().Msg(err.Error())
+		}
+	}
 }

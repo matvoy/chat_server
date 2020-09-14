@@ -29,11 +29,13 @@ service ChatService {
 message CheckSessionRequest {
   string external_id = 1;
   int64 profile_id = 2;
+  string username = 3;
 }
 
 message CheckSessionResponse {
   bool exists = 1;
   int64 channel_id = 2;
+  int64 client_id = 3;
 }
 
 message User {
@@ -46,9 +48,9 @@ message User {
 message SendMessageRequest {
   // User from = 1;
   entity.Message message = 1;
-  // int64 conversation_id = 3;
   int64 channel_id = 2;
   bool from_flow = 3;
+  int64 conversation_id = 4;
 }
 
 message SendMessageResponse {

@@ -32,9 +32,9 @@ type Service interface {
 
 type flowService struct {
 	log               *zerolog.Logger
-	telegramClient    pbbot.BotService
+	botClient         pbbot.BotService
 	flowManagerClient pbmanager.FlowChatServerService
-	storageClient     pbchat.ChatService
+	chatClient        pbchat.ChatService
 	chatCache         cache.ChatCache
 }
 
@@ -42,16 +42,16 @@ type flowService struct {
 
 func NewFlowService(
 	log *zerolog.Logger,
-	telegramClient pbbot.BotService,
+	botClient pbbot.BotService,
 	flowManagerClient pbmanager.FlowChatServerService,
-	storageClient pbchat.ChatService,
+	chatClient pbchat.ChatService,
 	chatCache cache.ChatCache,
 ) *flowService {
 	return &flowService{
 		log,
-		telegramClient,
+		botClient,
 		flowManagerClient,
-		storageClient,
+		chatClient,
 		chatCache,
 	}
 }
@@ -117,15 +117,15 @@ func (s *flowService) Init(ctx context.Context, req *pb.InitRequest, res *pb.Ini
 		ConversationId: req.GetConversationId(),
 		ProfileId:      req.GetProfileId(),
 		DomainId:       req.GetDomainId(),
-		Message: &pbmanager.Message{
-			Id:   req.Message.GetId(),
-			Type: req.Message.GetType(),
-			Value: &pbmanager.Message_TextMessage_{
-				TextMessage: &pbmanager.Message_TextMessage{
-					Text: req.GetMessage().GetTextMessage().GetText(),
-				},
-			},
-		},
+		// Message: &pbmanager.Message{
+		// 	Id:   req.Message.GetId(),
+		// 	Type: req.Message.GetType(),
+		// 	Value: &pbmanager.Message_TextMessage_{
+		// 		TextMessage: &pbmanager.Message_TextMessage{
+		// 			Text: req.GetMessage().GetTextMessage().GetText(),
+		// 		},
+		// 	},
+		// },
 	}
 	if res, err := s.flowManagerClient.Start(context.Background(), start); err != nil || res.Error != nil {
 		if res != nil {
@@ -140,40 +140,9 @@ func (s *flowService) Init(ctx context.Context, req *pb.InitRequest, res *pb.Ini
 }
 
 func (s *flowService) SendMessage(ctx context.Context, req *pb.SendMessageRequest, res *pb.SendMessageResponse) error {
-	conversation, err := s.storageClient.GetConversationByID(context.Background(), &pbchat.GetConversationByIDRequest{
+	message := &pbchat.SendMessageRequest{
 		ConversationId: req.GetConversationId(),
-	})
-	if err != nil {
-		s.log.Error().Msg(err.Error())
-		return nil
-	}
-	if conversation.Profile == nil {
-		s.log.Error().Msg("empty profile")
-		return nil
-	}
-	switch conversation.Profile.Type {
-	case "telegram":
-		{
-			message := &pbbot.MessageFromFlowRequest{
-				ProfileId:      conversation.ProfileId,
-				ConversationId: req.GetConversationId(),
-				SessionId:      conversation.SessionId,
-				Message: &pbentity.Message{
-					Type: req.Messages.GetType(),
-					Value: &pbentity.Message_TextMessage_{
-						TextMessage: &pbentity.Message_TextMessage{
-							Text: req.GetMessages().GetTextMessage().GetText(),
-						},
-					},
-				},
-			}
-			if _, err := s.telegramClient.MessageFromFlow(context.Background(), message); err != nil {
-				s.log.Error().Msg(err.Error())
-			}
-		}
-	}
-	storageMessage := &pbchat.SaveMessageFromFlowRequest{
-		ConversationId: req.GetConversationId(),
+		FromFlow:       true,
 		Message: &pbentity.Message{
 			Type: req.Messages.GetType(),
 			Value: &pbentity.Message_TextMessage_{
@@ -183,9 +152,10 @@ func (s *flowService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 			},
 		},
 	}
-	if _, err := s.storageClient.SaveMessageFromFlow(context.Background(), storageMessage); err != nil {
+	if _, err := s.chatClient.SendMessage(context.Background(), message); err != nil {
 		s.log.Error().Msg(err.Error())
 	}
+
 	return nil
 }
 
@@ -225,7 +195,7 @@ func (s *flowService) WaitMessage(ctx context.Context, req *pb.WaitMessageReques
 func (s *flowService) CloseConversation(ctx context.Context, req *pb.CloseConversationRequest, res *pb.CloseConversationResponse) error {
 	s.chatCache.DeleteCachedMessages(req.GetConversationId())
 	s.chatCache.DeleteConfirmation(req.GetConversationId())
-	if _, err := s.storageClient.CloseConversation(
+	if _, err := s.chatClient.CloseConversation(
 		context.Background(),
 		&pbchat.CloseConversationRequest{
 			ConversationId: req.ConversationId,

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"strconv"
 
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
 	pb "github.com/matvoy/chat_server/api/proto/chat"
@@ -120,6 +121,22 @@ func (s *chatService) StartConversation(
 	}
 	res.ConversationId = conversation.ID
 	res.ChannelId = channel.ID
+	if !req.User.Internal {
+		profileID, err := strconv.ParseInt(req.User.Connection, 10, 64)
+		if err != nil {
+			s.log.Error().Msg(err.Error())
+			return err
+		}
+		init := &pbflow.InitRequest{
+			ConversationId: conversation.ID,
+			ProfileId:      profileID,
+			DomainId:       req.DomainId,
+		}
+		if res, err := s.flowClient.Init(context.Background(), init); err != nil {
+			s.log.Error().Msg(res.Error.Message)
+			return err
+		}
+	}
 	return nil
 }
 
@@ -261,33 +278,6 @@ func (s *chatService) DeclineInvitation(
 // 			return
 // 		}
 // 	}
-// 	return
-// }
-
-// func (s *chatService) createClient(ctx context.Context, req *pb.ProcessMessageRequest) (client *models.Client, err error) {
-// 	client = &models.Client{
-// 		ExternalID: null.String{
-// 			req.ExternalUserId,
-// 			true,
-// 		},
-// 		Name: null.String{
-// 			req.Username,
-// 			true,
-// 		},
-// 		FirstName: null.String{
-// 			req.FirstName,
-// 			true,
-// 		},
-// 		LastName: null.String{
-// 			req.LastName,
-// 			true,
-// 		},
-// 		Number: null.String{
-// 			req.Number,
-// 			true,
-// 		},
-// 	}
-// 	err = s.repo.CreateClient(ctx, client)
 // 	return
 // }
 

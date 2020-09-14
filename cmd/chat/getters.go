@@ -3,14 +3,45 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 
 	pb "github.com/matvoy/chat_server/api/proto/chat"
 	pbentity "github.com/matvoy/chat_server/api/proto/entity"
 	"github.com/matvoy/chat_server/models"
+	"github.com/volatiletech/null/v8"
 )
 
 func (s *chatService) CheckSession(ctx context.Context, req *pb.CheckSessionRequest, res *pb.CheckSessionResponse) error {
-
+	client, err := s.repo.GetClientByExternalID(context.Background(), req.ExternalId)
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	if client == nil {
+		client, err = s.createClient(context.Background(), req)
+		if err != nil {
+			s.log.Error().Msg(err.Error())
+			return err
+		}
+		res.ClientId = client.ID
+		res.Exists = false
+		return nil
+	}
+	profileStr := strconv.Itoa(int(req.ProfileId))
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	channel, err := s.repo.GetChannels(context.Background(), &client.ID, nil, &profileStr, func() *bool { b := false; return &b }(), nil)
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	if len(channel) > 0 {
+		res.Exists = true
+		res.ChannelId = channel[0].ID
+		res.ClientId = client.ID
+	}
 	return nil
 }
 
@@ -91,4 +122,19 @@ func (s *chatService) GetProfileByID(ctx context.Context, req *pb.GetProfileByID
 	}
 	res.Profile = result
 	return nil
+}
+
+func (s *chatService) createClient(ctx context.Context, req *pb.CheckSessionRequest) (client *models.Client, err error) {
+	client = &models.Client{
+		ExternalID: null.String{
+			req.ExternalId,
+			true,
+		},
+		Name: null.String{
+			req.Username,
+			true,
+		},
+	}
+	err = s.repo.CreateClient(ctx, client)
+	return
 }
