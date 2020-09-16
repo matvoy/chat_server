@@ -16,6 +16,7 @@ import (
 	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/config/cmd"
 	"github.com/micro/go-micro/v2/store"
+	"github.com/micro/go-plugins/broker/rabbitmq/v2"
 	"github.com/micro/go-plugins/registry/consul/v2"
 	"github.com/micro/go-plugins/store/redis/v2"
 	"github.com/rs/zerolog"
@@ -31,10 +32,11 @@ type Config struct {
 }
 
 var (
-	logger     *zerolog.Logger
-	cfg        *Config
-	service    micro.Service
-	redisStore store.Store
+	logger  *zerolog.Logger
+	cfg     *Config
+	service micro.Service
+	// redisStore   store.Store
+	// rabbitBroker broker.Broker
 	redisTable string
 	flowClient pbflow.FlowAdapterService
 	botClient  pbbot.BotService
@@ -42,6 +44,7 @@ var (
 
 func init() {
 	// plugins
+	cmd.DefaultBrokers["rabbitmq"] = rabbitmq.NewBroker
 	cmd.DefaultStores["redis"] = redis.NewStore
 	cmd.DefaultRegistries["consul"] = consul.NewRegistry
 }
@@ -129,7 +132,7 @@ func main() {
 
 	repo := pg.NewPgRepository(db, logger)
 	cache := cache.NewChatCache(service.Options().Store)
-	serv := NewChatService(repo, logger, flowClient, botClient, cache)
+	serv := NewChatService(repo, logger, flowClient, botClient, cache, service.Options().Broker)
 
 	if err := pb.RegisterChatServiceHandler(service.Server(), serv); err != nil {
 		logger.Fatal().

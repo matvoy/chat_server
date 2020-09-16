@@ -14,6 +14,7 @@ func (s *chatService) routeMessage(channel *models.Channel, message *models.Mess
 		return err
 	}
 	reqMessage := &pbentity.Message{
+		Id:   message.ID,
 		Type: message.Type,
 		Value: &pbentity.Message_TextMessage_{
 			TextMessage: &pbentity.Message_TextMessage{

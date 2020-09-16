@@ -17,12 +17,12 @@ func (s *chatService) sendMessageToTelegramUser(from *models.Channel, to *models
 	profileID, err := strconv.ParseInt(to.Connection.String, 10, 64)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	client, err := s.repo.GetClientByID(context.Background(), to.UserID)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	botMessage := &pbbot.SendMessageRequest{
 		ProfileId:      profileID,
@@ -31,7 +31,7 @@ func (s *chatService) sendMessageToTelegramUser(from *models.Channel, to *models
 	}
 	if _, err := s.botClient.SendMessage(context.Background(), botMessage); err != nil {
 		s.log.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	return nil
 }

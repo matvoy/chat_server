@@ -153,6 +153,12 @@ func (b *botService) TelegramWebhookHandler(w http.ResponseWriter, r *http.Reque
 		b.log.Error().Msg(err.Error())
 		return
 	}
+	b.log.Debug().
+		Bool("exists", resCheck.Exists).
+		Int64("channel_id", resCheck.ChannelId).
+		Int64("client_id", resCheck.ClientId).
+		Msg("check user")
+
 	if !resCheck.Exists {
 		start := &pbchat.StartConversationRequest{
 			User: &pbchat.User{
@@ -163,30 +169,30 @@ func (b *botService) TelegramWebhookHandler(w http.ResponseWriter, r *http.Reque
 			},
 			DomainId: 1,
 		}
-		resStart, err := b.client.StartConversation(context.Background(), start)
+		_, err := b.client.StartConversation(context.Background(), start)
 		if err != nil {
 			b.log.Error().Msg(err.Error())
 			return
 		}
-		if update.Message.Text != "/start" {
-			textMessage := &pbentity.Message{
-				Type: "text",
-				Value: &pbentity.Message_TextMessage_{
-					TextMessage: &pbentity.Message_TextMessage{
-						Text: update.Message.Text,
-					},
-				},
-			}
-			message := &pbchat.SendMessageRequest{
-				Message:   textMessage,
-				ChannelId: resStart.ChannelId,
-				FromFlow:  false,
-			}
-			_, err = b.client.SendMessage(context.Background(), message)
-			if err != nil {
-				b.log.Error().Msg(err.Error())
-			}
-		}
+		// if update.Message.Text != "/start" {
+		// 	textMessage := &pbentity.Message{
+		// 		Type: "text",
+		// 		Value: &pbentity.Message_TextMessage_{
+		// 			TextMessage: &pbentity.Message_TextMessage{
+		// 				Text: update.Message.Text,
+		// 			},
+		// 		},
+		// 	}
+		// 	message := &pbchat.SendMessageRequest{
+		// 		Message:   textMessage,
+		// 		ChannelId: resStart.ChannelId,
+		// 		FromFlow:  false,
+		// 	}
+		// 	_, err = b.client.SendMessage(context.Background(), message)
+		// 	if err != nil {
+		// 		b.log.Error().Msg(err.Error())
+		// 	}
+		// }
 	} else {
 		textMessage := &pbentity.Message{
 			Type: "text",

@@ -15,13 +15,13 @@ func (s *chatService) CheckSession(ctx context.Context, req *pb.CheckSessionRequ
 	client, err := s.repo.GetClientByExternalID(context.Background(), req.ExternalId)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	if client == nil {
 		client, err = s.createClient(context.Background(), req)
 		if err != nil {
 			s.log.Error().Msg(err.Error())
-			return err
+			return nil
 		}
 		res.ClientId = client.ID
 		res.Exists = false
@@ -30,16 +30,19 @@ func (s *chatService) CheckSession(ctx context.Context, req *pb.CheckSessionRequ
 	profileStr := strconv.Itoa(int(req.ProfileId))
 	if err != nil {
 		s.log.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	channel, err := s.repo.GetChannels(context.Background(), &client.ID, nil, &profileStr, func() *bool { b := false; return &b }(), nil)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	if len(channel) > 0 {
 		res.Exists = true
 		res.ChannelId = channel[0].ID
+		res.ClientId = client.ID
+	} else {
+		res.Exists = false
 		res.ClientId = client.ID
 	}
 	return nil

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"strconv"
 
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
@@ -11,6 +10,7 @@ import (
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 	"github.com/matvoy/chat_server/internal/repo"
 	"github.com/matvoy/chat_server/models"
+	"github.com/micro/go-micro/v2/broker"
 
 	"github.com/rs/zerolog"
 	"github.com/volatiletech/null/v8"
@@ -37,6 +37,7 @@ type chatService struct {
 	flowClient pbflow.FlowAdapterService
 	botClient  pbbot.BotService
 	chatCache  cache.ChatCache
+	broker     broker.Broker
 }
 
 func NewChatService(
@@ -45,6 +46,7 @@ func NewChatService(
 	flowClient pbflow.FlowAdapterService,
 	botClient pbbot.BotService,
 	chatCache cache.ChatCache,
+	broker broker.Broker,
 ) *chatService {
 	return &chatService{
 		repo,
@@ -52,6 +54,7 @@ func NewChatService(
 		flowClient,
 		botClient,
 		chatCache,
+		broker,
 	}
 }
 
@@ -71,7 +74,7 @@ func (s *chatService) SendMessage(
 		}
 		if err := s.repo.CreateMessage(context.Background(), message); err != nil {
 			logger.Error().Msg(err.Error())
-			return err
+			return nil
 		}
 		s.routeMessageFromFlow(&req.ConversationId, req.Message)
 		return nil
@@ -80,11 +83,11 @@ func (s *chatService) SendMessage(
 	channel, err := s.repo.GetChannelByID(context.Background(), req.ChannelId)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	if channel == nil {
 		s.log.Warn().Msg("channel not found")
-		return errors.New("channel not found")
+		return nil //errors.New("channel not found")
 	}
 
 	message := &models.Message{
@@ -101,7 +104,7 @@ func (s *chatService) SendMessage(
 	}
 	if err := s.repo.CreateMessage(context.Background(), message); err != nil {
 		logger.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	s.routeMessage(channel, message)
 	return nil
@@ -117,7 +120,7 @@ func (s *chatService) StartConversation(
 	}
 	if err := s.repo.CreateConversation(context.Background(), conversation); err != nil {
 		logger.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	channel := &models.Channel{
 		Type:           req.User.Type,
@@ -131,7 +134,7 @@ func (s *chatService) StartConversation(
 	}
 	if err := s.repo.CreateChannel(context.Background(), channel); err != nil {
 		logger.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	res.ConversationId = conversation.ID
 	res.ChannelId = channel.ID
@@ -139,7 +142,7 @@ func (s *chatService) StartConversation(
 		profileID, err := strconv.ParseInt(req.User.Connection, 10, 64)
 		if err != nil {
 			s.log.Error().Msg(err.Error())
-			return err
+			return nil
 		}
 		init := &pbflow.InitRequest{
 			ConversationId: conversation.ID,
@@ -148,7 +151,7 @@ func (s *chatService) StartConversation(
 		}
 		if res, err := s.flowClient.Init(context.Background(), init); err != nil {
 			s.log.Error().Msg(res.Error.Message)
-			return err
+			return nil
 		}
 	}
 	return nil
@@ -162,14 +165,14 @@ func (s *chatService) CloseConversation(
 	if req.FromFlow {
 		if err := s.routeCloseConversationFromFlow(&req.ConversationId, req.Cause); err != nil {
 			s.log.Error().Msg(err.Error())
-			return err
+			return nil
 		}
 		return s.closeConversation(&req.ConversationId)
 	}
 	closerChannel, err := s.repo.GetChannelByID(context.Background(), req.CloserChannelId)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	s.routeCloseConversation(closerChannel, req.Cause)
 	return s.closeConversation(&req.ConversationId)
@@ -183,11 +186,11 @@ func (s *chatService) JoinConversation(
 	invite, err := s.repo.GetInviteByID(context.Background(), req.InviteId)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	if invite == nil {
 		s.log.Warn().Msg("invitation not found")
-		return errors.New("invitation not found")
+		return nil //errors.New("invitation not found")
 	}
 	channel := &models.Channel{
 		Type:           "webitel",
@@ -197,11 +200,11 @@ func (s *chatService) JoinConversation(
 	}
 	if err := s.repo.CreateChannel(ctx, channel); err != nil {
 		logger.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	if err := s.routeJoinConversation(&channel.ID, &invite.ConversationID); err != nil {
 		s.log.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	res.ChannelId = channel.ID
 	return nil
@@ -218,7 +221,7 @@ func (s *chatService) LeaveConversation(
 	}
 	if err := s.routeLeaveConversation(&req.ChannelId, &req.ConversationId); err != nil {
 		s.log.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	return nil
 }
@@ -239,11 +242,11 @@ func (s *chatService) InviteToConversation(
 	}
 	if err := s.repo.CreateInvite(context.Background(), invite); err != nil {
 		s.log.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	if err := s.routeInvite(&req.ConversationId, &req.User.UserId); err != nil {
 		s.log.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	res.InviteId = invite.ID
 	return nil
@@ -256,7 +259,7 @@ func (s *chatService) DeclineInvitation(
 ) error {
 	if err := s.repo.DeleteInvite(context.Background(), req.InviteId); err != nil {
 		s.log.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	s.routeDeclineInvite(&req.ConversationId)
 	return nil
@@ -265,17 +268,17 @@ func (s *chatService) DeclineInvitation(
 func (s *chatService) closeConversation(conversationID *int64) error {
 	if err := s.repo.CloseConversation(context.Background(), *conversationID); err != nil {
 		s.log.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	channels, err := s.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, nil)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
-		return err
+		return nil
 	}
 	for _, channel := range channels {
 		if err := s.repo.CloseChannel(context.Background(), channel.ID); err != nil {
 			s.log.Error().Msg(err.Error())
-			return err
+			return nil
 		}
 	}
 	return nil

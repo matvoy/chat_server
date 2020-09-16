@@ -42,7 +42,7 @@ func (repo *PgRepository) GetChannels(
 		query = append(query, models.ChannelWhere.UserID.EQ(*userID))
 	}
 	if conversationID != nil {
-		query = append(query, models.ChannelWhere.UserID.EQ(*conversationID))
+		query = append(query, models.ChannelWhere.ConversationID.EQ(*conversationID))
 	}
 	if connection != nil {
 		query = append(query, models.ChannelWhere.Connection.EQ(
@@ -69,7 +69,7 @@ func (repo *PgRepository) CreateChannel(ctx context.Context, c *models.Channel) 
 }
 
 func (repo *PgRepository) CloseChannel(ctx context.Context, id int64) error {
-	result, err := models.Conversations(models.ConversationWhere.ID.EQ(id)).
+	result, err := models.Channels(models.ChannelWhere.ID.EQ(id)).
 		One(ctx, repo.db)
 	if err != nil {
 		repo.log.Warn().Msg(err.Error())

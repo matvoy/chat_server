@@ -199,6 +199,7 @@ func (s *flowService) CloseConversation(ctx context.Context, req *pb.CloseConver
 		context.Background(),
 		&pbchat.CloseConversationRequest{
 			ConversationId: req.ConversationId,
+			FromFlow:       true,
 		}); err != nil {
 		s.log.Error().Msg(err.Error())
 	}
