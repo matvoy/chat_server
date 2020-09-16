@@ -117,15 +117,15 @@ func (s *flowService) Init(ctx context.Context, req *pb.InitRequest, res *pb.Ini
 		ConversationId: req.GetConversationId(),
 		ProfileId:      req.GetProfileId(),
 		DomainId:       req.GetDomainId(),
-		// Message: &pbmanager.Message{
-		// 	Id:   req.Message.GetId(),
-		// 	Type: req.Message.GetType(),
-		// 	Value: &pbmanager.Message_TextMessage_{
-		// 		TextMessage: &pbmanager.Message_TextMessage{
-		// 			Text: req.GetMessage().GetTextMessage().GetText(),
-		// 		},
-		// 	},
-		// },
+		Message: &pbmanager.Message{
+			Id:   req.Message.GetId(),
+			Type: req.Message.GetType(),
+			Value: &pbmanager.Message_TextMessage_{
+				TextMessage: &pbmanager.Message_TextMessage{
+					Text: "start", //req.GetMessage().GetTextMessage().GetText(),
+				},
+			},
+		},
 	}
 	if res, err := s.flowManagerClient.Start(context.Background(), start); err != nil || res.Error != nil {
 		if res != nil {

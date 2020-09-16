@@ -49,7 +49,7 @@ func init() {
 func main() {
 	cfg = &Config{}
 	service = micro.NewService(
-		micro.Name("webitel.chat.service.storage"),
+		micro.Name("webitel.chat.server"),
 		micro.Version("latest"),
 		micro.Flags(
 			&cli.StringFlag{
