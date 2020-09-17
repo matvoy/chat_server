@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+
+	"github.com/micro/go-micro/v2/broker"
 )
 
 func (s *chatService) routeInvite(conversationID, userID *int64) error {
-	if err := s.sendInviteToWebitelUser(conversationID, userID); err != nil {
-		return err
-	}
 	otherChannels, err := s.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, nil)
 	if err != nil {
 		return err
@@ -15,12 +16,18 @@ func (s *chatService) routeInvite(conversationID, userID *int64) error {
 	if otherChannels == nil {
 		return nil
 	}
-	// TO DO declineInvitationToFlow??
+	if err := s.sendInviteToWebitelUser(&otherChannels[0].DomainID, conversationID, userID); err != nil {
+		return err
+	}
+	body, _ := json.Marshal(inviteConversationEvent{
+		ConversationID: *conversationID,
+		UserID:         *userID,
+	})
 	for _, item := range otherChannels {
 		switch item.Type {
 		case "webitel":
 			{
-				s.sendEventToWebitelUser(nil, item, nil)
+				s.sendEventToWebitelUser(nil, item, inviteConversationEventType, body)
 			}
 		default:
 		}
@@ -28,6 +35,18 @@ func (s *chatService) routeInvite(conversationID, userID *int64) error {
 	return nil
 }
 
-func (s *chatService) sendInviteToWebitelUser(conversationID, userID *int64) error {
+func (s *chatService) sendInviteToWebitelUser(domainID, conversationID, userID *int64) error {
+	body, _ := json.Marshal(map[string]int64{
+		"conversation_id": *conversationID,
+		"user_id":         *userID,
+	})
+	msg := &broker.Message{
+		Header: map[string]string{},
+		Body:   body,
+	}
+	if err := broker.Publish(fmt.Sprintf("event.%s.%v.%v", userInvitationEventType, *domainID, *userID), msg); err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
 	return nil
 }

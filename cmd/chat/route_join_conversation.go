@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 )
 
 func (s *chatService) routeJoinConversation(channelID, conversationID *int64) error {
@@ -12,11 +13,15 @@ func (s *chatService) routeJoinConversation(channelID, conversationID *int64) er
 	if otherChannels == nil {
 		return nil
 	}
+	body, _ := json.Marshal(joinConversationEvent{
+		ConversationID:  *conversationID,
+		JoinedChannelID: *channelID,
+	})
 	for _, item := range otherChannels {
 		switch item.Type {
 		case "webitel":
 			{
-				s.sendEventToWebitelUser(nil, item, nil)
+				s.sendEventToWebitelUser(nil, item, joinConversationEventType, body)
 			}
 		default:
 		}

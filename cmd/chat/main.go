@@ -110,9 +110,28 @@ func main() {
 			botClient = pbbot.NewBotService("webitel.chat.bot", service.Client())
 			return nil
 		}),
+		micro.Broker(
+			rabbitmq.NewBroker(
+				rabbitmq.ExchangeName("chat"),
+				rabbitmq.DurableExchange(),
+			),
+		),
 	)
 
 	service.Options().Store.Init(store.Table(redisTable))
+
+	if err := service.Options().Broker.Init(); err != nil {
+		logger.Fatal().
+			Str("app", "failed to init broker").
+			Msg(err.Error())
+		return
+	}
+	if err := service.Options().Broker.Connect(); err != nil {
+		logger.Fatal().
+			Str("app", "failed to connect broker").
+			Msg(err.Error())
+		return
+	}
 
 	db, err := sql.Open("postgres", DbSource(cfg.DBHost, cfg.DBUser, cfg.DBName, cfg.DBPassword, cfg.DBSSLMode))
 	if err != nil {

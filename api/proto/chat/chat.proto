@@ -5,12 +5,6 @@ package webitel.chat.server;
 import "entity.proto";
 
 service ChatService {
-  // rpc ProcessMessage(ProcessMessageRequest) returns (ProcessMessageResponse) {}
-  
-  // 
-  
-  // rpc SaveMessageFromFlow(SaveMessageFromFlowRequest) returns (SaveMessageFromFlowResponse) {}
-
   rpc SendMessage(SendMessageRequest) returns (SendMessageResponse) {}
   rpc StartConversation(StartConversationRequest) returns (StartConversationResponse) {}
   rpc CloseConversation(CloseConversationRequest) returns (CloseConversationResponse) {}
@@ -18,11 +12,10 @@ service ChatService {
   rpc LeaveConversation(LeaveConversationRequest) returns (LeaveConversationResponse) {}
   rpc InviteToConversation(InviteToConversationRequest) returns (InviteToConversationResponse) {}
   rpc DeclineInvitation(DeclineInvitationRequest) returns (DeclineInvitationResponse) {}
-
+  
   rpc GetConversationByID(GetConversationByIDRequest) returns (GetConversationByIDResponse) {}
   rpc GetProfiles(GetProfilesRequest) returns (GetProfilesResponse) {} 
   rpc GetProfileByID(GetProfileByIDRequest) returns (GetProfileByIDResponse) {}
-
   rpc CheckSession(CheckSessionRequest) returns (CheckSessionResponse) {}
 }
 
@@ -102,7 +95,8 @@ message InviteToConversationResponse {
 
 message DeclineInvitationRequest {
   int64 invite_id = 1;
-  int64 conversation_id = 2;
+  int64 user_id = 2;
+  int64 conversation_id = 3;
 }
 message DeclineInvitationResponse {
 }
@@ -140,28 +134,3 @@ message GetProfileByIDRequest {
 message GetProfileByIDResponse {
   entity.Profile profile = 1;
 }
-
-// message SaveMessageFromFlowRequest {
-//     int64 conversation_id = 1;
-//     entity.Message message = 2;
-// }
-
-// message SaveMessageFromFlowResponse {
-//     entity.Error error = 1;
-// }
-
-// message ProcessMessageRequest {
-//   string external_user_id = 1;
-//   string session_id = 2;
-//   string username = 3;
-//   string first_name = 4;
-//   string last_name = 5;
-//   string text = 6;
-//   int64 profile_id = 7;
-//   string number = 8;
-// }
-
-// message ProcessMessageResponse {
-//   bool created = 1;
-//   int64 conversation_id = 2;
-// }

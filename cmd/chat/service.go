@@ -261,7 +261,7 @@ func (s *chatService) DeclineInvitation(
 		s.log.Error().Msg(err.Error())
 		return nil
 	}
-	s.routeDeclineInvite(&req.ConversationId)
+	s.routeDeclineInvite(&req.UserId, &req.ConversationId)
 	return nil
 }
 

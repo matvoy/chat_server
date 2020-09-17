@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 
 	pbentity "github.com/matvoy/chat_server/api/proto/entity"
 	"github.com/matvoy/chat_server/models"
@@ -18,11 +19,16 @@ func (s *chatService) routeCloseConversation(channel *models.Channel, cause stri
 		}
 		return nil
 	}
+	body, _ := json.Marshal(closeConversationEvent{
+		ConversationID: channel.ConversationID,
+		FromChannelID:  channel.ID,
+		Cause:          cause,
+	})
 	for _, item := range otherChannels {
 		switch item.Type {
 		case "webitel":
 			{
-				s.sendEventToWebitelUser(channel, item, nil)
+				s.sendEventToWebitelUser(channel, item, messageEventType, body)
 			}
 		case "telegram":
 			{
@@ -34,7 +40,7 @@ func (s *chatService) routeCloseConversation(channel *models.Channel, cause stri
 						},
 					},
 				}
-				s.sendMessageToTelegramUser(channel, item, reqMessage)
+				s.sendMessageToBotUser(channel, item, reqMessage)
 			}
 		default:
 		}
@@ -59,7 +65,7 @@ func (s *chatService) routeCloseConversationFromFlow(conversationID *int64, caus
 						},
 					},
 				}
-				s.sendMessageToTelegramUser(nil, item, reqMessage)
+				s.sendMessageToBotUser(nil, item, reqMessage)
 			}
 		default:
 		}

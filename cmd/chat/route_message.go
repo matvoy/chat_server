@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 
 	pbentity "github.com/matvoy/chat_server/api/proto/entity"
 	pbflow "github.com/matvoy/chat_server/api/proto/flow_client"
@@ -28,15 +29,23 @@ func (s *chatService) routeMessage(channel *models.Channel, message *models.Mess
 		}
 		return nil
 	}
+	body, _ := json.Marshal(messageEvent{
+		ConversationID: channel.ConversationID,
+		FromChannelID:  channel.ID,
+		// ToChannelID:    item.ID,
+		MessageID: message.ID,
+		Type:      message.Type,
+		Value:     []byte(message.Text.String),
+	})
 	for _, item := range otherChannels {
 		switch item.Type {
 		case "webitel":
 			{
-				s.sendEventToWebitelUser(channel, item, reqMessage)
+				s.sendEventToWebitelUser(channel, item, messageEventType, body)
 			}
 		case "telegram":
 			{
-				s.sendMessageToTelegramUser(channel, item, reqMessage)
+				s.sendMessageToBotUser(channel, item, reqMessage)
 			}
 		default:
 		}
@@ -57,7 +66,7 @@ func (s *chatService) routeMessageFromFlow(conversationID *int64, message *pbent
 		// 	}
 		case "telegram":
 			{
-				s.sendMessageToTelegramUser(nil, item, message)
+				s.sendMessageToBotUser(nil, item, message)
 			}
 		default:
 		}
