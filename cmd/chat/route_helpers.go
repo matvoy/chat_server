@@ -17,7 +17,7 @@ func (s *chatService) sendEventToWebitelUser(from *models.Channel, to *models.Ch
 		Header: map[string]string{},
 		Body:   body,
 	}
-	if err := broker.Publish(fmt.Sprintf("event.%s.%v.%v", eventType, to.DomainID, to.UserID), msg); err != nil {
+	if err := s.broker.Publish(fmt.Sprintf("event.%s.%v.%v", eventType, to.DomainID, to.UserID), msg); err != nil {
 		s.log.Error().Msg(err.Error())
 		return err
 	}

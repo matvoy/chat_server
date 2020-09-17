@@ -44,7 +44,7 @@ func (s *chatService) sendInviteToWebitelUser(domainID, conversationID, userID *
 		Header: map[string]string{},
 		Body:   body,
 	}
-	if err := broker.Publish(fmt.Sprintf("event.%s.%v.%v", userInvitationEventType, *domainID, *userID), msg); err != nil {
+	if err := s.broker.Publish(fmt.Sprintf("event.%s.%v.%v", userInvitationEventType, *domainID, *userID), msg); err != nil {
 		s.log.Error().Msg(err.Error())
 		return err
 	}
