@@ -16,7 +16,10 @@ service ChatService {
   rpc GetConversationByID(GetConversationByIDRequest) returns (GetConversationByIDResponse) {}
   rpc GetProfiles(GetProfilesRequest) returns (GetProfilesResponse) {} 
   rpc GetProfileByID(GetProfileByIDRequest) returns (GetProfileByIDResponse) {}
-  rpc CheckSession(CheckSessionRequest) returns (CheckSessionResponse) {}
+  rpc CreateProfile(CreateProfileRequest) returns (CreateProfileResponse) {}
+  rpc DeleteProfile(DeleteProfileRequest) returns (DeleteProfileResponse) {}
+  // rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse) {}
+  rpc CheckSession(CheckSessionRequest) returns (CheckSessionResponse) {}  
 }
 
 message CheckSessionRequest {
@@ -111,14 +114,6 @@ message GetConversationByIDResponse {
   string title = 3;
 }
 
-message Profile {
-  int64 id = 1;
-  string name = 2;
-  string type = 3;
-  int64 domain_id = 4;
-  map<string, string>  variables = 5;
-}
-
 message GetProfilesRequest {
   string type = 1;
 }
@@ -134,3 +129,29 @@ message GetProfileByIDRequest {
 message GetProfileByIDResponse {
   entity.Profile profile = 1;
 }
+
+message CreateProfileRequest {
+  entity.Profile item = 1;
+}
+
+message CreateProfileResponse {
+  entity.Profile item = 1;
+  entity.Error error = 2;
+}
+
+message DeleteProfileRequest {
+  int64 profile_id = 1;
+}
+
+message DeleteProfileResponse {
+  entity.Error error = 1;
+}
+
+// message UpdateProfileRequest {
+//   entity.Profile item = 1;
+// }
+
+// message UpdateProfileResponse {
+//   entity.Profile item = 1;
+//   entity.Error error = 2;
+// }

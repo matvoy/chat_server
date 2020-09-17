@@ -86,8 +86,24 @@ func transformProfileFromRepoModel(profile *models.Profile) (*pbentity.Profile, 
 		Name:      profile.Name,
 		Type:      profile.Type,
 		DomainId:  profile.DomainID,
+		SchemaId:  profile.SchemaID.Int64,
 		Variables: variables,
 	}
+	return result, nil
+}
+
+func transformProfileToRepoModel(profile *pbentity.Profile) (*models.Profile, error) {
+	result := &models.Profile{
+		ID:       profile.Id,
+		Name:     profile.Name,
+		Type:     profile.Type,
+		DomainID: profile.DomainId,
+		SchemaID: null.Int64{
+			profile.SchemaId,
+			true,
+		},
+	}
+	result.Variables.Marshal(profile.Variables)
 	return result, nil
 }
 

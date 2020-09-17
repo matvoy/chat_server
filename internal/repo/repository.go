@@ -21,6 +21,7 @@ type ProfileRepository interface {
 	GetProfileByID(ctx context.Context, id int64) (*models.Profile, error)
 	GetProfiles(ctx context.Context, profileType string) ([]*models.Profile, error)
 	CreateProfile(ctx context.Context, p *models.Profile) error
+	DeleteProfile(ctx context.Context, id int64) error
 }
 
 type ConversationRepository interface {

@@ -19,6 +19,9 @@ import (
 type Service interface {
 	GetConversationByID(ctx context.Context, req *pb.GetConversationByIDRequest, res *pb.GetConversationByIDResponse) error
 	GetProfiles(ctx context.Context, req *pb.GetProfilesRequest, res *pb.GetProfilesResponse) error
+	CreateProfile(ctx context.Context, req *pb.CreateProfileRequest, res *pb.CreateProfileResponse) error
+	// UpdateProfile(ctx context.Context, req *pb.UpdateProfileRequest, res *pb.UpdateProfileResponse) error
+	DeleteProfile(ctx context.Context, req *pb.DeleteProfileRequest, res *pb.DeleteProfileResponse) error
 
 	SendMessage(ctx context.Context, req *pb.SendMessageRequest, res *pb.SendMessageResponse) error
 	StartConversation(ctx context.Context, req *pb.StartConversationRequest, res *pb.StartConversationResponse) error
@@ -262,6 +265,50 @@ func (s *chatService) DeclineInvitation(
 		return nil
 	}
 	s.routeDeclineInvite(&req.UserId, &req.ConversationId)
+	return nil
+}
+
+func (s *chatService) CreateProfile(
+	ctx context.Context,
+	req *pb.CreateProfileRequest,
+	res *pb.CreateProfileResponse) error {
+	result, err := transformProfileToRepoModel(req.Item)
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return nil
+	}
+	if err := s.repo.CreateProfile(context.Background(), result); err != nil {
+		s.log.Error().Msg(err.Error())
+		return nil
+	}
+	req.Item.Id = result.ID
+	res.Item = req.Item
+
+	addProfileReq := &pbbot.AddProfileRequest{
+		Profile: res.Item,
+	}
+	if _, err := s.botClient.AddProfile(context.Background(), addProfileReq); err != nil {
+		s.log.Error().Msg(err.Error())
+		return nil
+	}
+	return nil
+}
+
+func (s *chatService) DeleteProfile(
+	ctx context.Context,
+	req *pb.DeleteProfileRequest,
+	res *pb.DeleteProfileResponse) error {
+	if err := s.repo.DeleteProfile(context.Background(), req.ProfileId); err != nil {
+		s.log.Error().Msg(err.Error())
+		return nil
+	}
+	deleteProfileReq := &pbbot.DeleteProfileRequest{
+		ProfileId: req.ProfileId,
+	}
+	if _, err := s.botClient.DeleteProfile(context.Background(), deleteProfileReq); err != nil {
+		s.log.Error().Msg(err.Error())
+		return nil
+	}
 	return nil
 }
 
