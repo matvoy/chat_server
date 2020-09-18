@@ -11,6 +11,9 @@ import (
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 
 	proto "github.com/golang/protobuf/proto"
+	"github.com/micro/go-micro/v2/client"
+	"github.com/micro/go-micro/v2/client/selector"
+	"github.com/micro/go-micro/v2/registry"
 	"github.com/rs/zerolog"
 )
 
@@ -79,7 +82,20 @@ func (s *flowService) SendMessageToFlow(ctx context.Context, req *pb.SendMessage
 			ConfirmationId: string(confirmationID),
 			Messages:       messages,
 		}
-		if res, err := s.flowManagerClient.ConfirmationMessage(context.Background(), message); err != nil || res.Error != nil {
+		nodeID, err := s.chatCache.ReadConversationNode(req.GetConversationId())
+		if err != nil {
+			s.log.Error().Msg(err.Error())
+			return nil
+		}
+		if res, err := s.flowManagerClient.ConfirmationMessage(
+			context.Background(),
+			message,
+			client.WithSelectOption(
+				selector.WithFilter(
+					FilterNodes(string(nodeID)),
+				),
+			),
+		); err != nil || res.Error != nil {
 			if res != nil {
 				s.log.Error().Msg(res.Error.Message)
 			} else {
@@ -127,7 +143,14 @@ func (s *flowService) Init(ctx context.Context, req *pb.InitRequest, res *pb.Ini
 			},
 		},
 	}
-	if res, err := s.flowManagerClient.Start(context.Background(), start); err != nil || res.Error != nil {
+	if res, err := s.flowManagerClient.Start(
+		context.Background(),
+		start,
+		client.WithCallWrapper(
+			s.initCallWrapper(req.GetConversationId()),
+		),
+	); err != nil ||
+		res.Error != nil {
 		if res != nil {
 			s.log.Error().Msg(res.Error.Message)
 		} else {
@@ -195,6 +218,7 @@ func (s *flowService) WaitMessage(ctx context.Context, req *pb.WaitMessageReques
 func (s *flowService) CloseConversation(ctx context.Context, req *pb.CloseConversationRequest, res *pb.CloseConversationResponse) error {
 	s.chatCache.DeleteCachedMessages(req.GetConversationId())
 	s.chatCache.DeleteConfirmation(req.GetConversationId())
+	s.chatCache.DeleteConversationNode(req.GetConversationId())
 	if _, err := s.chatClient.CloseConversation(
 		context.Background(),
 		&pbchat.CloseConversationRequest{
@@ -205,4 +229,56 @@ func (s *flowService) CloseConversation(ctx context.Context, req *pb.CloseConver
 	}
 	s.log.Info().Msg("close conversation sent")
 	return nil
+}
+
+func (s *flowService) initCallWrapper(conversationID int64) func(client.CallFunc) client.CallFunc {
+	return func(next client.CallFunc) client.CallFunc {
+		return func(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
+			s.log.Debug().
+				Str("id", node.Id).
+				Str("address", node.Address).Msg("send request to node")
+			err := next(ctx, node, req, rsp, opts)
+			if err != nil {
+				s.log.Error().Msg(err.Error())
+				return err
+			}
+			if err := s.chatCache.WriteConversationNode(conversationID, []byte(node.Id)); err != nil {
+				s.log.Error().Msg(err.Error())
+				return err
+			}
+			return nil
+		}
+	}
+}
+
+func FilterNodes(id string) selector.Filter {
+	return func(old []*registry.Service) []*registry.Service {
+		var services []*registry.Service
+
+		for _, service := range old {
+			if service.Name != "workflow" {
+				continue
+			}
+
+			serv := new(registry.Service)
+			var nodes []*registry.Node
+
+			for _, node := range service.Nodes {
+				if node.Id == id {
+					nodes = append(nodes, node)
+					break
+				}
+			}
+
+			// only add service if there's some nodes
+			if len(nodes) > 0 {
+				// copy
+				*serv = *service
+				serv.Nodes = nodes
+				services = append(services, serv)
+			}
+		}
+
+		return services
+	}
 }
