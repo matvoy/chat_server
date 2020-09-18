@@ -116,6 +116,7 @@ message GetConversationByIDResponse {
 
 message GetProfilesRequest {
   string type = 1;
+  int64 domain_id = 2;
 }
 
 message GetProfilesResponse {

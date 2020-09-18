@@ -23,11 +23,12 @@ type ChatServer interface {
 }
 
 type botService struct {
-	log          *zerolog.Logger
-	client       pbchat.ChatService
-	router       *mux.Router
-	telegramBots map[int64]*tgbotapi.BotAPI
-	botMap       map[int64]string
+	log           *zerolog.Logger
+	client        pbchat.ChatService
+	router        *mux.Router
+	telegramBots  map[int64]*tgbotapi.BotAPI
+	infobipWABots map[int64]*infobipWAClient
+	botMap        map[int64]string
 }
 
 func NewBotService(
@@ -41,7 +42,42 @@ func NewBotService(
 		router: router,
 	}
 	b.botMap = make(map[int64]string)
-	b.configureTelegram()
+	b.telegramBots = make(map[int64]*tgbotapi.BotAPI)
+	b.infobipWABots = make(map[int64]*infobipWAClient)
+
+	b.router.HandleFunc("/telegram/{profile_id}", b.TelegramWebhookHandler).
+		Methods("POST")
+	b.router.HandleFunc("/infobip/whatsapp/{profile_id}", b.InfobipWAWebhookHandler).
+		Methods("POST")
+
+	res, err := b.client.GetProfiles(context.Background(), &pbchat.GetProfilesRequest{})
+	if err != nil || res == nil {
+		b.log.Fatal().Msg(err.Error())
+		return nil
+	}
+
+	for _, profile := range res.Profiles {
+		switch profile.Type {
+		case "telegram":
+			{
+				b.botMap[profile.Id] = "telegram"
+				b.telegramBots[profile.Id] = b.configureTelegram(profile)
+			}
+		case "infobip-whatsapp":
+			{
+				b.botMap[profile.Id] = "infobip-whatsapp"
+				b.infobipWABots[profile.Id] = b.configureInfobipWA(profile)
+			}
+		default:
+			b.log.Warn().
+				Int64("id", profile.Id).
+				Str("type", profile.Type).
+				Str("name", profile.Name).
+				Int64("domain_id", profile.DomainId).
+				Msg("wrong profile type")
+		}
+	}
+
 	return b
 }
 
@@ -72,6 +108,12 @@ func (b *botService) SendMessage(ctx context.Context, req *pb.SendMessageRequest
 				return err
 			}
 		}
+	case "infobip-whatsapp":
+		{
+			if err := b.sendMessageInfobipWA(req); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -84,6 +126,12 @@ func (b *botService) AddProfile(ctx context.Context, req *pb.AddProfileRequest, 
 				return err
 			}
 		}
+	case "infobip-whatsapp":
+		{
+			if err := b.addProfileInfobipWA(req); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -93,6 +141,12 @@ func (b *botService) DeleteProfile(ctx context.Context, req *pb.DeleteProfileReq
 	case "telegram":
 		{
 			if err := b.deleteProfileTelegram(req); err != nil {
+				return err
+			}
+		}
+	case "infobip-whatsapp":
+		{
+			if err := b.deleteProfileInfobipWA(req); err != nil {
 				return err
 			}
 		}

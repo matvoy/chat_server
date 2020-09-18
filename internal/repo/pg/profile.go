@@ -7,6 +7,7 @@ import (
 	"github.com/matvoy/chat_server/models"
 
 	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 func (repo *PgRepository) GetProfileByID(ctx context.Context, id int64) (*models.Profile, error) {
@@ -22,8 +23,15 @@ func (repo *PgRepository) GetProfileByID(ctx context.Context, id int64) (*models
 	return result, nil
 }
 
-func (repo *PgRepository) GetProfiles(ctx context.Context, profileType string) ([]*models.Profile, error) {
-	return models.Profiles(models.ProfileWhere.Type.EQ(profileType)).All(ctx, repo.db)
+func (repo *PgRepository) GetProfiles(ctx context.Context, profileType string, domainID int64) ([]*models.Profile, error) {
+	query := make([]qm.QueryMod, 0, 2)
+	if profileType != "" {
+		query = append(query, models.ProfileWhere.Type.EQ(profileType))
+	}
+	if domainID != 0 {
+		query = append(query, models.ProfileWhere.DomainID.EQ(domainID))
+	}
+	return models.Profiles(query...).All(ctx, repo.db)
 }
 
 func (repo *PgRepository) CreateProfile(ctx context.Context, p *models.Profile) error {

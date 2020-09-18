@@ -60,7 +60,7 @@ func (s *chatService) GetConversationByID(ctx context.Context, req *pb.GetConver
 }
 
 func (s *chatService) GetProfiles(ctx context.Context, req *pb.GetProfilesRequest, res *pb.GetProfilesResponse) error {
-	profiles, err := s.repo.GetProfiles(context.Background(), req.Type)
+	profiles, err := s.repo.GetProfiles(context.Background(), req.Type, req.DomainId)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
 		return nil

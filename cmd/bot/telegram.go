@@ -17,7 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type webhookReqBody struct {
+type telegramBody struct {
 	Message struct {
 		MessageID int64  `json:"message_id"`
 		Text      string `json:"text"`
@@ -33,40 +33,25 @@ type webhookReqBody struct {
 	} `json:"message"`
 }
 
-func (b *botService) configureTelegram() {
-	b.router.HandleFunc("/telegram/{profile_id}", b.TelegramWebhookHandler).
-		Methods("POST")
-
-	res, err := b.client.GetProfiles(context.Background(), &pbchat.GetProfilesRequest{Type: "telegram"})
-	if err != nil || res == nil {
+func (b *botService) configureTelegram(profile *pbentity.Profile) *tgbotapi.BotAPI {
+	token, ok := profile.Variables["token"]
+	if !ok {
+		b.log.Fatal().Msg("token not found")
+		return nil
+	}
+	bot, err := tgbotapi.NewBotAPI(token)
+	if err != nil {
 		b.log.Fatal().Msg(err.Error())
-		return
+		return nil
 	}
-
-	bots := make(map[int64]*tgbotapi.BotAPI)
-	for _, profile := range res.Profiles {
-		b.botMap[profile.Id] = "telegram"
-		token, ok := profile.Variables["token"]
-		if !ok {
-			b.log.Fatal().Msg("token not found")
-			return
-		}
-		bot, err := tgbotapi.NewBotAPI(token)
-		if err != nil {
-			b.log.Fatal().Msg(err.Error())
-			return
-		}
-		// webhookInfo := tgbotapi.NewWebhookWithCert(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, profile.Id), cfg.CertPath)
-		webhookInfo := tgbotapi.NewWebhook(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, profile.Id))
-		_, err = bot.SetWebhook(webhookInfo)
-		if err != nil {
-			b.log.Fatal().Msg(err.Error())
-			return
-		}
-		bots[profile.Id] = bot
+	// webhookInfo := tgbotapi.NewWebhookWithCert(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, profile.Id), cfg.CertPath)
+	webhookInfo := tgbotapi.NewWebhook(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, profile.Id))
+	_, err = bot.SetWebhook(webhookInfo)
+	if err != nil {
+		b.log.Fatal().Msg(err.Error())
+		return nil
 	}
-
-	b.telegramBots = bots
+	return bot
 }
 
 func (b *botService) addProfileTelegram(req *pb.AddProfileRequest) error {
@@ -88,6 +73,7 @@ func (b *botService) addProfileTelegram(req *pb.AddProfileRequest) error {
 		return err
 	}
 	b.telegramBots[req.Profile.Id] = bot
+	b.botMap[req.Profile.Id] = "telegram"
 	return nil
 }
 
@@ -97,6 +83,7 @@ func (b *botService) deleteProfileTelegram(req *pb.DeleteProfileRequest) error {
 		return err
 	}
 	delete(b.telegramBots, req.ProfileId)
+	delete(b.botMap, req.ProfileId)
 	return nil
 }
 
@@ -123,7 +110,7 @@ func (b *botService) TelegramWebhookHandler(w http.ResponseWriter, r *http.Reque
 		b.log.Error().Msg(err.Error())
 		return
 	}
-	update := &webhookReqBody{}
+	update := &telegramBody{}
 	if err := json.NewDecoder(r.Body).Decode(update); err != nil {
 		log.Error().Msgf("could not decode request body: %s", err)
 		return
