@@ -12,6 +12,10 @@ import (
 )
 
 func (s *chatService) CheckSession(ctx context.Context, req *pb.CheckSessionRequest, res *pb.CheckSessionResponse) error {
+	s.log.Trace().
+		Str("external_id", req.GetExternalId()).
+		Int64("profile_id", req.GetProfileId()).
+		Msg("check session")
 	client, err := s.repo.GetClientByExternalID(context.Background(), req.ExternalId)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
@@ -49,6 +53,9 @@ func (s *chatService) CheckSession(ctx context.Context, req *pb.CheckSessionRequ
 }
 
 func (s *chatService) GetConversationByID(ctx context.Context, req *pb.GetConversationByIDRequest, res *pb.GetConversationByIDResponse) error {
+	s.log.Trace().
+		Int64("conversation_id", req.GetConversationId()).
+		Msg("get conversation by id")
 	conversation, err := s.repo.GetConversationByID(context.Background(), req.ConversationId)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
@@ -60,6 +67,10 @@ func (s *chatService) GetConversationByID(ctx context.Context, req *pb.GetConver
 }
 
 func (s *chatService) GetProfiles(ctx context.Context, req *pb.GetProfilesRequest, res *pb.GetProfilesResponse) error {
+	s.log.Trace().
+		Str("type", req.GetType()).
+		Int64("domain_id", req.GetDomainId()).
+		Msg("get profiles")
 	profiles, err := s.repo.GetProfiles(context.Background(), req.Type, req.DomainId)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
@@ -122,6 +133,9 @@ func transformProfilesFromRepoModel(profiles []*models.Profile) ([]*pbentity.Pro
 }
 
 func (s *chatService) GetProfileByID(ctx context.Context, req *pb.GetProfileByIDRequest, res *pb.GetProfileByIDResponse) error {
+	s.log.Trace().
+		Int64("profile_id", req.GetProfileId()).
+		Msg("get profile by id")
 	profile, err := s.repo.GetProfileByID(context.Background(), req.ProfileId)
 	if err != nil {
 		s.log.Error().Msg(err.Error())

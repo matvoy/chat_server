@@ -57,19 +57,16 @@ func (b *botService) configureTelegram(profile *pbentity.Profile) *tgbotapi.BotA
 func (b *botService) addProfileTelegram(req *pb.AddProfileRequest) error {
 	token, ok := req.Profile.Variables["token"]
 	if !ok {
-		b.log.Error().Msg("token not found")
 		return errors.New("token not found")
 	}
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
-		b.log.Error().Msg(err.Error())
 		return err
 	}
 	// webhookInfo := tgbotapi.NewWebhookWithCert(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, profile.Id), cfg.CertPath)
 	webhookInfo := tgbotapi.NewWebhook(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, req.Profile.Id))
 	_, err = bot.SetWebhook(webhookInfo)
 	if err != nil {
-		b.log.Error().Msg(err.Error())
 		return err
 	}
 	b.telegramBots[req.Profile.Id] = bot
@@ -79,7 +76,6 @@ func (b *botService) addProfileTelegram(req *pb.AddProfileRequest) error {
 
 func (b *botService) deleteProfileTelegram(req *pb.DeleteProfileRequest) error {
 	if _, err := b.telegramBots[req.ProfileId].RemoveWebhook(); err != nil {
-		b.log.Error().Msg(err.Error())
 		return err
 	}
 	delete(b.telegramBots, req.ProfileId)
@@ -90,14 +86,12 @@ func (b *botService) deleteProfileTelegram(req *pb.DeleteProfileRequest) error {
 func (b *botService) sendMessageTelegram(req *pb.SendMessageRequest) error {
 	id, err := strconv.ParseInt(req.ExternalUserId, 10, 64)
 	if err != nil {
-		b.log.Error().Msg(err.Error())
 		return err
 	}
 	msg := tgbotapi.NewMessage(id, req.GetMessage().GetTextMessage().GetText())
 	// msg.ReplyToMessageID = update.Message.MessageID
 	_, err = b.telegramBots[req.ProfileId].Send(msg)
 	if err != nil {
-		b.log.Error().Msg(err.Error())
 		return err
 	}
 	return nil

@@ -105,12 +105,14 @@ func (b *botService) SendMessage(ctx context.Context, req *pb.SendMessageRequest
 	case "telegram":
 		{
 			if err := b.sendMessageTelegram(req); err != nil {
+				b.log.Error().Msg(err.Error())
 				return err
 			}
 		}
 	case "infobip-whatsapp":
 		{
 			if err := b.sendMessageInfobipWA(req); err != nil {
+				b.log.Error().Msg(err.Error())
 				return err
 			}
 		}
@@ -123,12 +125,14 @@ func (b *botService) AddProfile(ctx context.Context, req *pb.AddProfileRequest, 
 	case "telegram":
 		{
 			if err := b.addProfileTelegram(req); err != nil {
+				b.log.Error().Msg(err.Error())
 				return err
 			}
 		}
 	case "infobip-whatsapp":
 		{
 			if err := b.addProfileInfobipWA(req); err != nil {
+				b.log.Error().Msg(err.Error())
 				return err
 			}
 		}
@@ -141,12 +145,14 @@ func (b *botService) DeleteProfile(ctx context.Context, req *pb.DeleteProfileReq
 	case "telegram":
 		{
 			if err := b.deleteProfileTelegram(req); err != nil {
+				b.log.Error().Msg(err.Error())
 				return err
 			}
 		}
 	case "infobip-whatsapp":
 		{
 			if err := b.deleteProfileInfobipWA(req); err != nil {
+				b.log.Error().Msg(err.Error())
 				return err
 			}
 		}

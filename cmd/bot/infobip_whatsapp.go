@@ -67,7 +67,6 @@ func (b *botService) configureInfobipWA(profile *pbentity.Profile) *infobipWACli
 func (b *botService) addProfileInfobipWA(req *pb.AddProfileRequest) error {
 	apiKey, ok := req.Profile.Variables["api_key"]
 	if !ok {
-		b.log.Error().Msg("api_key not found")
 		return errors.New("api_key not found")
 	}
 	bot := NewInfobipWAClient(apiKey)

@@ -60,12 +60,15 @@ func NewFlowService(
 }
 
 func (s *flowService) SendMessageToFlow(ctx context.Context, req *pb.SendMessageToFlowRequest, res *pb.SendMessageToFlowResponse) error {
-	s.log.Info().Msg("confirmation")
 	confirmationID, err := s.chatCache.ReadConfirmation(req.ConversationId)
 	if err != nil {
 		return nil
 	}
 	if confirmationID != nil {
+		s.log.Debug().
+			Int64("conversation_id", req.GetConversationId()).
+			Str("confirmation_id", string(confirmationID)).
+			Msg("send confirmed messages")
 		messages := []*pbmanager.Message{
 			{
 				Id:   req.Message.GetId(),
@@ -106,7 +109,9 @@ func (s *flowService) SendMessageToFlow(ctx context.Context, req *pb.SendMessage
 		s.chatCache.DeleteConfirmation(req.ConversationId)
 		return nil
 	}
-	s.log.Info().Msg("confirmation messages sent")
+	s.log.Debug().
+		Int64("conversation_id", req.GetConversationId()).
+		Msg("cache messages for confirmation")
 	message := &pbentity.Message{
 		Id:   req.Message.GetId(),
 		Type: req.Message.GetType(),
@@ -128,7 +133,11 @@ func (s *flowService) SendMessageToFlow(ctx context.Context, req *pb.SendMessage
 }
 
 func (s *flowService) Init(ctx context.Context, req *pb.InitRequest, res *pb.InitResponse) error {
-	s.log.Info().Msg("init")
+	s.log.Debug().
+		Int64("conversation_id", req.GetConversationId()).
+		Int64("profile_id", req.GetProfileId()).
+		Int64("domain_id", req.GetDomainId()).
+		Msg("init conversation")
 	start := &pbmanager.StartRequest{
 		ConversationId: req.GetConversationId(),
 		ProfileId:      req.GetProfileId(),
@@ -158,11 +167,14 @@ func (s *flowService) Init(ctx context.Context, req *pb.InitRequest, res *pb.Ini
 		}
 		return nil
 	}
-	s.log.Info().Msg("init sent")
 	return nil
 }
 
 func (s *flowService) SendMessage(ctx context.Context, req *pb.SendMessageRequest, res *pb.SendMessageResponse) error {
+	s.log.Debug().
+		Int64("conversation_id", req.GetConversationId()).
+		Str("message", req.GetMessages().GetTextMessage().GetText()).
+		Msg("receive message from flow")
 	message := &pbchat.SendMessageRequest{
 		ConversationId: req.GetConversationId(),
 		FromFlow:       true,
@@ -183,6 +195,10 @@ func (s *flowService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 }
 
 func (s *flowService) WaitMessage(ctx context.Context, req *pb.WaitMessageRequest, res *pb.WaitMessageResponse) error {
+	s.log.Debug().
+		Int64("conversation_id", req.GetConversationId()).
+		Str("confirmation_id", req.GetConfirmationId()).
+		Msg("accept confirmation")
 	cachedMessages, err := s.chatCache.ReadCachedMessages(req.GetConversationId())
 	if err != nil {
 		s.log.Error().Msg(err.Error())
@@ -216,14 +232,19 @@ func (s *flowService) WaitMessage(ctx context.Context, req *pb.WaitMessageReques
 }
 
 func (s *flowService) CloseConversation(ctx context.Context, req *pb.CloseConversationRequest, res *pb.CloseConversationResponse) error {
+	s.log.Debug().
+		Int64("conversation_id", req.GetConversationId()).
+		Str("cause", req.GetCause()).
+		Msg("close conversation")
 	s.chatCache.DeleteCachedMessages(req.GetConversationId())
 	s.chatCache.DeleteConfirmation(req.GetConversationId())
 	s.chatCache.DeleteConversationNode(req.GetConversationId())
 	if _, err := s.chatClient.CloseConversation(
 		context.Background(),
 		&pbchat.CloseConversationRequest{
-			ConversationId: req.ConversationId,
+			ConversationId: req.GetConversationId(),
 			FromFlow:       true,
+			Cause:          req.GetCause(),
 		}); err != nil {
 		s.log.Error().Msg(err.Error())
 	}
@@ -234,16 +255,16 @@ func (s *flowService) CloseConversation(ctx context.Context, req *pb.CloseConver
 func (s *flowService) initCallWrapper(conversationID int64) func(client.CallFunc) client.CallFunc {
 	return func(next client.CallFunc) client.CallFunc {
 		return func(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
-			s.log.Debug().
+			s.log.Trace().
 				Str("id", node.Id).
 				Str("address", node.Address).Msg("send request to node")
 			err := next(ctx, node, req, rsp, opts)
 			if err != nil {
-				s.log.Error().Msg(err.Error())
+				// s.log.Error().Msg(err.Error())
 				return err
 			}
 			if err := s.chatCache.WriteConversationNode(conversationID, []byte(node.Id)); err != nil {
-				s.log.Error().Msg(err.Error())
+				// s.log.Error().Msg(err.Error())
 				return err
 			}
 			return nil

@@ -38,16 +38,27 @@ func (s *chatService) routeMessage(channel *models.Channel, message *models.Mess
 		Value:     []byte(message.Text.String),
 	})
 	for _, item := range otherChannels {
+		var err error
 		switch item.Type {
 		case "webitel":
 			{
-				s.sendEventToWebitelUser(channel, item, messageEventType, body)
+				err = s.sendEventToWebitelUser(channel, item, messageEventType, body)
 			}
 		case "telegram":
 			{
-				s.sendMessageToBotUser(channel, item, reqMessage)
+				err = s.sendMessageToBotUser(channel, item, reqMessage)
 			}
 		default:
+		}
+		if err != nil {
+			s.log.Warn().
+				Int64("channel_id", item.ID).
+				Bool("internal", item.Internal).
+				Int64("user_id", item.UserID).
+				Int64("conversation_id", item.ConversationID).
+				Str("type", item.Type).
+				Str("connection", item.Connection.String).
+				Msg("failed to send message to channel")
 		}
 	}
 	return nil
@@ -66,7 +77,16 @@ func (s *chatService) routeMessageFromFlow(conversationID *int64, message *pbent
 		// 	}
 		case "telegram":
 			{
-				s.sendMessageToBotUser(nil, item, message)
+				if err := s.sendMessageToBotUser(nil, item, message); err != nil {
+					s.log.Warn().
+						Int64("channel_id", item.ID).
+						Bool("internal", item.Internal).
+						Int64("user_id", item.UserID).
+						Int64("conversation_id", item.ConversationID).
+						Str("type", item.Type).
+						Str("connection", item.Connection.String).
+						Msg("failed to send message to channel [from flow]")
+				}
 			}
 		default:
 		}
@@ -79,12 +99,7 @@ func (s *chatService) sendMessageToFlow(channel *models.Channel, message *pbenti
 		ConversationId: channel.ConversationID,
 		Message:        message,
 	}
-	if res, err := s.flowClient.SendMessageToFlow(context.Background(), sendMessage); err != nil || res.Error != nil {
-		if res != nil {
-			s.log.Error().Msg(res.Error.Message)
-		} else {
-			s.log.Error().Msg(err.Error())
-		}
+	if _, err := s.flowClient.SendMessageToFlow(context.Background(), sendMessage); err != nil {
 		return err
 	}
 	return nil

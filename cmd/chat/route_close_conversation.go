@@ -25,10 +25,11 @@ func (s *chatService) routeCloseConversation(channel *models.Channel, cause stri
 		Cause:          cause,
 	})
 	for _, item := range otherChannels {
+		var err error
 		switch item.Type {
 		case "webitel":
 			{
-				s.sendEventToWebitelUser(channel, item, messageEventType, body)
+				err = s.sendEventToWebitelUser(channel, item, messageEventType, body)
 			}
 		case "telegram":
 			{
@@ -40,9 +41,19 @@ func (s *chatService) routeCloseConversation(channel *models.Channel, cause stri
 						},
 					},
 				}
-				s.sendMessageToBotUser(channel, item, reqMessage)
+				err = s.sendMessageToBotUser(channel, item, reqMessage)
 			}
 		default:
+		}
+		if err != nil {
+			s.log.Warn().
+				Int64("channel_id", item.ID).
+				Bool("internal", item.Internal).
+				Int64("user_id", item.UserID).
+				Int64("conversation_id", item.ConversationID).
+				Str("type", item.Type).
+				Str("connection", item.Connection.String).
+				Msg("failed to send close conversation event to channel")
 		}
 	}
 	return nil
@@ -65,7 +76,16 @@ func (s *chatService) routeCloseConversationFromFlow(conversationID *int64, caus
 						},
 					},
 				}
-				s.sendMessageToBotUser(nil, item, reqMessage)
+				if err := s.sendMessageToBotUser(nil, item, reqMessage); err != nil {
+					s.log.Warn().
+						Int64("channel_id", item.ID).
+						Bool("internal", item.Internal).
+						Int64("user_id", item.UserID).
+						Int64("conversation_id", item.ConversationID).
+						Str("type", item.Type).
+						Str("connection", item.Connection.String).
+						Msg("failed to send join conversation event to channel")
+				}
 			}
 		default:
 		}

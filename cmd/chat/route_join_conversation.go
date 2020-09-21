@@ -21,7 +21,16 @@ func (s *chatService) routeJoinConversation(channelID, conversationID *int64) er
 		switch item.Type {
 		case "webitel":
 			{
-				s.sendEventToWebitelUser(nil, item, joinConversationEventType, body)
+				if err := s.sendEventToWebitelUser(nil, item, joinConversationEventType, body); err != nil {
+					s.log.Warn().
+						Int64("channel_id", item.ID).
+						Bool("internal", item.Internal).
+						Int64("user_id", item.UserID).
+						Int64("conversation_id", item.ConversationID).
+						Str("type", item.Type).
+						Str("connection", item.Connection.String).
+						Msg("failed to send join conversation event to channel")
+				}
 			}
 		default:
 		}

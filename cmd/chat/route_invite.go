@@ -27,7 +27,16 @@ func (s *chatService) routeInvite(conversationID, userID *int64) error {
 		switch item.Type {
 		case "webitel":
 			{
-				s.sendEventToWebitelUser(nil, item, inviteConversationEventType, body)
+				if err := s.sendEventToWebitelUser(nil, item, inviteConversationEventType, body); err != nil {
+					s.log.Warn().
+						Int64("channel_id", item.ID).
+						Bool("internal", item.Internal).
+						Int64("user_id", item.UserID).
+						Int64("conversation_id", item.ConversationID).
+						Str("type", item.Type).
+						Str("connection", item.Connection.String).
+						Msg("failed to send invite conversation event to channel")
+				}
 			}
 		default:
 		}
@@ -45,7 +54,6 @@ func (s *chatService) sendInviteToWebitelUser(domainID, conversationID, userID *
 		Body:   body,
 	}
 	if err := s.broker.Publish(fmt.Sprintf("event.%s.%v.%v", userInvitationEventType, *domainID, *userID), msg); err != nil {
-		s.log.Error().Msg(err.Error())
 		return err
 	}
 	return nil
