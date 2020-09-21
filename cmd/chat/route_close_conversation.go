@@ -31,7 +31,7 @@ func (s *chatService) routeCloseConversation(channel *models.Channel, cause stri
 			{
 				err = s.sendEventToWebitelUser(channel, item, messageEventType, body)
 			}
-		case "telegram":
+		case "telegram", "infobip-whatsapp":
 			{
 				reqMessage := &pbentity.Message{
 					Type: "text",
@@ -66,13 +66,17 @@ func (s *chatService) routeCloseConversationFromFlow(conversationID *int64, caus
 	}
 	for _, item := range otherChannels {
 		switch item.Type {
-		case "telegram":
+		case "telegram", "infobip-whatsapp":
 			{
+				text := "Conversation closed"
+				if cause != "" {
+					text = cause
+				}
 				reqMessage := &pbentity.Message{
 					Type: "text",
 					Value: &pbentity.Message_TextMessage_{
 						TextMessage: &pbentity.Message_TextMessage{
-							Text: cause,
+							Text: text,
 						},
 					},
 				}
@@ -84,7 +88,7 @@ func (s *chatService) routeCloseConversationFromFlow(conversationID *int64, caus
 						Int64("conversation_id", item.ConversationID).
 						Str("type", item.Type).
 						Str("connection", item.Connection.String).
-						Msg("failed to send join conversation event to channel")
+						Msg("failed to send close conversation event to channel")
 				}
 			}
 		default:

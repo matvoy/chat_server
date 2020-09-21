@@ -44,7 +44,7 @@ func (s *chatService) routeMessage(channel *models.Channel, message *models.Mess
 			{
 				err = s.sendEventToWebitelUser(channel, item, messageEventType, body)
 			}
-		case "telegram":
+		case "telegram", "infobip-whatsapp":
 			{
 				err = s.sendMessageToBotUser(channel, item, reqMessage)
 			}
@@ -70,25 +70,27 @@ func (s *chatService) routeMessageFromFlow(conversationID *int64, message *pbent
 		return err
 	}
 	for _, item := range otherChannels {
+		var err error
 		switch item.Type {
 		// case "webitel":
 		// 	{
 		// 		s.sendToWebitelUser(channel, item, reqMessage)
 		// 	}
-		case "telegram":
+		case "telegram", "infobip-whatsapp":
 			{
-				if err := s.sendMessageToBotUser(nil, item, message); err != nil {
-					s.log.Warn().
-						Int64("channel_id", item.ID).
-						Bool("internal", item.Internal).
-						Int64("user_id", item.UserID).
-						Int64("conversation_id", item.ConversationID).
-						Str("type", item.Type).
-						Str("connection", item.Connection.String).
-						Msg("failed to send message to channel [from flow]")
-				}
+				err = s.sendMessageToBotUser(nil, item, message)
 			}
 		default:
+		}
+		if err != nil {
+			s.log.Warn().
+				Int64("channel_id", item.ID).
+				Bool("internal", item.Internal).
+				Int64("user_id", item.UserID).
+				Int64("conversation_id", item.ConversationID).
+				Str("type", item.Type).
+				Str("connection", item.Connection.String).
+				Msg("failed to send message to channel [from flow]")
 		}
 	}
 	return nil

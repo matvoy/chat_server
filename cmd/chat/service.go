@@ -21,7 +21,7 @@ type Service interface {
 	GetConversationByID(ctx context.Context, req *pb.GetConversationByIDRequest, res *pb.GetConversationByIDResponse) error
 	GetProfiles(ctx context.Context, req *pb.GetProfilesRequest, res *pb.GetProfilesResponse) error
 	CreateProfile(ctx context.Context, req *pb.CreateProfileRequest, res *pb.CreateProfileResponse) error
-	// UpdateProfile(ctx context.Context, req *pb.UpdateProfileRequest, res *pb.UpdateProfileResponse) error
+	UpdateProfile(ctx context.Context, req *pb.UpdateProfileRequest, res *pb.UpdateProfileResponse) error
 	DeleteProfile(ctx context.Context, req *pb.DeleteProfileRequest, res *pb.DeleteProfileResponse) error
 
 	SendMessage(ctx context.Context, req *pb.SendMessageRequest, res *pb.SendMessageResponse) error
@@ -153,6 +153,7 @@ func (s *chatService) StartConversation(
 			true,
 		},
 		Internal: req.User.Internal,
+		DomainID: req.DomainId,
 	}
 	if err := s.repo.CreateChannel(context.Background(), channel); err != nil {
 		logger.Error().Msg(err.Error())
@@ -355,19 +356,26 @@ func (s *chatService) DeleteProfile(
 	req *pb.DeleteProfileRequest,
 	res *pb.DeleteProfileResponse) error {
 	s.log.Trace().
-		Int64("profile_id", req.GetProfileId()).
+		Int64("profile_id", req.GetId()).
 		Msg("delete profile")
-	if err := s.repo.DeleteProfile(context.Background(), req.ProfileId); err != nil {
+	if err := s.repo.DeleteProfile(context.Background(), req.Id); err != nil {
 		s.log.Error().Msg(err.Error())
 		return nil
 	}
 	deleteProfileReq := &pbbot.DeleteProfileRequest{
-		ProfileId: req.ProfileId,
+		Id: req.Id,
 	}
 	if _, err := s.botClient.DeleteProfile(context.Background(), deleteProfileReq); err != nil {
 		s.log.Error().Msg(err.Error())
 		return nil
 	}
+	return nil
+}
+
+func (s *chatService) UpdateProfile(
+	ctx context.Context,
+	req *pb.UpdateProfileRequest,
+	res *pb.UpdateProfileResponse) error {
 	return nil
 }
 

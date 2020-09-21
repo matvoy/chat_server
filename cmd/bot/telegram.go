@@ -75,11 +75,11 @@ func (b *botService) addProfileTelegram(req *pb.AddProfileRequest) error {
 }
 
 func (b *botService) deleteProfileTelegram(req *pb.DeleteProfileRequest) error {
-	if _, err := b.telegramBots[req.ProfileId].RemoveWebhook(); err != nil {
+	if _, err := b.telegramBots[req.Id].RemoveWebhook(); err != nil {
 		return err
 	}
-	delete(b.telegramBots, req.ProfileId)
-	delete(b.botMap, req.ProfileId)
+	delete(b.telegramBots, req.Id)
+	delete(b.botMap, req.Id)
 	return nil
 }
 

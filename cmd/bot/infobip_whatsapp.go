@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,10 +16,49 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	scenarioRoute = "omni/1/scenarios"
+	messageRoute  = "omni/1/advanced"
+)
+
+type CreateScenarioRequest struct {
+	Name    string  `json:"name"`
+	Flow    []*Flow `json:"flow"`
+	Default bool    `json:"default"`
+}
+
+type Flow struct {
+	From    string `json:"from"`
+	Channel string `json:"channel"`
+}
+
+type CreateScenarioResponse struct {
+	Key string `json:"key"`
+}
+
+type SendMessageWARequest struct {
+	ScenarioKey  string           `json:"scenarioKey"`
+	Destinations []*Destination   `json:"destinations"`
+	WhatsApp     *WhatsAppMessage `json:"whatsApp"`
+}
+
+type WhatsAppMessage struct {
+	Text string `json:"text"`
+}
+
+type Destination struct {
+	MessageId string             `json:"messageId,omitempty"`
+	To        *NumberDestination `json:"to"`
+}
+
+type NumberDestination struct {
+	PhoneNumber string `json:"phoneNumber"`
+}
+
 type InfobipWABody struct {
 	Results             []*Result `json:"results"`
-	MessageCount        int64     `json:"results"`
-	PendingMessageCount int64     `json:"results"`
+	MessageCount        int64     `json:"messageCount"`
+	PendingMessageCount int64     `json:"pendingMessageCount"`
 }
 
 type Result struct {
@@ -46,43 +87,139 @@ type Price struct {
 }
 
 type infobipWAClient struct {
-	apiKey string
+	apiKey      string
+	scenarioKey string
+	number      string
+	url         string
 }
 
-func NewInfobipWAClient(apiKey string) *infobipWAClient {
+func NewInfobipWAClient(apiKey, scenarioKey, number, url string) *infobipWAClient {
 	return &infobipWAClient{
 		apiKey,
+		scenarioKey,
+		number,
+		url,
 	}
 }
 
 func (b *botService) configureInfobipWA(profile *pbentity.Profile) *infobipWAClient {
 	apiKey, ok := profile.Variables["api_key"]
 	if !ok {
-		b.log.Fatal().Msg("token not found")
+		b.log.Fatal().Msg("api key not found")
 		return nil
 	}
-	return NewInfobipWAClient(apiKey)
+	number, ok := profile.Variables["number"]
+	if !ok {
+		b.log.Fatal().Msg("api key not found")
+		return nil
+	}
+	url, ok := profile.Variables["url"]
+	if !ok {
+		b.log.Fatal().Msg("api key not found")
+		return nil
+	}
+	scenarioKey, _ := profile.Variables["scenario_key"]
+	if !ok {
+		b.log.Debug().Msg("creating scenario")
+		var err error
+		scenarioKey, err = b.createWAScenario(apiKey, number, url)
+		if err != nil {
+			b.log.Fatal().Msg(err.Error())
+			return nil
+		}
+		profile.Variables["scenario_key"] = scenarioKey
+		if _, err := b.client.UpdateProfile(context.Background(), &pbchat.UpdateProfileRequest{
+			Id:   profile.Id,
+			Item: profile,
+		}); err != nil {
+			b.log.Fatal().Msg(err.Error())
+			return nil
+		}
+	}
+	return NewInfobipWAClient(apiKey, scenarioKey, number, url)
+}
+
+func (b *botService) createWAScenario(apiKey, number, url string) (scenarioKey string, err error) {
+	body, err := json.Marshal(CreateScenarioRequest{
+		Name:    number,
+		Default: true,
+		Flow: []*Flow{
+			{
+				From:    number,
+				Channel: "WHATSAPP",
+			},
+		},
+	})
+	if err != nil {
+		return
+	}
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/%s", url, scenarioRoute), bytes.NewBuffer(body))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("App %s", apiKey))
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return
+	}
+	res.Body.Close()
+	var scenario *CreateScenarioResponse
+	err = json.Unmarshal(data, scenario)
+	if err != nil {
+		return
+	}
+	scenarioKey = scenario.Key
+	return
 }
 
 func (b *botService) addProfileInfobipWA(req *pb.AddProfileRequest) error {
-	apiKey, ok := req.Profile.Variables["api_key"]
-	if !ok {
-		return errors.New("api_key not found")
-	}
-	bot := NewInfobipWAClient(apiKey)
+	bot := b.configureInfobipWA(req.Profile)
 	b.infobipWABots[req.Profile.Id] = bot
 	b.botMap[req.Profile.Id] = "infobip-whatsapp"
 	return nil
 }
 
 func (b *botService) deleteProfileInfobipWA(req *pb.DeleteProfileRequest) error {
-	delete(b.infobipWABots, req.ProfileId)
-	delete(b.botMap, req.ProfileId)
+	delete(b.infobipWABots, req.Id)
+	delete(b.botMap, req.Id)
 	return nil
 }
 
 func (b *botService) sendMessageInfobipWA(req *pb.SendMessageRequest) error {
-	return nil
+	profile := b.infobipWABots[req.ProfileId]
+	body, err := json.Marshal(SendMessageWARequest{
+		ScenarioKey: profile.scenarioKey,
+		WhatsApp: &WhatsAppMessage{
+			Text: "webitel " + req.GetMessage().GetTextMessage().GetText(),
+		},
+		Destinations: []*Destination{{
+			To: &NumberDestination{
+				PhoneNumber: req.ExternalUserId,
+			},
+		}},
+	})
+	if err != nil {
+		return err
+	}
+	infobipReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/%s", profile.url, messageRoute), bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
+	infobipReq.Header.Set("Content-Type", "application/json")
+	infobipReq.Header.Set("Authorization", fmt.Sprintf("App %s", profile.apiKey))
+
+	infobipRes, err := http.DefaultClient.Do(infobipReq)
+	if err != nil {
+		return err
+	}
+	_, err = ioutil.ReadAll(infobipRes.Body)
+	return err
 }
 
 func (b *botService) InfobipWAWebhookHandler(w http.ResponseWriter, r *http.Request) {
@@ -128,7 +265,7 @@ func (b *botService) InfobipWAWebhookHandler(w http.ResponseWriter, r *http.Requ
 		start := &pbchat.StartConversationRequest{
 			User: &pbchat.User{
 				UserId:     resCheck.ClientId,
-				Type:       "telegram",
+				Type:       "infobip-whatsapp",
 				Connection: p,
 				Internal:   false,
 			},
@@ -144,7 +281,7 @@ func (b *botService) InfobipWAWebhookHandler(w http.ResponseWriter, r *http.Requ
 			Type: strings.ToLower(update.Results[0].Message.Type),
 			Value: &pbentity.Message_TextMessage_{
 				TextMessage: &pbentity.Message_TextMessage{
-					Text: update.Results[0].Message.Text,
+					Text: strings.TrimPrefix(update.Results[0].Message.Text, "webitel "),
 				},
 			},
 		}

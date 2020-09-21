@@ -141,7 +141,7 @@ func (b *botService) AddProfile(ctx context.Context, req *pb.AddProfileRequest, 
 }
 
 func (b *botService) DeleteProfile(ctx context.Context, req *pb.DeleteProfileRequest, res *pb.DeleteProfileResponse) error {
-	switch b.botMap[req.ProfileId] {
+	switch b.botMap[req.Id] {
 	case "telegram":
 		{
 			if err := b.deleteProfileTelegram(req); err != nil {
