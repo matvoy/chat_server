@@ -30,7 +30,7 @@ message AddProfileResponse {
 }
 
 message DeleteProfileRequest {
-  int64 profile_id = 1;
+  int64 id = 1;
 }
 
 message DeleteProfileResponse {
