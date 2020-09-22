@@ -134,3 +134,8 @@ func (repo *PgRepository) CloseChannelsTx(ctx context.Context, tx boil.ContextEx
 		})
 	return err
 }
+
+func (repo *PgRepository) DeleteInviteTx(ctx context.Context, tx boil.ContextExecutor, inviteID int64) error {
+	_, err := models.Invites(models.InviteWhere.ID.EQ(inviteID)).DeleteAll(ctx, tx)
+	return err
+}

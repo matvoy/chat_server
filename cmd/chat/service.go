@@ -120,7 +120,7 @@ func (s *chatService) SendMessage(
 		return nil
 	}
 	if err := s.routeMessage(channel, message); err != nil {
-		logger.Error().Msg(err.Error())
+		logger.Warn().Msg(err.Error())
 		return nil
 	}
 	return nil
@@ -144,7 +144,7 @@ func (s *chatService) StartConversation(
 			DomainID: req.DomainId,
 		}
 		if err := s.repo.CreateConversationTx(context.Background(), tx, conversation); err != nil {
-			return nil
+			return err
 		}
 		channel := &models.Channel{
 			Type:           req.User.Type,
@@ -158,14 +158,14 @@ func (s *chatService) StartConversation(
 			DomainID: req.DomainId,
 		}
 		if err := s.repo.CreateChannelTx(context.Background(), tx, channel); err != nil {
-			return nil
+			return err
 		}
 		res.ConversationId = conversation.ID
 		res.ChannelId = channel.ID
 		if !req.User.Internal {
 			profileID, err := strconv.ParseInt(req.User.Connection, 10, 64)
 			if err != nil {
-				return nil
+				return err
 			}
 			init := &pbflow.InitRequest{
 				ConversationId: conversation.ID,
@@ -173,7 +173,7 @@ func (s *chatService) StartConversation(
 				DomainId:       req.DomainId,
 			}
 			if _, err := s.flowClient.Init(context.Background(), init); err != nil {
-				return nil
+				return err
 			}
 		}
 		return nil
@@ -207,7 +207,7 @@ func (s *chatService) CloseConversation(
 		return nil
 	}
 	if err := s.routeCloseConversation(closerChannel, req.Cause); err != nil {
-		logger.Error().Msg(err.Error())
+		logger.Warn().Msg(err.Error())
 		return nil
 	}
 	return s.closeConversation(&req.ConversationId)
@@ -230,21 +230,28 @@ func (s *chatService) JoinConversation(
 		s.log.Warn().Msg("invitation not found")
 		return nil //errors.New("invitation not found")
 	}
-	channel := &models.Channel{
-		Type:           "webitel",
-		Internal:       true,
-		ConversationID: invite.ConversationID,
-		UserID:         invite.UserID,
-	}
-	if err := s.repo.CreateChannel(ctx, channel); err != nil {
-		logger.Error().Msg(err.Error())
+	if err := s.repo.WithTransaction(func(tx *sql.Tx) error {
+		channel := &models.Channel{
+			Type:           "webitel",
+			Internal:       true,
+			ConversationID: invite.ConversationID,
+			UserID:         invite.UserID,
+		}
+		if err := s.repo.CreateChannelTx(ctx, tx, channel); err != nil {
+			return err
+		}
+		if err := s.repo.DeleteInviteTx(context.Background(), tx, req.GetInviteId()); err != nil {
+			return err
+		}
+		if err := s.routeJoinConversation(&channel.ID, &invite.ConversationID); err != nil {
+			s.log.Warn().Msg(err.Error())
+		}
+		res.ChannelId = channel.ID
 		return nil
-	}
-	if err := s.routeJoinConversation(&channel.ID, &invite.ConversationID); err != nil {
+	}); err != nil {
 		s.log.Error().Msg(err.Error())
 		return nil
 	}
-	res.ChannelId = channel.ID
 	return nil
 }
 
@@ -262,7 +269,7 @@ func (s *chatService) LeaveConversation(
 		return err
 	}
 	if err := s.routeLeaveConversation(&req.ChannelId, &req.ConversationId); err != nil {
-		s.log.Error().Msg(err.Error())
+		s.log.Warn().Msg(err.Error())
 		return nil
 	}
 	return nil
@@ -294,7 +301,7 @@ func (s *chatService) InviteToConversation(
 		return nil
 	}
 	if err := s.routeInvite(&req.ConversationId, &req.User.UserId); err != nil {
-		s.log.Error().Msg(err.Error())
+		s.log.Warn().Msg(err.Error())
 		return nil
 	}
 	res.InviteId = invite.ID
@@ -316,7 +323,7 @@ func (s *chatService) DeclineInvitation(
 		return nil
 	}
 	if err := s.routeDeclineInvite(&req.UserId, &req.ConversationId); err != nil {
-		s.log.Error().Msg(err.Error())
+		s.log.Warn().Msg(err.Error())
 		return nil
 	}
 	return nil

@@ -34,10 +34,6 @@ func (repo *PgRepository) CreateInvite(ctx context.Context, m *models.Invite) er
 }
 
 func (repo *PgRepository) DeleteInvite(ctx context.Context, inviteID int64) error {
-	invite, err := models.Invites(models.InviteWhere.ID.EQ(inviteID)).One(ctx, repo.db)
-	if err != nil {
-		return err
-	}
-	_, err = invite.Delete(ctx, repo.db)
+	_, err := models.Invites(models.InviteWhere.ID.EQ(inviteID)).DeleteAll(ctx, repo.db)
 	return err
 }

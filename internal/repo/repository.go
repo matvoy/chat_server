@@ -33,6 +33,7 @@ type Repository interface {
 	CloseChannelTx(ctx context.Context, tx boil.ContextExecutor, id int64) error
 	CreateChannelTx(ctx context.Context, tx boil.ContextExecutor, c *models.Channel) error
 	CloseChannelsTx(ctx context.Context, tx boil.ContextExecutor, conversationID int64) error
+	DeleteInviteTx(ctx context.Context, tx boil.ContextExecutor, inviteID int64) error
 }
 
 type ProfileRepository interface {
