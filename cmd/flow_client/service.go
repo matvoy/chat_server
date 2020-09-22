@@ -248,7 +248,6 @@ func (s *flowService) CloseConversation(ctx context.Context, req *pb.CloseConver
 		}); err != nil {
 		s.log.Error().Msg(err.Error())
 	}
-	s.log.Info().Msg("close conversation sent")
 	return nil
 }
 

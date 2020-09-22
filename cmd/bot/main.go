@@ -15,11 +15,11 @@ import (
 )
 
 type Config struct {
-	LogLevel  string
-	TgWebhook string
-	CertPath  string
-	KeyPath   string
-	AppPort   int
+	LogLevel string
+	Webhook  string
+	CertPath string
+	KeyPath  string
+	AppPort  int
 }
 
 var (
@@ -49,9 +49,9 @@ func main() {
 				Usage:   "Log Level",
 			},
 			&cli.StringFlag{
-				Name:    "tg_webhook_address",
-				EnvVars: []string{"TG_WEBHOOK_ADDRESS"},
-				Usage:   "Telegram webhook address",
+				Name:    "webhook_address",
+				EnvVars: []string{"WEBHOOK_ADDRESS"},
+				Usage:   "Webhook address",
 			},
 			&cli.IntFlag{
 				Name:    "app_port",
@@ -74,7 +74,7 @@ func main() {
 	service.Init(
 		micro.Action(func(c *cli.Context) error {
 			cfg.LogLevel = c.String("log_level")
-			cfg.TgWebhook = c.String("tg_webhook_address")
+			cfg.Webhook = c.String("webhook_address")
 			cfg.CertPath = c.String("cert_path")
 			cfg.KeyPath = c.String("key_path")
 			cfg.AppPort = c.Int("app_port")

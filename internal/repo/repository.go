@@ -2,8 +2,10 @@ package repo
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/matvoy/chat_server/models"
+	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
 // TODO TRANSFORM TO DOMAIN MODELS
@@ -15,6 +17,22 @@ type Repository interface {
 	ClientRepository
 	InviteRepository
 	MessageRepository
+	WithTransaction(txFunc func(*sql.Tx) error) (err error)
+	CreateConversationTx(ctx context.Context, tx boil.ContextExecutor, c *models.Conversation) error
+	CreateMessageTx(ctx context.Context, tx boil.ContextExecutor, m *models.Message) error
+	GetChannelByIDTx(ctx context.Context, tx boil.ContextExecutor, id int64) (*models.Channel, error)
+	GetChannelsTx(
+		ctx context.Context,
+		tx boil.ContextExecutor,
+		userID *int64,
+		conversationID *int64,
+		connection *string,
+		internal *bool,
+		exceptID *int64,
+	) ([]*models.Channel, error)
+	CloseChannelTx(ctx context.Context, tx boil.ContextExecutor, id int64) error
+	CreateChannelTx(ctx context.Context, tx boil.ContextExecutor, c *models.Channel) error
+	CloseChannelsTx(ctx context.Context, tx boil.ContextExecutor, conversationID int64) error
 }
 
 type ProfileRepository interface {
@@ -33,6 +51,7 @@ type ConversationRepository interface {
 
 type ChannelRepository interface {
 	CloseChannel(ctx context.Context, id int64) error
+	CloseChannels(ctx context.Context, conversationID int64) error
 	GetChannels(
 		ctx context.Context,
 		userID *int64,

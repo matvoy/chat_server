@@ -6,18 +6,49 @@ import (
 	"time"
 
 	"github.com/matvoy/chat_server/models"
-
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
-func (repo *PgRepository) GetChannelByID(ctx context.Context, id int64) (*models.Channel, error) {
+func (repo *PgRepository) WithTransaction(txFunc func(*sql.Tx) error) (err error) {
+	var tx *sql.Tx
+	if tx, err = repo.db.Begin(); err != nil {
+		repo.log.Error().Msg(err.Error())
+		return
+	}
+	defer func() {
+		if p := recover(); p != nil || err != nil {
+			repo.log.Error().Msg(err.Error())
+			_ = tx.Rollback()
+		} else {
+			err = tx.Commit()
+		}
+	}()
+	err = txFunc(tx)
+	return
+}
+
+func (repo *PgRepository) CreateConversationTx(ctx context.Context, tx boil.ContextExecutor, c *models.Conversation) error {
+	if err := c.Insert(ctx, tx, boil.Infer()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *PgRepository) CreateMessageTx(ctx context.Context, tx boil.ContextExecutor, m *models.Message) error {
+	if err := m.Insert(ctx, tx, boil.Infer()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *PgRepository) GetChannelByIDTx(ctx context.Context, tx boil.ContextExecutor, id int64) (*models.Channel, error) {
 	result, err := models.Channels(
 		models.ChannelWhere.ID.EQ(id),
 		qm.Load(models.ChannelRels.Conversation),
 	).
-		One(ctx, repo.db)
+		One(ctx, tx)
 	if err != nil {
 		repo.log.Warn().Msg(err.Error())
 		if err == sql.ErrNoRows {
@@ -28,8 +59,9 @@ func (repo *PgRepository) GetChannelByID(ctx context.Context, id int64) (*models
 	return result, nil
 }
 
-func (repo *PgRepository) GetChannels(
+func (repo *PgRepository) GetChannelsTx(
 	ctx context.Context,
+	tx boil.ContextExecutor,
 	userID *int64,
 	conversationID *int64,
 	connection *string,
@@ -58,19 +90,15 @@ func (repo *PgRepository) GetChannels(
 	if exceptID != nil {
 		query = append(query, models.ChannelWhere.ID.NEQ(*exceptID))
 	}
-	return models.Channels(query...).All(ctx, repo.db)
+	return models.Channels(query...).All(ctx, tx)
 }
 
-func (repo *PgRepository) CreateChannel(ctx context.Context, c *models.Channel) error {
-	if err := c.Insert(ctx, repo.db, boil.Infer()); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *PgRepository) CloseChannel(ctx context.Context, id int64) error {
+func (repo *PgRepository) CloseChannelTx(
+	ctx context.Context,
+	tx boil.ContextExecutor,
+	id int64) error {
 	result, err := models.Channels(models.ChannelWhere.ID.EQ(id)).
-		One(ctx, repo.db)
+		One(ctx, tx)
 	if err != nil {
 		repo.log.Warn().Msg(err.Error())
 		if err == sql.ErrNoRows {
@@ -82,13 +110,23 @@ func (repo *PgRepository) CloseChannel(ctx context.Context, id int64) error {
 		Valid: true,
 		Time:  time.Now(),
 	}
-	_, err = result.Update(ctx, repo.db, boil.Infer())
+	_, err = result.Update(ctx, tx, boil.Infer())
 	return err
 }
 
-func (repo *PgRepository) CloseChannels(ctx context.Context, conversationID int64) error {
+func (repo *PgRepository) CreateChannelTx(
+	ctx context.Context,
+	tx boil.ContextExecutor,
+	c *models.Channel) error {
+	if err := c.Insert(ctx, tx, boil.Infer()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *PgRepository) CloseChannelsTx(ctx context.Context, tx boil.ContextExecutor, conversationID int64) error {
 	_, err := models.Channels(models.ChannelWhere.ConversationID.EQ(conversationID)).
-		UpdateAll(ctx, repo.db, models.M{
+		UpdateAll(ctx, tx, models.M{
 			"closed_at": null.Time{
 				Valid: true,
 				Time:  time.Now(),

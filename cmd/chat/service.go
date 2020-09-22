@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strconv"
 
@@ -137,45 +138,48 @@ func (s *chatService) StartConversation(
 		Int64("user.id", req.GetUser().GetUserId()).
 		Bool("user.internal", req.GetUser().GetInternal()).
 		Msg("start conversation")
-	conversation := &models.Conversation{
-		DomainID: req.DomainId,
-	}
-	if err := s.repo.CreateConversation(context.Background(), conversation); err != nil {
-		logger.Error().Msg(err.Error())
-		return nil
-	}
-	channel := &models.Channel{
-		Type:           req.User.Type,
-		ConversationID: conversation.ID,
-		UserID:         req.User.UserId,
-		Connection: null.String{
-			req.User.Connection,
-			true,
-		},
-		Internal: req.User.Internal,
-		DomainID: req.DomainId,
-	}
-	if err := s.repo.CreateChannel(context.Background(), channel); err != nil {
-		logger.Error().Msg(err.Error())
-		return nil
-	}
-	res.ConversationId = conversation.ID
-	res.ChannelId = channel.ID
-	if !req.User.Internal {
-		profileID, err := strconv.ParseInt(req.User.Connection, 10, 64)
-		if err != nil {
-			s.log.Error().Msg(err.Error())
+
+	if err := s.repo.WithTransaction(func(tx *sql.Tx) error {
+		conversation := &models.Conversation{
+			DomainID: req.DomainId,
+		}
+		if err := s.repo.CreateConversationTx(context.Background(), tx, conversation); err != nil {
 			return nil
 		}
-		init := &pbflow.InitRequest{
-			ConversationId: conversation.ID,
-			ProfileId:      profileID,
-			DomainId:       req.DomainId,
+		channel := &models.Channel{
+			Type:           req.User.Type,
+			ConversationID: conversation.ID,
+			UserID:         req.User.UserId,
+			Connection: null.String{
+				req.User.Connection,
+				true,
+			},
+			Internal: req.User.Internal,
+			DomainID: req.DomainId,
 		}
-		if res, err := s.flowClient.Init(context.Background(), init); err != nil {
-			s.log.Error().Msg(res.Error.Message)
+		if err := s.repo.CreateChannelTx(context.Background(), tx, channel); err != nil {
 			return nil
 		}
+		res.ConversationId = conversation.ID
+		res.ChannelId = channel.ID
+		if !req.User.Internal {
+			profileID, err := strconv.ParseInt(req.User.Connection, 10, 64)
+			if err != nil {
+				return nil
+			}
+			init := &pbflow.InitRequest{
+				ConversationId: conversation.ID,
+				ProfileId:      profileID,
+				DomainId:       req.DomainId,
+			}
+			if _, err := s.flowClient.Init(context.Background(), init); err != nil {
+				return nil
+			}
+		}
+		return nil
+	}); err != nil {
+		s.log.Error().Msg(err.Error())
+		return nil
 	}
 	return nil
 }
@@ -380,20 +384,17 @@ func (s *chatService) UpdateProfile(
 }
 
 func (s *chatService) closeConversation(conversationID *int64) error {
-	if err := s.repo.CloseConversation(context.Background(), *conversationID); err != nil {
-		s.log.Error().Msg(err.Error())
-		return nil
-	}
-	channels, err := s.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, nil)
-	if err != nil {
-		s.log.Error().Msg(err.Error())
-		return nil
-	}
-	for _, channel := range channels {
-		if err := s.repo.CloseChannel(context.Background(), channel.ID); err != nil {
-			s.log.Error().Msg(err.Error())
-			return nil
+	if err := s.repo.WithTransaction(func(tx *sql.Tx) error {
+		if err := s.repo.CloseConversation(context.Background(), *conversationID); err != nil {
+			return err
 		}
+		if err := s.repo.CloseChannels(context.Background(), *conversationID); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		s.log.Error().Msg(err.Error())
+		return nil
 	}
 	return nil
 }

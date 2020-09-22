@@ -45,7 +45,7 @@ func (b *botService) configureTelegram(profile *pbentity.Profile) *tgbotapi.BotA
 		return nil
 	}
 	// webhookInfo := tgbotapi.NewWebhookWithCert(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, profile.Id), cfg.CertPath)
-	webhookInfo := tgbotapi.NewWebhook(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, profile.Id))
+	webhookInfo := tgbotapi.NewWebhook(fmt.Sprintf("%s/telegram/%v", cfg.Webhook, profile.Id))
 	_, err = bot.SetWebhook(webhookInfo)
 	if err != nil {
 		b.log.Fatal().Msg(err.Error())
@@ -64,7 +64,7 @@ func (b *botService) addProfileTelegram(req *pb.AddProfileRequest) error {
 		return err
 	}
 	// webhookInfo := tgbotapi.NewWebhookWithCert(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, profile.Id), cfg.CertPath)
-	webhookInfo := tgbotapi.NewWebhook(fmt.Sprintf("%s/telegram/%v", cfg.TgWebhook, req.Profile.Id))
+	webhookInfo := tgbotapi.NewWebhook(fmt.Sprintf("%s/telegram/%v", cfg.Webhook, req.Profile.Id))
 	_, err = bot.SetWebhook(webhookInfo)
 	if err != nil {
 		return err
