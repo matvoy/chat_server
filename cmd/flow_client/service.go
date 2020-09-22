@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
 	pbchat "github.com/matvoy/chat_server/api/proto/chat"
@@ -189,6 +190,9 @@ func (s *flowService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 	}
 	if _, err := s.chatClient.SendMessage(context.Background(), message); err != nil {
 		s.log.Error().Msg(err.Error())
+		if err := s.closeConversation(req.GetConversationId()); err != nil {
+			s.log.Error().Msg(err.Error())
+		}
 	}
 
 	return nil
@@ -301,4 +305,27 @@ func FilterNodes(id string) selector.Filter {
 
 		return services
 	}
+}
+
+func (s *flowService) closeConversation(conversationID int64) error {
+	nodeID, err := s.chatCache.ReadConversationNode(conversationID)
+	if err != nil {
+		return err
+	}
+	if res, err := s.flowManagerClient.Break(
+		context.Background(),
+		&pbmanager.BreakRequest{
+			ConversationId: conversationID,
+		},
+		client.WithSelectOption(
+			selector.WithFilter(
+				FilterNodes(string(nodeID)),
+			),
+		),
+	); err != nil {
+		return err
+	} else if res != nil && res.Error != nil {
+		return errors.New(res.Error.Message)
+	}
+	return nil
 }

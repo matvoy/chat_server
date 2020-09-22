@@ -73,8 +73,10 @@ type Result struct {
 }
 
 type Message struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
+	Type    string `json:"type"`
+	Text    string `json:"text"`
+	URL     string `json:"url"`
+	Caption string `json:"caption"`
 }
 
 type Contact struct {
@@ -237,6 +239,9 @@ func (b *botService) InfobipWAWebhookHandler(w http.ResponseWriter, r *http.Requ
 	if len(update.Results) == 0 ||
 		(Message{}) == update.Results[0].Message {
 		log.Warn().Msg("no data")
+		return
+	}
+	if update.Results[0].Message.Text == "" {
 		return
 	}
 	b.log.Debug().

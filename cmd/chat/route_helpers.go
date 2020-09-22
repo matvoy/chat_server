@@ -32,6 +32,10 @@ func (s *chatService) sendMessageToBotUser(from *models.Channel, to *models.Chan
 	if err != nil {
 		return err
 	}
+	if client == nil || client.ExternalID.Valid == false {
+		return fmt.Errorf("client not found. id: %v", to.UserID)
+	}
+
 	botMessage := &pbbot.SendMessageRequest{
 		ProfileId:      profileID,
 		ExternalUserId: client.ExternalID.String,

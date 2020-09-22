@@ -19,8 +19,9 @@ import (
 
 type telegramBody struct {
 	Message struct {
-		MessageID int64  `json:"message_id"`
-		Text      string `json:"text"`
+		MessageID int64       `json:"message_id"`
+		Text      string      `json:"text"`
+		Photo     []PhotoSize `json:"photo"`
 		From      struct {
 			Username  string `json:"username"`
 			ID        int64  `json:"id"`
@@ -31,6 +32,14 @@ type telegramBody struct {
 			ID int64 `json:"id"`
 		} `json:"chat"`
 	} `json:"message"`
+}
+
+type PhotoSize struct {
+	FileID       string `json:"file_id"`
+	FileUniqueID string `json:"file_unique_id"`
+	Width        int64  `json:"width"`
+	Height       int64  `json:"height"`
+	FileSize     int64  `json:"file_size"`
 }
 
 func (b *botService) configureTelegram(profile *pbentity.Profile) *tgbotapi.BotAPI {
@@ -109,8 +118,14 @@ func (b *botService) TelegramWebhookHandler(w http.ResponseWriter, r *http.Reque
 		log.Error().Msgf("could not decode request body: %s", err)
 		return
 	}
-
-	if update.Message.Text == "" { // ignore any non-Message Updates
+	if update.Message.Photo != nil {
+		file, err := b.telegramBots[profileID].GetFileDirectURL(
+			update.Message.Photo[len(update.Message.Photo)-1].FileID,
+		)
+		if err != nil {
+			return
+		}
+		fmt.Println(file)
 		return
 	}
 
