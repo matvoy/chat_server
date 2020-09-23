@@ -7,7 +7,7 @@ import (
 
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
 	pb "github.com/matvoy/chat_server/api/proto/chat"
-	pbflow "github.com/matvoy/chat_server/api/proto/flow_client"
+	pbmanager "github.com/matvoy/chat_server/api/proto/flow_manager"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 	"github.com/matvoy/chat_server/internal/repo/pg"
 
@@ -38,8 +38,9 @@ var (
 	redisStore store.Store
 	// rabbitBroker broker.Broker
 	redisTable string
-	flowClient pbflow.FlowAdapterService
+	flowClient pbmanager.FlowChatServerService
 	botClient  pbbot.BotService
+	timeout    uint64
 )
 
 func init() {
@@ -87,6 +88,11 @@ func main() {
 				EnvVars: []string{"DB_PASSWORD"},
 				Usage:   "DB Password",
 			},
+			&cli.Uint64Flag{
+				Name:    "conversation_timeout_sec",
+				EnvVars: []string{"CONVERSATION_TIMEOUT_SEC"},
+				Usage:   "Conversation timeout. sec",
+			},
 		),
 	)
 	service.Init(
@@ -98,6 +104,7 @@ func main() {
 			cfg.DBSSLMode = c.String("db_sslmode")
 			cfg.DBPassword = c.String("db_password")
 			redisTable = c.String("store_table")
+			timeout = 600 //c.Uint64("conversation_timeout_sec")
 			var err error
 			logger, err = NewLogger(cfg.LogLevel)
 			if err != nil {
@@ -106,7 +113,7 @@ func main() {
 					Msg(err.Error())
 				return err
 			}
-			flowClient = pbflow.NewFlowAdapterService("webitel.chat.flowclient", service.Client())
+			flowClient = pbmanager.NewFlowChatServerService("workflow", service.Client())
 			botClient = pbbot.NewBotService("webitel.chat.bot", service.Client())
 			return nil
 		}),

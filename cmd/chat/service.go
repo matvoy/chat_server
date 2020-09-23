@@ -8,11 +8,13 @@ import (
 
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
 	pb "github.com/matvoy/chat_server/api/proto/chat"
-	pbflow "github.com/matvoy/chat_server/api/proto/flow_client"
+	pbentity "github.com/matvoy/chat_server/api/proto/entity"
+	pbmanager "github.com/matvoy/chat_server/api/proto/flow_manager"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 	"github.com/matvoy/chat_server/internal/repo"
 	"github.com/matvoy/chat_server/models"
 	"github.com/micro/go-micro/v2/broker"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/rs/zerolog"
 	"github.com/volatiletech/null/v8"
@@ -39,7 +41,7 @@ type Service interface {
 type chatService struct {
 	repo       repo.Repository
 	log        *zerolog.Logger
-	flowClient pbflow.FlowAdapterService
+	flowClient pbmanager.FlowChatServerService
 	botClient  pbbot.BotService
 	chatCache  cache.ChatCache
 	broker     broker.Broker
@@ -48,7 +50,7 @@ type chatService struct {
 func NewChatService(
 	repo repo.Repository,
 	log *zerolog.Logger,
-	flowClient pbflow.FlowAdapterService,
+	flowClient pbmanager.FlowChatServerService,
 	botClient pbbot.BotService,
 	chatCache cache.ChatCache,
 	broker broker.Broker,
@@ -88,6 +90,9 @@ func (s *chatService) SendMessage(
 		}
 		if err := s.routeMessageFromFlow(&req.ConversationId, req.Message); err != nil {
 			logger.Error().Msg(err.Error())
+			if err := s.closeFlowConversation(req.GetConversationId()); err != nil {
+				s.log.Error().Msg(err.Error())
+			}
 			return err
 		}
 		return nil
@@ -172,12 +177,8 @@ func (s *chatService) StartConversation(
 		if err != nil {
 			return err
 		}
-		init := &pbflow.InitRequest{
-			ConversationId: conversation.ID,
-			ProfileId:      profileID,
-			DomainId:       req.DomainId,
-		}
-		if _, err := s.flowClient.Init(context.Background(), init); err != nil {
+		err = s.initFlow(conversation.ID, profileID, req.DomainId, nil)
+		if err != nil {
 			return err
 		}
 	}
@@ -195,6 +196,9 @@ func (s *chatService) CloseConversation(
 		Int64("closer_channel_id", req.GetCloserChannelId()).
 		Msg("close conversation")
 	if req.FromFlow {
+		s.chatCache.DeleteCachedMessages(req.GetConversationId())
+		s.chatCache.DeleteConfirmation(req.GetConversationId())
+		s.chatCache.DeleteConversationNode(req.GetConversationId())
 		if err := s.routeCloseConversationFromFlow(&req.ConversationId, req.Cause); err != nil {
 			s.log.Error().Msg(err.Error())
 			return err
@@ -387,6 +391,43 @@ func (s *chatService) UpdateProfile(
 	ctx context.Context,
 	req *pb.UpdateProfileRequest,
 	res *pb.UpdateProfileResponse) error {
+	return nil
+}
+
+func (s *chatService) WaitMessage(ctx context.Context, req *pb.WaitMessageRequest, res *pb.WaitMessageResponse) error {
+	s.log.Debug().
+		Int64("conversation_id", req.GetConversationId()).
+		Str("confirmation_id", req.GetConfirmationId()).
+		Msg("accept confirmation")
+	cachedMessages, err := s.chatCache.ReadCachedMessages(req.GetConversationId())
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return nil
+	}
+	if cachedMessages != nil {
+		messages := make([]*pbentity.Message, 0, len(cachedMessages))
+		var tmp *pbentity.Message
+		var err error
+		s.log.Info().Msg("send cached messages")
+		for _, m := range cachedMessages {
+			err = proto.Unmarshal(m.Value, tmp)
+			if err != nil {
+				s.log.Error().Msg(err.Error())
+				return nil
+			}
+			messages = append(messages, tmp)
+			s.chatCache.DeleteCachedMessage(m.Key)
+		}
+		res.Messages = messages
+		s.chatCache.DeleteConfirmation(req.GetConversationId())
+		res.TimeoutSec = int64(timeout)
+		return nil
+	}
+	if err := s.chatCache.WriteConfirmation(req.GetConversationId(), []byte(req.ConfirmationId)); err != nil {
+		s.log.Error().Msg(err.Error())
+		return nil
+	}
+	res.TimeoutSec = int64(timeout)
 	return nil
 }
 

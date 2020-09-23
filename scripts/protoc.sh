@@ -9,10 +9,6 @@ protoc -I api/proto/entity -I api/proto/chat --go_out=api/proto/chat --micro_out
 mv ./api/proto/chat/github.com/matvoy/chat_server/api/proto/chat/* ./api/proto/chat/
 rm -rf ./api/proto/chat/github.com
 
-protoc -I api/proto/entity -I api/proto/flow_client --go_out=api/proto/flow_client --micro_out=api/proto/flow_client api/proto/flow_client/flow_client.proto
-mv ./api/proto/flow_client/github.com/matvoy/chat_server/api/proto/flow_client/* ./api/proto/flow_client/
-rm -rf ./api/proto/flow_client/github.com
-
 protoc -I api/proto/entity -I api/proto/flow_manager --go_out=api/proto/flow_manager --micro_out=api/proto/flow_manager api/proto/flow_manager/flow_manager.proto
 mv ./api/proto/flow_manager/github.com/matvoy/chat_server/api/proto/flow_manager/* ./api/proto/flow_manager/
 rm -rf ./api/proto/flow_manager/github.com

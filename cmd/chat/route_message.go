@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 
 	pbentity "github.com/matvoy/chat_server/api/proto/entity"
-	pbflow "github.com/matvoy/chat_server/api/proto/flow_client"
 	"github.com/matvoy/chat_server/models"
 	"github.com/matvoy/chat_server/pkg/events"
 )
@@ -26,7 +25,7 @@ func (s *chatService) routeMessage(channel *models.Channel, message *models.Mess
 	}
 	if otherChannels == nil {
 		if !channel.Internal {
-			return s.sendMessageToFlow(channel, reqMessage)
+			return s.sendMessageToFlow(channel.ConversationID, reqMessage)
 		}
 		return nil
 	}
@@ -93,17 +92,6 @@ func (s *chatService) routeMessageFromFlow(conversationID *int64, message *pbent
 				Str("connection", item.Connection.String).
 				Msg("failed to send message to channel [from flow]")
 		}
-	}
-	return nil
-}
-
-func (s *chatService) sendMessageToFlow(channel *models.Channel, message *pbentity.Message) error {
-	sendMessage := &pbflow.SendMessageToFlowRequest{
-		ConversationId: channel.ConversationID,
-		Message:        message,
-	}
-	if _, err := s.flowClient.SendMessageToFlow(context.Background(), sendMessage); err != nil {
-		return err
 	}
 	return nil
 }
