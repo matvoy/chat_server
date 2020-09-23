@@ -7,6 +7,7 @@ import (
 	pbentity "github.com/matvoy/chat_server/api/proto/entity"
 	pbflow "github.com/matvoy/chat_server/api/proto/flow_client"
 	"github.com/matvoy/chat_server/models"
+	"github.com/matvoy/chat_server/pkg/events"
 )
 
 func (s *chatService) routeMessage(channel *models.Channel, message *models.Message) error {
@@ -29,7 +30,7 @@ func (s *chatService) routeMessage(channel *models.Channel, message *models.Mess
 		}
 		return nil
 	}
-	body, _ := json.Marshal(messageEvent{
+	body, _ := json.Marshal(events.MessageEvent{
 		ConversationID: channel.ConversationID,
 		FromChannelID:  channel.ID,
 		// ToChannelID:    item.ID,
@@ -42,7 +43,7 @@ func (s *chatService) routeMessage(channel *models.Channel, message *models.Mess
 		switch item.Type {
 		case "webitel":
 			{
-				err = s.sendEventToWebitelUser(channel, item, messageEventType, body)
+				err = s.sendEventToWebitelUser(channel, item, events.MessageEventType, body)
 			}
 		case "telegram", "infobip-whatsapp":
 			{

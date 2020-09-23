@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/matvoy/chat_server/pkg/events"
+
 	"github.com/micro/go-micro/v2/broker"
 )
 
@@ -19,7 +21,7 @@ func (s *chatService) routeInvite(conversationID, userID *int64) error {
 	if err := s.sendInviteToWebitelUser(&otherChannels[0].DomainID, conversationID, userID); err != nil {
 		return err
 	}
-	body, _ := json.Marshal(inviteConversationEvent{
+	body, _ := json.Marshal(events.InviteConversationEvent{
 		ConversationID: *conversationID,
 		UserID:         *userID,
 	})
@@ -27,7 +29,7 @@ func (s *chatService) routeInvite(conversationID, userID *int64) error {
 		switch item.Type {
 		case "webitel":
 			{
-				if err := s.sendEventToWebitelUser(nil, item, inviteConversationEventType, body); err != nil {
+				if err := s.sendEventToWebitelUser(nil, item, events.InviteConversationEventType, body); err != nil {
 					s.log.Warn().
 						Int64("channel_id", item.ID).
 						Bool("internal", item.Internal).
@@ -53,7 +55,7 @@ func (s *chatService) sendInviteToWebitelUser(domainID, conversationID, userID *
 		Header: map[string]string{},
 		Body:   body,
 	}
-	if err := s.broker.Publish(fmt.Sprintf("event.%s.%v.%v", userInvitationEventType, *domainID, *userID), msg); err != nil {
+	if err := s.broker.Publish(fmt.Sprintf("event.%s.%v.%v", events.UserInvitationEventType, *domainID, *userID), msg); err != nil {
 		return err
 	}
 	return nil

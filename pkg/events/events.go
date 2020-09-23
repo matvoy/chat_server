@@ -1,16 +1,16 @@
-package main
+package events
 
 const (
-	messageEventType            = "message"
-	closeConversationEventType  = "close_conversation"
-	joinConversationEventType   = "join_conversation"
-	leaveConversationEventType  = "leave_conversation"
-	inviteConversationEventType = "invite_conversation"
-	userInvitationEventType     = "user_invite"
-	declineInvitationEventType  = "decline_invite"
+	MessageEventType            = "message"
+	CloseConversationEventType  = "close_conversation"
+	JoinConversationEventType   = "join_conversation"
+	LeaveConversationEventType  = "leave_conversation"
+	InviteConversationEventType = "invite_conversation"
+	UserInvitationEventType     = "user_invite"
+	DeclineInvitationEventType  = "decline_invite"
 )
 
-type messageEvent struct {
+type MessageEvent struct {
 	ConversationID int64 `json:"conversation_id"`
 	FromChannelID  int64 `json:"from_channel_id"`
 	// ToChannelID    int64  `json:"to_channel_id"`
@@ -19,35 +19,35 @@ type messageEvent struct {
 	Value     []byte `json:"message_value"`
 }
 
-type closeConversationEvent struct {
+type CloseConversationEvent struct {
 	ConversationID int64 `json:"conversation_id"`
 	FromChannelID  int64 `json:"from_channel_id"`
 	// ToChannelID    int64  `json:"to_channel_id"`
 	Cause string `json:"cause"`
 }
 
-type joinConversationEvent struct {
+type JoinConversationEvent struct {
 	ConversationID  int64 `json:"conversation_id"`
 	JoinedChannelID int64 `json:"joined_channel_id"`
 	// JoinedUserID    int64 `json:"joined_user_id"`
 }
 
-type leaveConversationEvent struct {
+type LeaveConversationEvent struct {
 	ConversationID  int64 `json:"conversation_id"`
 	LeavedChannelID int64 `json:"leaved_channel_id"`
 	// LeavedUserID    int64 `json:"leaved_user_id"`
 }
 
-type inviteConversationEvent struct {
+type InviteConversationEvent struct {
 	ConversationID int64 `json:"conversation_id"`
 	UserID         int64 `json:"user_id"`
 }
 
-type userInvitationEvent struct {
+type UserInvitationEvent struct {
 	ConversationID int64 `json:"conversation_id"`
 	InviteID       int64 `json:"invite_id"`
 }
-type declineInvitationEvent struct {
+type DeclineInvitationEvent struct {
 	ConversationID int64 `json:"conversation_id"`
 	UserID         int64 `json:"user_id"`
 }

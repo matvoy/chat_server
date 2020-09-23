@@ -32,10 +32,10 @@ type Config struct {
 }
 
 var (
-	logger  *zerolog.Logger
-	cfg     *Config
-	service micro.Service
-	// redisStore   store.Store
+	logger     *zerolog.Logger
+	cfg        *Config
+	service    micro.Service
+	redisStore store.Store
 	// rabbitBroker broker.Broker
 	redisTable string
 	flowClient pbflow.FlowAdapterService

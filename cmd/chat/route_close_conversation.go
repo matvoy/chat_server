@@ -6,6 +6,7 @@ import (
 
 	pbentity "github.com/matvoy/chat_server/api/proto/entity"
 	"github.com/matvoy/chat_server/models"
+	"github.com/matvoy/chat_server/pkg/events"
 )
 
 func (s *chatService) routeCloseConversation(channel *models.Channel, cause string) error {
@@ -19,7 +20,7 @@ func (s *chatService) routeCloseConversation(channel *models.Channel, cause stri
 		}
 		return nil
 	}
-	body, _ := json.Marshal(closeConversationEvent{
+	body, _ := json.Marshal(events.CloseConversationEvent{
 		ConversationID: channel.ConversationID,
 		FromChannelID:  channel.ID,
 		Cause:          cause,
@@ -29,7 +30,7 @@ func (s *chatService) routeCloseConversation(channel *models.Channel, cause stri
 		switch item.Type {
 		case "webitel":
 			{
-				err = s.sendEventToWebitelUser(channel, item, messageEventType, body)
+				err = s.sendEventToWebitelUser(channel, item, events.CloseConversationEventType, body)
 			}
 		case "telegram", "infobip-whatsapp":
 			{

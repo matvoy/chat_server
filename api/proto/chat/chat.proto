@@ -12,6 +12,8 @@ service ChatService {
   rpc LeaveConversation(LeaveConversationRequest) returns (LeaveConversationResponse) {}
   rpc InviteToConversation(InviteToConversationRequest) returns (InviteToConversationResponse) {}
   rpc DeclineInvitation(DeclineInvitationRequest) returns (DeclineInvitationResponse) {}
+
+  rpc WaitMessage(WaitMessageRequest) returns (WaitMessageResponse) {}
   
   rpc GetConversationByID(GetConversationByIDRequest) returns (GetConversationByIDResponse) {}
   rpc GetProfiles(GetProfilesRequest) returns (GetProfilesResponse) {} 
@@ -20,6 +22,17 @@ service ChatService {
   rpc DeleteProfile(DeleteProfileRequest) returns (DeleteProfileResponse) {}
   rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse) {}
   rpc CheckSession(CheckSessionRequest) returns (CheckSessionResponse) {}  
+}
+
+message WaitMessageRequest {
+  int64 conversation_id = 1;
+  string confirmation_id = 2;
+}
+
+message WaitMessageResponse {
+  int64 timeout_sec = 1;
+  repeated entity.Message messages = 2;
+  entity.Error error = 3;
 }
 
 message CheckSessionRequest {
