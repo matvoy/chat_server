@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	pb "github.com/matvoy/chat_server/api/proto/chat_storage"
-	pbflow "github.com/matvoy/chat_server/api/proto/flow_client"
+	pbbot "github.com/matvoy/chat_server/api/proto/bot"
+	pb "github.com/matvoy/chat_server/api/proto/chat"
+	pbmanager "github.com/matvoy/chat_server/api/proto/flow_manager"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 	"github.com/matvoy/chat_server/internal/repo/pg"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/config/cmd"
 	"github.com/micro/go-micro/v2/store"
+	"github.com/micro/go-plugins/broker/rabbitmq/v2"
 	"github.com/micro/go-plugins/registry/consul/v2"
 	"github.com/micro/go-plugins/store/redis/v2"
 	"github.com/rs/zerolog"
@@ -34,12 +36,16 @@ var (
 	cfg        *Config
 	service    micro.Service
 	redisStore store.Store
+	// rabbitBroker broker.Broker
 	redisTable string
-	flowClient pbflow.FlowAdapterService
+	flowClient pbmanager.FlowChatServerService
+	botClient  pbbot.BotService
+	timeout    uint64
 )
 
 func init() {
 	// plugins
+	cmd.DefaultBrokers["rabbitmq"] = rabbitmq.NewBroker
 	cmd.DefaultStores["redis"] = redis.NewStore
 	cmd.DefaultRegistries["consul"] = consul.NewRegistry
 }
@@ -47,7 +53,7 @@ func init() {
 func main() {
 	cfg = &Config{}
 	service = micro.NewService(
-		micro.Name("webitel.chat.service.storage"),
+		micro.Name("webitel.chat.server"),
 		micro.Version("latest"),
 		micro.Flags(
 			&cli.StringFlag{
@@ -82,6 +88,11 @@ func main() {
 				EnvVars: []string{"DB_PASSWORD"},
 				Usage:   "DB Password",
 			},
+			&cli.Uint64Flag{
+				Name:    "conversation_timeout_sec",
+				EnvVars: []string{"CONVERSATION_TIMEOUT_SEC"},
+				Usage:   "Conversation timeout. sec",
+			},
 		),
 	)
 	service.Init(
@@ -93,6 +104,7 @@ func main() {
 			cfg.DBSSLMode = c.String("db_sslmode")
 			cfg.DBPassword = c.String("db_password")
 			redisTable = c.String("store_table")
+			timeout = 600 //c.Uint64("conversation_timeout_sec")
 			var err error
 			logger, err = NewLogger(cfg.LogLevel)
 			if err != nil {
@@ -101,12 +113,32 @@ func main() {
 					Msg(err.Error())
 				return err
 			}
-			flowClient = pbflow.NewFlowAdapterService("webitel.chat.service.flowclient", service.Client())
+			flowClient = pbmanager.NewFlowChatServerService("workflow", service.Client())
+			botClient = pbbot.NewBotService("webitel.chat.bot", service.Client())
 			return nil
 		}),
+		micro.Broker(
+			rabbitmq.NewBroker(
+				rabbitmq.ExchangeName("chat"),
+				rabbitmq.DurableExchange(),
+			),
+		),
 	)
 
 	service.Options().Store.Init(store.Table(redisTable))
+
+	if err := service.Options().Broker.Init(); err != nil {
+		logger.Fatal().
+			Str("app", "failed to init broker").
+			Msg(err.Error())
+		return
+	}
+	if err := service.Options().Broker.Connect(); err != nil {
+		logger.Fatal().
+			Str("app", "failed to connect broker").
+			Msg(err.Error())
+		return
+	}
 
 	db, err := sql.Open("postgres", DbSource(cfg.DBHost, cfg.DBUser, cfg.DBName, cfg.DBPassword, cfg.DBSSLMode))
 	if err != nil {
@@ -126,9 +158,9 @@ func main() {
 
 	repo := pg.NewPgRepository(db, logger)
 	cache := cache.NewChatCache(service.Options().Store)
-	serv := NewStorageService(repo, logger, flowClient, cache)
+	serv := NewChatService(repo, logger, flowClient, botClient, cache, service.Options().Broker)
 
-	if err := pb.RegisterStorageServiceHandler(service.Server(), serv); err != nil {
+	if err := pb.RegisterChatServiceHandler(service.Server(), serv); err != nil {
 		logger.Fatal().
 			Str("app", "failed to register service").
 			Msg(err.Error())

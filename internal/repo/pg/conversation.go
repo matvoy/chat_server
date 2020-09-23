@@ -3,7 +3,6 @@ package pg
 import (
 	"context"
 	"database/sql"
-	"strings"
 	"time"
 
 	"github.com/matvoy/chat_server/models"
@@ -13,23 +12,22 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
-func (repo *PgRepository) GetConversationBySessionID(ctx context.Context, sessionID string) (*models.Conversation, error) {
-	result, err := models.Conversations(qm.Where("LOWER(session_id) like ?", strings.ToLower(sessionID)), qm.Where("closed_at is null")).
-		One(ctx, repo.db)
-	if err != nil {
-		repo.log.Warn().Msg(err.Error())
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return result, nil
-}
+// func (repo *PgRepository) GetConversationBySessionID(ctx context.Context, sessionID string) (*models.Conversation, error) {
+// 	result, err := models.Conversations(qm.Where("LOWER(session_id) like ?", strings.ToLower(sessionID)), qm.Where("closed_at is null")).
+// 		One(ctx, repo.db)
+// 	if err != nil {
+// 		repo.log.Warn().Msg(err.Error())
+// 		if err == sql.ErrNoRows {
+// 			return nil, nil
+// 		}
+// 		return nil, err
+// 	}
+// 	return result, nil
+// }
 
 func (repo *PgRepository) GetConversationByID(ctx context.Context, id int64) (*models.Conversation, error) {
 	result, err := models.Conversations(
 		models.ConversationWhere.ID.EQ(id),
-		qm.Load(models.ConversationRels.Profile),
 	).One(ctx, repo.db)
 	if err != nil {
 		repo.log.Warn().Msg(err.Error())

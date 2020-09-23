@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	pbstorage "github.com/matvoy/chat_server/api/proto/chat_storage"
-	pb "github.com/matvoy/chat_server/api/proto/telegram_bot"
+	pb "github.com/matvoy/chat_server/api/proto/bot"
+	pbchat "github.com/matvoy/chat_server/api/proto/chat"
 
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
@@ -15,19 +15,19 @@ import (
 )
 
 type Config struct {
-	LogLevel  string
-	TgWebhook string
-	CertPath  string
-	KeyPath   string
-	AppPort   int
+	LogLevel string
+	Webhook  string
+	CertPath string
+	KeyPath  string
+	AppPort  int
 }
 
 var (
-	client  pbstorage.StorageService
+	client  pbchat.ChatService
 	logger  *zerolog.Logger
 	cfg     *Config
 	service micro.Service
-	tgBot   ChatServer
+	bot     ChatServer
 )
 
 func init() {
@@ -39,7 +39,7 @@ func main() {
 	cfg = &Config{}
 
 	service = micro.NewService(
-		micro.Name("webitel.chat.service.telegrambot"),
+		micro.Name("webitel.chat.bot"),
 		micro.Version("latest"),
 		micro.Flags(
 			&cli.StringFlag{
@@ -49,9 +49,9 @@ func main() {
 				Usage:   "Log Level",
 			},
 			&cli.StringFlag{
-				Name:    "tg_webhook_address",
-				EnvVars: []string{"TG_WEBHOOK_ADDRESS"},
-				Usage:   "Telegram webhook address",
+				Name:    "webhook_address",
+				EnvVars: []string{"WEBHOOK_ADDRESS"},
+				Usage:   "Webhook address",
 			},
 			&cli.IntFlag{
 				Name:    "app_port",
@@ -74,28 +74,28 @@ func main() {
 	service.Init(
 		micro.Action(func(c *cli.Context) error {
 			cfg.LogLevel = c.String("log_level")
-			cfg.TgWebhook = c.String("tg_webhook_address")
+			cfg.Webhook = c.String("webhook_address")
 			cfg.CertPath = c.String("cert_path")
 			cfg.KeyPath = c.String("key_path")
 			cfg.AppPort = c.Int("app_port")
 			// cfg.ConversationTimeout = c.Uint64("conversation_timeout")
 
-			client = pbstorage.NewStorageService("webitel.chat.service.storage", service.Client())
+			client = pbchat.NewChatService("webitel.chat.server", service.Client())
 			var err error
 			logger, err = NewLogger(cfg.LogLevel)
 			if err != nil {
 				return err
 			}
-			return configureTelegram()
+			return configure()
 		}),
 		micro.AfterStart(
 			func() error {
-				return tgBot.StartWebhookServer()
+				return bot.StartWebhookServer()
 			},
 		),
 		micro.AfterStop(
 			func() error {
-				return tgBot.StopWebhookServer()
+				return bot.StopWebhookServer()
 			},
 		),
 	)
@@ -107,16 +107,16 @@ func main() {
 	}
 }
 
-func configureTelegram() error {
+func configure() error {
 	r := mux.NewRouter()
 
-	tgBot = NewTelegramBot(
+	bot = NewBotService(
 		logger,
 		client,
 		r,
 	)
 
-	if err := pb.RegisterTelegramBotServiceHandler(service.Server(), tgBot); err != nil {
+	if err := pb.RegisterBotServiceHandler(service.Server(), bot); err != nil {
 		logger.Fatal().
 			Str("app", "failed to register service").
 			Msg(err.Error())

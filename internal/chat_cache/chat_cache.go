@@ -12,12 +12,17 @@ const (
 	confirmationStr       = "confirmations:%v"      // %s - conversation id, value - confirmation id
 	writeCachedMessageStr = "cached_messages:%v:%v" // %v - conversation id, %v - message id
 	readCachedMessageStr  = "cached_messages:%v"    // %v - conversation id
+	conversationNodeStr   = "conversation:%v:node"  // %v - conversation id
 )
 
 type ChatCache interface {
 	ReadSession(sessionID string) ([]byte, error)
 	WriteSession(sessionID string, conversationIDBytes []byte) error
 	DeleteSession(sessionID string) error
+
+	WriteConversationNode(conversationID int64, nodeIDBytes []byte) error
+	ReadConversationNode(conversationID int64) ([]byte, error)
+	DeleteConversationNode(conversationID int64) error
 
 	ReadConfirmation(conversationID int64) ([]byte, error)
 	WriteConfirmation(conversationID int64, confirmationIDBytes []byte) error
@@ -59,6 +64,33 @@ func (c *chatCache) WriteSession(sessionID string, conversationIDBytes []byte) e
 		Value:  conversationIDBytes,
 		Expiry: time.Hour * time.Duration(24),
 	})
+}
+
+func (c *chatCache) WriteConversationNode(conversationID int64, nodeIDBytes []byte) error {
+	key := fmt.Sprintf(conversationNodeStr, conversationID)
+	return c.redisStore.Write(&store.Record{
+		Key:   key,
+		Value: nodeIDBytes,
+		// Expiry: time.Hour * time.Duration(24),
+	})
+}
+
+func (c *chatCache) ReadConversationNode(conversationID int64) ([]byte, error) {
+	key := fmt.Sprintf(conversationNodeStr, conversationID)
+	node, err := c.redisStore.Read(key)
+	if err != nil && err.Error() != "not found" {
+		return nil, err
+	}
+	if len(node) > 0 {
+		return node[0].Value, nil
+	} else {
+		return nil, nil
+	}
+}
+
+func (c *chatCache) DeleteConversationNode(conversationID int64) error {
+	key := fmt.Sprintf(conversationNodeStr, conversationID)
+	return c.redisStore.Delete(key)
 }
 
 func (c *chatCache) DeleteSession(sessionID string) error {
