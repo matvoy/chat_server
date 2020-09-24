@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
-	pbentity "github.com/matvoy/chat_server/api/proto/entity"
+	pb "github.com/matvoy/chat_server/api/proto/chat"
 	"github.com/matvoy/chat_server/models"
 
 	"github.com/micro/go-micro/v2/broker"
@@ -23,7 +23,7 @@ func (s *chatService) sendEventToWebitelUser(from *models.Channel, to *models.Ch
 	return nil
 }
 
-func (s *chatService) sendMessageToBotUser(from *models.Channel, to *models.Channel, message *pbentity.Message) error {
+func (s *chatService) sendMessageToBotUser(from *models.Channel, to *models.Channel, message *pb.Message) error {
 	profileID, err := strconv.ParseInt(to.Connection.String, 10, 64)
 	if err != nil {
 		return err

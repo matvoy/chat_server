@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	pb "github.com/matvoy/chat_server/api/proto/chat"
-	pbentity "github.com/matvoy/chat_server/api/proto/entity"
 	"github.com/matvoy/chat_server/models"
 	"github.com/volatiletech/null/v8"
 )
@@ -85,14 +84,14 @@ func (s *chatService) GetProfiles(ctx context.Context, req *pb.GetProfilesReques
 	return nil
 }
 
-func transformProfileFromRepoModel(profile *models.Profile) (*pbentity.Profile, error) {
+func transformProfileFromRepoModel(profile *models.Profile) (*pb.Profile, error) {
 	variableBytes, err := profile.Variables.MarshalJSON()
 	variables := make(map[string]string)
 	err = json.Unmarshal(variableBytes, &variables)
 	if err != nil {
 		return nil, err
 	}
-	result := &pbentity.Profile{
+	result := &pb.Profile{
 		Id:        profile.ID,
 		Name:      profile.Name,
 		Type:      profile.Type,
@@ -103,7 +102,7 @@ func transformProfileFromRepoModel(profile *models.Profile) (*pbentity.Profile, 
 	return result, nil
 }
 
-func transformProfileToRepoModel(profile *pbentity.Profile) (*models.Profile, error) {
+func transformProfileToRepoModel(profile *pb.Profile) (*models.Profile, error) {
 	result := &models.Profile{
 		ID:       profile.Id,
 		Name:     profile.Name,
@@ -118,9 +117,9 @@ func transformProfileToRepoModel(profile *pbentity.Profile) (*models.Profile, er
 	return result, nil
 }
 
-func transformProfilesFromRepoModel(profiles []*models.Profile) ([]*pbentity.Profile, error) {
-	result := make([]*pbentity.Profile, 0, len(profiles))
-	var tmp *pbentity.Profile
+func transformProfilesFromRepoModel(profiles []*models.Profile) ([]*pb.Profile, error) {
+	result := make([]*pb.Profile, 0, len(profiles))
+	var tmp *pb.Profile
 	var err error
 	for _, item := range profiles {
 		tmp, err = transformProfileFromRepoModel(item)

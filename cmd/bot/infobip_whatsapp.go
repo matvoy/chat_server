@@ -12,7 +12,6 @@ import (
 
 	pb "github.com/matvoy/chat_server/api/proto/bot"
 	pbchat "github.com/matvoy/chat_server/api/proto/chat"
-	pbentity "github.com/matvoy/chat_server/api/proto/entity"
 	"github.com/rs/zerolog/log"
 )
 
@@ -104,7 +103,7 @@ func NewInfobipWAClient(apiKey, scenarioKey, number, url string) *infobipWAClien
 	}
 }
 
-func (b *botService) configureInfobipWA(profile *pbentity.Profile) *infobipWAClient {
+func (b *botService) configureInfobipWA(profile *pbchat.Profile) *infobipWAClient {
 	apiKey, ok := profile.Variables["api_key"]
 	if !ok {
 		b.log.Fatal().Msg("api key not found")
@@ -282,10 +281,10 @@ func (b *botService) InfobipWAWebhookHandler(w http.ResponseWriter, r *http.Requ
 			return
 		}
 	} else {
-		textMessage := &pbentity.Message{
+		textMessage := &pbchat.Message{
 			Type: strings.ToLower(update.Results[0].Message.Type),
-			Value: &pbentity.Message_TextMessage_{
-				TextMessage: &pbentity.Message_TextMessage{
+			Value: &pbchat.Message_TextMessage_{
+				TextMessage: &pbchat.Message_TextMessage{
 					Text: strings.TrimPrefix(update.Results[0].Message.Text, "webitel "),
 				},
 			},

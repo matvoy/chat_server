@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	pbentity "github.com/matvoy/chat_server/api/proto/entity"
+	pb "github.com/matvoy/chat_server/api/proto/chat"
 	pbmanager "github.com/matvoy/chat_server/api/proto/flow_manager"
 	"google.golang.org/protobuf/proto"
 
@@ -13,7 +13,7 @@ import (
 	"github.com/micro/go-micro/v2/registry"
 )
 
-func (s *chatService) sendMessageToFlow(conversationID int64, message *pbentity.Message) error {
+func (s *chatService) sendMessageToFlow(conversationID int64, message *pb.Message) error {
 	confirmationID, err := s.chatCache.ReadConfirmation(conversationID)
 	if err != nil {
 		return err
@@ -63,11 +63,11 @@ func (s *chatService) sendMessageToFlow(conversationID int64, message *pbentity.
 	s.log.Debug().
 		Int64("conversation_id", conversationID).
 		Msg("cache messages for confirmation")
-	cacheMessage := &pbentity.Message{
+	cacheMessage := &pb.Message{
 		Id:   message.GetId(),
 		Type: message.GetType(),
-		Value: &pbentity.Message_TextMessage_{
-			TextMessage: &pbentity.Message_TextMessage{
+		Value: &pb.Message_TextMessage_{
+			TextMessage: &pb.Message_TextMessage{
 				Text: message.GetTextMessage().GetText(),
 			},
 		},
@@ -83,7 +83,7 @@ func (s *chatService) sendMessageToFlow(conversationID int64, message *pbentity.
 	return nil
 }
 
-func (s *chatService) initFlow(conversationID, profileID, domainID int64, message *pbentity.Message) error {
+func (s *chatService) initFlow(conversationID, profileID, domainID int64, message *pb.Message) error {
 	s.log.Debug().
 		Int64("conversation_id", conversationID).
 		Int64("profile_id", profileID).

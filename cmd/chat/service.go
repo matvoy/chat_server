@@ -8,7 +8,6 @@ import (
 
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
 	pb "github.com/matvoy/chat_server/api/proto/chat"
-	pbentity "github.com/matvoy/chat_server/api/proto/entity"
 	pbmanager "github.com/matvoy/chat_server/api/proto/flow_manager"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 	"github.com/matvoy/chat_server/internal/repo"
@@ -405,8 +404,8 @@ func (s *chatService) WaitMessage(ctx context.Context, req *pb.WaitMessageReques
 		return nil
 	}
 	if cachedMessages != nil {
-		messages := make([]*pbentity.Message, 0, len(cachedMessages))
-		var tmp *pbentity.Message
+		messages := make([]*pb.Message, 0, len(cachedMessages))
+		var tmp *pb.Message
 		var err error
 		s.log.Info().Msg("send cached messages")
 		for _, m := range cachedMessages {

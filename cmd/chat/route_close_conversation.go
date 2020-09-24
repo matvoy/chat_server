@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	pbentity "github.com/matvoy/chat_server/api/proto/entity"
+	pb "github.com/matvoy/chat_server/api/proto/chat"
 	"github.com/matvoy/chat_server/models"
 	"github.com/matvoy/chat_server/pkg/events"
 )
@@ -34,10 +34,10 @@ func (s *chatService) routeCloseConversation(channel *models.Channel, cause stri
 			}
 		case "telegram", "infobip-whatsapp":
 			{
-				reqMessage := &pbentity.Message{
+				reqMessage := &pb.Message{
 					Type: "text",
-					Value: &pbentity.Message_TextMessage_{
-						TextMessage: &pbentity.Message_TextMessage{
+					Value: &pb.Message_TextMessage_{
+						TextMessage: &pb.Message_TextMessage{
 							Text: cause,
 						},
 					},
@@ -73,10 +73,10 @@ func (s *chatService) routeCloseConversationFromFlow(conversationID *int64, caus
 				if cause != "" {
 					text = cause
 				}
-				reqMessage := &pbentity.Message{
+				reqMessage := &pb.Message{
 					Type: "text",
-					Value: &pbentity.Message_TextMessage_{
-						TextMessage: &pbentity.Message_TextMessage{
+					Value: &pb.Message_TextMessage_{
+						TextMessage: &pb.Message_TextMessage{
 							Text: text,
 						},
 					},

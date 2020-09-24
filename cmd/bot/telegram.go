@@ -11,7 +11,6 @@ import (
 
 	pb "github.com/matvoy/chat_server/api/proto/bot"
 	pbchat "github.com/matvoy/chat_server/api/proto/chat"
-	pbentity "github.com/matvoy/chat_server/api/proto/entity"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/rs/zerolog/log"
@@ -42,7 +41,7 @@ type PhotoSize struct {
 	FileSize     int64  `json:"file_size"`
 }
 
-func (b *botService) configureTelegram(profile *pbentity.Profile) *tgbotapi.BotAPI {
+func (b *botService) configureTelegram(profile *pbchat.Profile) *tgbotapi.BotAPI {
 	token, ok := profile.Variables["token"]
 	if !ok {
 		b.log.Fatal().Msg("token not found")
@@ -171,10 +170,10 @@ func (b *botService) TelegramWebhookHandler(w http.ResponseWriter, r *http.Reque
 			return
 		}
 		// if update.Message.Text != "/start" {
-		// 	textMessage := &pbentity.Message{
+		// 	textMessage := &pbchat.Message{
 		// 		Type: "text",
-		// 		Value: &pbentity.Message_TextMessage_{
-		// 			TextMessage: &pbentity.Message_TextMessage{
+		// 		Value: &pbchat.Message_TextMessage_{
+		// 			TextMessage: &pbchat.Message_TextMessage{
 		// 				Text: update.Message.Text,
 		// 			},
 		// 		},
@@ -190,10 +189,10 @@ func (b *botService) TelegramWebhookHandler(w http.ResponseWriter, r *http.Reque
 		// 	}
 		// }
 	} else {
-		textMessage := &pbentity.Message{
+		textMessage := &pbchat.Message{
 			Type: "text",
-			Value: &pbentity.Message_TextMessage_{
-				TextMessage: &pbentity.Message_TextMessage{
+			Value: &pbchat.Message_TextMessage_{
+				TextMessage: &pbchat.Message_TextMessage{
 					Text: update.Message.Text,
 				},
 			},

@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	pbentity "github.com/matvoy/chat_server/api/proto/entity"
+	pb "github.com/matvoy/chat_server/api/proto/chat"
 	"github.com/matvoy/chat_server/models"
 	"github.com/matvoy/chat_server/pkg/events"
 )
@@ -14,11 +14,11 @@ func (s *chatService) routeMessage(channel *models.Channel, message *models.Mess
 	if err != nil {
 		return err
 	}
-	reqMessage := &pbentity.Message{
+	reqMessage := &pb.Message{
 		Id:   message.ID,
 		Type: message.Type,
-		Value: &pbentity.Message_TextMessage_{
-			TextMessage: &pbentity.Message_TextMessage{
+		Value: &pb.Message_TextMessage_{
+			TextMessage: &pb.Message_TextMessage{
 				Text: message.Text.String,
 			},
 		},
@@ -64,7 +64,7 @@ func (s *chatService) routeMessage(channel *models.Channel, message *models.Mess
 	return nil
 }
 
-func (s *chatService) routeMessageFromFlow(conversationID *int64, message *pbentity.Message) error {
+func (s *chatService) routeMessageFromFlow(conversationID *int64, message *pb.Message) error {
 	otherChannels, err := s.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, nil)
 	if err != nil {
 		return err
