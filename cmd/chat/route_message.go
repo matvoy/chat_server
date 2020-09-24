@@ -25,7 +25,7 @@ func (s *chatService) routeMessage(channel *models.Channel, message *models.Mess
 	}
 	if otherChannels == nil {
 		if !channel.Internal {
-			return s.sendMessageToFlow(channel.ConversationID, reqMessage)
+			return s.flowClient.SendMessage(channel.ConversationID, reqMessage)
 		}
 		return nil
 	}

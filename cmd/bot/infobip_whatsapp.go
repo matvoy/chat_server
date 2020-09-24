@@ -12,6 +12,7 @@ import (
 
 	pb "github.com/matvoy/chat_server/api/proto/bot"
 	pbchat "github.com/matvoy/chat_server/api/proto/chat"
+
 	"github.com/rs/zerolog/log"
 )
 

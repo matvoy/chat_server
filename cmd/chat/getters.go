@@ -7,6 +7,7 @@ import (
 
 	pb "github.com/matvoy/chat_server/api/proto/chat"
 	"github.com/matvoy/chat_server/models"
+
 	"github.com/volatiletech/null/v8"
 )
 

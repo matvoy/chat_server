@@ -1,4 +1,4 @@
-package main
+package flow
 
 import (
 	"context"
@@ -6,14 +6,40 @@ import (
 
 	pb "github.com/matvoy/chat_server/api/proto/chat"
 	pbmanager "github.com/matvoy/chat_server/api/proto/flow_manager"
-	"google.golang.org/protobuf/proto"
+	cache "github.com/matvoy/chat_server/internal/chat_cache"
 
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/registry"
+	"github.com/rs/zerolog"
+	"google.golang.org/protobuf/proto"
 )
 
-func (s *chatService) sendMessageToFlow(conversationID int64, message *pb.Message) error {
+type Client interface {
+	SendMessage(conversationID int64, message *pb.Message) error
+	Init(conversationID, profileID, domainID int64, message *pb.Message) error
+	CloseConversation(conversationID int64) error
+}
+
+type flowClient struct {
+	log       *zerolog.Logger
+	client    pbmanager.FlowChatServerService
+	chatCache cache.ChatCache
+}
+
+func NewClient(
+	log *zerolog.Logger,
+	client pbmanager.FlowChatServerService,
+	chatCache cache.ChatCache,
+) *flowClient {
+	return &flowClient{
+		log,
+		client,
+		chatCache,
+	}
+}
+
+func (s *flowClient) SendMessage(conversationID int64, message *pb.Message) error {
 	confirmationID, err := s.chatCache.ReadConfirmation(conversationID)
 	if err != nil {
 		return err
@@ -43,7 +69,7 @@ func (s *chatService) sendMessageToFlow(conversationID int64, message *pb.Messag
 		if err != nil {
 			return err
 		}
-		if res, err := s.flowClient.ConfirmationMessage(
+		if res, err := s.client.ConfirmationMessage(
 			context.Background(),
 			message,
 			client.WithSelectOption(
@@ -83,7 +109,7 @@ func (s *chatService) sendMessageToFlow(conversationID int64, message *pb.Messag
 	return nil
 }
 
-func (s *chatService) initFlow(conversationID, profileID, domainID int64, message *pb.Message) error {
+func (s *flowClient) Init(conversationID, profileID, domainID int64, message *pb.Message) error {
 	s.log.Debug().
 		Int64("conversation_id", conversationID).
 		Int64("profile_id", profileID).
@@ -103,7 +129,7 @@ func (s *chatService) initFlow(conversationID, profileID, domainID int64, messag
 			},
 		},
 	}
-	if res, err := s.flowClient.Start(
+	if res, err := s.client.Start(
 		context.Background(),
 		start,
 		client.WithCallWrapper(
@@ -121,12 +147,12 @@ func (s *chatService) initFlow(conversationID, profileID, domainID int64, messag
 	return nil
 }
 
-func (s *chatService) closeFlowConversation(conversationID int64) error {
+func (s *flowClient) CloseConversation(conversationID int64) error {
 	nodeID, err := s.chatCache.ReadConversationNode(conversationID)
 	if err != nil {
 		return err
 	}
-	if res, err := s.flowClient.Break(
+	if res, err := s.client.Break(
 		context.Background(),
 		&pbmanager.BreakRequest{
 			ConversationId: conversationID,
@@ -147,7 +173,7 @@ func (s *chatService) closeFlowConversation(conversationID int64) error {
 	return nil
 }
 
-func (s *chatService) initCallWrapper(conversationID int64) func(client.CallFunc) client.CallFunc {
+func (s *flowClient) initCallWrapper(conversationID int64) func(client.CallFunc) client.CallFunc {
 	return func(next client.CallFunc) client.CallFunc {
 		return func(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
 			s.log.Trace().

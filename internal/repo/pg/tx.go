@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/matvoy/chat_server/models"
+
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"

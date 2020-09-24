@@ -8,15 +8,15 @@ import (
 
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
 	pb "github.com/matvoy/chat_server/api/proto/chat"
-	pbmanager "github.com/matvoy/chat_server/api/proto/flow_manager"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
+	"github.com/matvoy/chat_server/internal/flow"
 	"github.com/matvoy/chat_server/internal/repo"
 	"github.com/matvoy/chat_server/models"
-	"github.com/micro/go-micro/v2/broker"
-	"google.golang.org/protobuf/proto"
 
+	"github.com/micro/go-micro/v2/broker"
 	"github.com/rs/zerolog"
 	"github.com/volatiletech/null/v8"
+	"google.golang.org/protobuf/proto"
 )
 
 type Service interface {
@@ -40,7 +40,7 @@ type Service interface {
 type chatService struct {
 	repo       repo.Repository
 	log        *zerolog.Logger
-	flowClient pbmanager.FlowChatServerService
+	flowClient flow.Client
 	botClient  pbbot.BotService
 	chatCache  cache.ChatCache
 	broker     broker.Broker
@@ -49,7 +49,7 @@ type chatService struct {
 func NewChatService(
 	repo repo.Repository,
 	log *zerolog.Logger,
-	flowClient pbmanager.FlowChatServerService,
+	flowClient flow.Client,
 	botClient pbbot.BotService,
 	chatCache cache.ChatCache,
 	broker broker.Broker,
@@ -89,7 +89,7 @@ func (s *chatService) SendMessage(
 		}
 		if err := s.routeMessageFromFlow(&req.ConversationId, req.Message); err != nil {
 			logger.Error().Msg(err.Error())
-			if err := s.closeFlowConversation(req.GetConversationId()); err != nil {
+			if err := s.flowClient.CloseConversation(req.GetConversationId()); err != nil {
 				s.log.Error().Msg(err.Error())
 			}
 			return err
@@ -176,7 +176,7 @@ func (s *chatService) StartConversation(
 		if err != nil {
 			return err
 		}
-		err = s.initFlow(conversation.ID, profileID, req.DomainId, nil)
+		err = s.flowClient.Init(conversation.ID, profileID, req.DomainId, nil)
 		if err != nil {
 			return err
 		}

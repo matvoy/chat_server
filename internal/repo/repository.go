@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/matvoy/chat_server/models"
+
 	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 

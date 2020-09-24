@@ -3,10 +3,10 @@ package main
 import (
 	"os"
 
-	"github.com/gorilla/mux"
 	pb "github.com/matvoy/chat_server/api/proto/bot"
 	pbchat "github.com/matvoy/chat_server/api/proto/chat"
 
+	"github.com/gorilla/mux"
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/config/cmd"
