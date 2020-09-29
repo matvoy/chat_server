@@ -50,13 +50,13 @@ func NewBotService(
 	b.router.HandleFunc("/infobip/whatsapp/{profile_id}", b.InfobipWAWebhookHandler).
 		Methods("POST")
 
-	res, err := b.client.GetProfiles(context.Background(), &pbchat.GetProfilesRequest{})
+	res, err := b.client.GetProfiles(context.Background(), &pbchat.GetProfilesRequest{Size: 100})
 	if err != nil || res == nil {
 		b.log.Fatal().Msg(err.Error())
 		return nil
 	}
 
-	for _, profile := range res.Profiles {
+	for _, profile := range res.Items {
 		switch profile.Type {
 		case "telegram":
 			{

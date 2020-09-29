@@ -18,14 +18,8 @@ type Member struct {
 	ChannelID int64  `json:"channel_id"`
 	UserID    int64  `json:"user_id"`
 	Username  string `json:"username"`
+	Type      string `json:"type"`
 	Internal  bool   `json:"internal"`
 	Firstname string `json:"firstname,omitempty"`
 	Lastname  string `json:"lastname,omitempty"`
 }
-
-// type Message struct {
-// 	ChannelID int64 `json:"channel_id"`
-// 	// UserID    int64  `json:"user_id"`
-// 	Value string `json:"value"`
-// 	Type  string `json:"type"`
-// }

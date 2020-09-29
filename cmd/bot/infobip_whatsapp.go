@@ -131,7 +131,7 @@ func (b *botService) configureInfobipWA(profile *pbchat.Profile) *infobipWAClien
 		}
 		profile.Variables["scenario_key"] = scenarioKey
 		if _, err := b.client.UpdateProfile(context.Background(), &pbchat.UpdateProfileRequest{
-			Id:   profile.Id,
+			// Id:   profile.Id,
 			Item: profile,
 		}); err != nil {
 			b.log.Fatal().Msg(err.Error())

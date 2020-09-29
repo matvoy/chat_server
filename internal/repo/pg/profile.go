@@ -23,8 +23,27 @@ func (repo *PgRepository) GetProfileByID(ctx context.Context, id int64) (*models
 	return result, nil
 }
 
-func (repo *PgRepository) GetProfiles(ctx context.Context, profileType string, domainID int64) ([]*models.Profile, error) {
-	query := make([]qm.QueryMod, 0, 2)
+func (repo *PgRepository) GetProfiles(ctx context.Context, id int64, size, page int32, fields, sort []string, profileType string, domainID int64) ([]*models.Profile, error) {
+	query := make([]qm.QueryMod, 0, 8)
+	if size != 0 {
+		query = append(query, qm.Limit(int(size)))
+	} else {
+		query = append(query, qm.Limit(15))
+	}
+	if page != 0 {
+		query = append(query, qm.Offset(int((page-1)*size)))
+	}
+	if id != 0 {
+		query = append(query, models.ConversationWhere.ID.EQ(id))
+	}
+	if fields != nil && len(fields) > 0 {
+		query = append(query, qm.Select(fields...))
+	}
+	if sort != nil && len(sort) > 0 {
+		for _, item := range sort {
+			query = append(query, qm.OrderBy(item))
+		}
+	}
 	if profileType != "" {
 		query = append(query, models.ProfileWhere.Type.EQ(profileType))
 	}

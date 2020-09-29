@@ -3,7 +3,6 @@ bin
 .idea
 vendor
 .env
-models
 go.sum
 *.crt
 *.key

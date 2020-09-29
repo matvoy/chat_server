@@ -16,6 +16,29 @@ func (repo *PgRepository) CreateMessage(ctx context.Context, m *models.Message) 
 	return nil
 }
 
-func (repo *PgRepository) GetMessages(ctx context.Context, limit, offset int) ([]*models.Message, error) {
-	return models.Messages(qm.Limit(limit), qm.Offset(offset)).All(ctx, repo.db)
+func (repo *PgRepository) GetMessages(ctx context.Context, id int64, size, page int32, fields, sort []string, conversationID int64) ([]*models.Message, error) {
+	query := make([]qm.QueryMod, 0, 6)
+	if size != 0 {
+		query = append(query, qm.Limit(int(size)))
+	} else {
+		query = append(query, qm.Limit(15))
+	}
+	if page != 0 {
+		query = append(query, qm.Offset(int((page-1)*size)))
+	}
+	if id != 0 {
+		query = append(query, models.MessageWhere.ID.EQ(id))
+	}
+	if fields != nil && len(fields) > 0 {
+		query = append(query, qm.Select(fields...))
+	}
+	if sort != nil && len(sort) > 0 {
+		for _, item := range sort {
+			query = append(query, qm.OrderBy(item))
+		}
+	}
+	if conversationID != 0 {
+		query = append(query, models.MessageWhere.ConversationID.EQ(conversationID))
+	}
+	return models.Messages(query...).All(ctx, repo.db)
 }

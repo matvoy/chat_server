@@ -39,16 +39,16 @@ type Repository interface {
 
 type ProfileRepository interface {
 	GetProfileByID(ctx context.Context, id int64) (*models.Profile, error)
-	GetProfiles(ctx context.Context, profileType string, domainID int64) ([]*models.Profile, error)
+	GetProfiles(ctx context.Context, id int64, size, page int32, fields, sort []string, profileType string, domainID int64) ([]*models.Profile, error)
 	CreateProfile(ctx context.Context, p *models.Profile) error
 	DeleteProfile(ctx context.Context, id int64) error
 }
 
 type ConversationRepository interface {
 	CloseConversation(ctx context.Context, id int64) error
-	GetConversations(ctx context.Context, limit, offset int) ([]*models.Conversation, error)
+	GetConversations(ctx context.Context, id int64, size, page int32, fields, sort []string, domainID int64) ([]*Conversation, error)
 	CreateConversation(ctx context.Context, c *models.Conversation) error
-	GetConversationByID(ctx context.Context, id int64) (*models.Conversation, error)
+	GetConversationByID(ctx context.Context, id int64) (*Conversation, error)
 }
 
 type ChannelRepository interface {
@@ -81,5 +81,5 @@ type InviteRepository interface {
 
 type MessageRepository interface {
 	CreateMessage(ctx context.Context, m *models.Message) error
-	GetMessages(ctx context.Context, limit, offset int) ([]*models.Message, error)
+	GetMessages(ctx context.Context, id int64, size, page int32, fields, sort []string, conversationID int64) ([]*models.Message, error)
 }
