@@ -101,6 +101,11 @@ func (b *botService) StopWebhookServer() error {
 }
 
 func (b *botService) SendMessage(ctx context.Context, req *pb.SendMessageRequest, res *pb.SendMessageResponse) error {
+	b.log.Debug().
+		Int64("profile_id", req.GetProfileId()).
+		Str("type", req.GetMessage().GetType()).
+		Str("user_id", req.GetExternalUserId()).
+		Msg("send message")
 	switch b.botMap[req.ProfileId] {
 	case "telegram":
 		{
@@ -121,6 +126,12 @@ func (b *botService) SendMessage(ctx context.Context, req *pb.SendMessageRequest
 }
 
 func (b *botService) AddProfile(ctx context.Context, req *pb.AddProfileRequest, res *pb.AddProfileResponse) error {
+	b.log.Info().
+		Int64("id", req.GetProfile().GetId()).
+		Str("type", req.GetProfile().GetType()).
+		Str("name", req.GetProfile().GetName()).
+		Int64("domain_id", req.GetProfile().GetDomainId()).
+		Msg("add profile")
 	switch req.Profile.Type {
 	case "telegram":
 		{
@@ -141,6 +152,9 @@ func (b *botService) AddProfile(ctx context.Context, req *pb.AddProfileRequest, 
 }
 
 func (b *botService) DeleteProfile(ctx context.Context, req *pb.DeleteProfileRequest, res *pb.DeleteProfileResponse) error {
+	b.log.Info().
+		Int64("id", req.GetId()).
+		Msg("delete profile")
 	switch b.botMap[req.Id] {
 	case "telegram":
 		{

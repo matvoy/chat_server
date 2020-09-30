@@ -520,6 +520,9 @@ func (s *chatService) UpdateProfile(
 	ctx context.Context,
 	req *pb.UpdateProfileRequest,
 	res *pb.UpdateProfileResponse) error {
+	s.log.Trace().
+		Str("update", "profile").
+		Msgf("%v", req.GetItem())
 	profile, err := transformProfileToRepoModel(req.GetItem())
 	if err != nil {
 		s.log.Error().Msg(err.Error())

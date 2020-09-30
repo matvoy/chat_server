@@ -54,6 +54,7 @@ func (repo *PgRepository) GetProfiles(ctx context.Context, id int64, size, page 
 }
 
 func (repo *PgRepository) CreateProfile(ctx context.Context, p *models.Profile) error {
+	p.ID = 0
 	if err := p.Insert(ctx, repo.db, boil.Infer()); err != nil {
 		return err
 	}

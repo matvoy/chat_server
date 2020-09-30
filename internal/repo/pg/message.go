@@ -36,6 +36,8 @@ func (repo *PgRepository) GetMessages(ctx context.Context, id int64, size, page 
 		for _, item := range sort {
 			query = append(query, qm.OrderBy(item))
 		}
+	} else {
+		query = append(query, qm.OrderBy("created_at"))
 	}
 	if conversationID != 0 {
 		query = append(query, models.MessageWhere.ConversationID.EQ(conversationID))

@@ -95,7 +95,7 @@ message User {
 message HistoryMessage {
   int64 id = 1;
   int64 channel_id = 2;
-  int64 conversation_id = 3;
+  // int64 conversation_id = 3;
   string text = 4;
   string type = 5;
   int64 created_at = 6;

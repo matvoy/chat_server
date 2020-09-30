@@ -133,11 +133,11 @@ func transformConversationsFromRepoModel(conversations []*repo.Conversation) []*
 
 func transformMessageFromRepoModel(message *models.Message) *pb.HistoryMessage {
 	result := &pb.HistoryMessage{
-		Id:             message.ID,
-		ChannelId:      message.ChannelID.Int64,
-		ConversationId: message.ConversationID,
-		Type:           message.Type,
-		Text:           message.Text.String,
+		Id:        message.ID,
+		ChannelId: message.ChannelID.Int64,
+		// ConversationId: message.ConversationID,
+		Type: message.Type,
+		Text: message.Text.String,
 	}
 	if message.CreatedAt.Valid {
 		result.CreatedAt = message.CreatedAt.Time.UnixNano()
