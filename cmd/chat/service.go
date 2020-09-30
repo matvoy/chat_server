@@ -11,11 +11,11 @@ import (
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
 	pb "github.com/matvoy/chat_server/api/proto/chat"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
+	event "github.com/matvoy/chat_server/internal/event_router"
 	"github.com/matvoy/chat_server/internal/flow"
 	"github.com/matvoy/chat_server/internal/repo"
 	"github.com/matvoy/chat_server/models"
 
-	"github.com/micro/go-micro/v2/broker"
 	"github.com/rs/zerolog"
 	"github.com/volatiletech/null/v8"
 	"google.golang.org/protobuf/proto"
@@ -42,12 +42,12 @@ type Service interface {
 }
 
 type chatService struct {
-	repo       repo.Repository
-	log        *zerolog.Logger
-	flowClient flow.Client
-	botClient  pbbot.BotService
-	chatCache  cache.ChatCache
-	broker     broker.Broker
+	repo        repo.Repository
+	log         *zerolog.Logger
+	flowClient  flow.Client
+	botClient   pbbot.BotService
+	chatCache   cache.ChatCache
+	eventRouter event.Router
 }
 
 func NewChatService(
@@ -56,7 +56,7 @@ func NewChatService(
 	flowClient flow.Client,
 	botClient pbbot.BotService,
 	chatCache cache.ChatCache,
-	broker broker.Broker,
+	eventRouter event.Router,
 ) *chatService {
 	return &chatService{
 		repo,
@@ -64,7 +64,7 @@ func NewChatService(
 		flowClient,
 		botClient,
 		chatCache,
-		broker,
+		eventRouter,
 	}
 }
 
@@ -91,7 +91,7 @@ func (s *chatService) SendMessage(
 			logger.Error().Msg(err.Error())
 			return err
 		}
-		if err := s.routeMessageFromFlow(&req.ConversationId, req.Message); err != nil {
+		if err := s.eventRouter.RouteMessageFromFlow(&req.ConversationId, req.Message); err != nil {
 			logger.Error().Msg(err.Error())
 			if err := s.flowClient.CloseConversation(req.GetConversationId()); err != nil {
 				s.log.Error().Msg(err.Error())
@@ -127,7 +127,7 @@ func (s *chatService) SendMessage(
 		logger.Error().Msg(err.Error())
 		return err
 	}
-	if err := s.routeMessage(channel, message); err != nil {
+	if err := s.eventRouter.RouteMessage(channel, message); err != nil {
 		logger.Warn().Msg(err.Error())
 		return err
 	}
@@ -202,7 +202,7 @@ func (s *chatService) CloseConversation(
 		s.chatCache.DeleteCachedMessages(req.GetConversationId())
 		s.chatCache.DeleteConfirmation(req.GetConversationId())
 		s.chatCache.DeleteConversationNode(req.GetConversationId())
-		if err := s.routeCloseConversationFromFlow(&req.ConversationId, req.Cause); err != nil {
+		if err := s.eventRouter.RouteCloseConversationFromFlow(&req.ConversationId, req.Cause); err != nil {
 			s.log.Error().Msg(err.Error())
 			return err
 		}
@@ -213,7 +213,7 @@ func (s *chatService) CloseConversation(
 		s.log.Error().Msg(err.Error())
 		return err
 	}
-	if err := s.routeCloseConversation(closerChannel, req.Cause); err != nil {
+	if err := s.eventRouter.RouteCloseConversation(closerChannel, req.Cause); err != nil {
 		logger.Warn().Msg(err.Error())
 		return err
 	}
@@ -256,7 +256,7 @@ func (s *chatService) JoinConversation(
 		s.log.Error().Msg(err.Error())
 		return err
 	}
-	if err := s.routeJoinConversation(&channel.ID, &invite.ConversationID); err != nil {
+	if err := s.eventRouter.RouteJoinConversation(&channel.ID, &invite.ConversationID); err != nil {
 		s.log.Warn().Msg(err.Error())
 	}
 	return nil
@@ -275,7 +275,7 @@ func (s *chatService) LeaveConversation(
 		s.log.Error().Msg(err.Error())
 		return err
 	}
-	if err := s.routeLeaveConversation(&req.ChannelId, &req.ConversationId); err != nil {
+	if err := s.eventRouter.RouteLeaveConversation(&req.ChannelId, &req.ConversationId); err != nil {
 		s.log.Warn().Msg(err.Error())
 		return err
 	}
@@ -307,7 +307,7 @@ func (s *chatService) InviteToConversation(
 		s.log.Error().Msg(err.Error())
 		return err
 	}
-	if err := s.routeInvite(&req.ConversationId, &req.User.UserId); err != nil {
+	if err := s.eventRouter.RouteInvite(&req.ConversationId, &req.User.UserId); err != nil {
 		s.log.Warn().Msg(err.Error())
 		return err
 	}
@@ -329,7 +329,7 @@ func (s *chatService) DeclineInvitation(
 		s.log.Error().Msg(err.Error())
 		return err
 	}
-	if err := s.routeDeclineInvite(&req.UserId, &req.ConversationId); err != nil {
+	if err := s.eventRouter.RouteDeclineInvite(&req.UserId, &req.ConversationId); err != nil {
 		s.log.Warn().Msg(err.Error())
 		return err
 	}

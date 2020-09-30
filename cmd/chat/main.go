@@ -9,6 +9,7 @@ import (
 	pb "github.com/matvoy/chat_server/api/proto/chat"
 	pbmanager "github.com/matvoy/chat_server/api/proto/flow_manager"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
+	event "github.com/matvoy/chat_server/internal/event_router"
 	"github.com/matvoy/chat_server/internal/flow"
 	"github.com/matvoy/chat_server/internal/repo/pg"
 
@@ -160,7 +161,8 @@ func main() {
 	repo := pg.NewPgRepository(db, logger)
 	cache := cache.NewChatCache(service.Options().Store)
 	flow := flow.NewClient(logger, flowClient, cache)
-	serv := NewChatService(repo, logger, flow, botClient, cache, service.Options().Broker)
+	eventRouter := event.NewRouter(botClient, flow, service.Options().Broker, repo, logger)
+	serv := NewChatService(repo, logger, flow, botClient, cache, eventRouter)
 
 	if err := pb.RegisterChatServiceHandler(service.Server(), serv); err != nil {
 		logger.Fatal().
