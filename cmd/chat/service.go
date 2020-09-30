@@ -520,7 +520,17 @@ func (s *chatService) UpdateProfile(
 	ctx context.Context,
 	req *pb.UpdateProfileRequest,
 	res *pb.UpdateProfileResponse) error {
-	return nil
+	profile, err := transformProfileToRepoModel(req.GetItem())
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	if err := s.repo.UpdateProfile(context.Background(), profile); err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	res.Item, err = transformProfileFromRepoModel(profile)
+	return err
 }
 
 func (s *chatService) GetProfiles(ctx context.Context, req *pb.GetProfilesRequest, res *pb.GetProfilesResponse) error {

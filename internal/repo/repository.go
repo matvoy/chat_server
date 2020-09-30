@@ -41,6 +41,7 @@ type ProfileRepository interface {
 	GetProfileByID(ctx context.Context, id int64) (*models.Profile, error)
 	GetProfiles(ctx context.Context, id int64, size, page int32, fields, sort []string, profileType string, domainID int64) ([]*models.Profile, error)
 	CreateProfile(ctx context.Context, p *models.Profile) error
+	UpdateProfile(ctx context.Context, p *models.Profile) error
 	DeleteProfile(ctx context.Context, id int64) error
 }
 

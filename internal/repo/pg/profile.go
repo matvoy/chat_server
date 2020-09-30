@@ -60,6 +60,13 @@ func (repo *PgRepository) CreateProfile(ctx context.Context, p *models.Profile) 
 	return nil
 }
 
+func (repo *PgRepository) UpdateProfile(ctx context.Context, p *models.Profile) error {
+	if _, err := p.Update(ctx, repo.db, boil.Infer()); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (repo *PgRepository) DeleteProfile(ctx context.Context, id int64) error {
 	_, err := models.Profiles(models.ProfileWhere.ID.EQ(id)).DeleteAll(ctx, repo.db)
 	return err
