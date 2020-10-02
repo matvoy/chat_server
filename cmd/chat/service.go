@@ -9,6 +9,7 @@ import (
 
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
 	pb "github.com/matvoy/chat_server/api/proto/chat"
+	"github.com/matvoy/chat_server/internal/auth"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 	event "github.com/matvoy/chat_server/internal/event_router"
 	"github.com/matvoy/chat_server/internal/flow"
@@ -38,12 +39,15 @@ type Service interface {
 	DeclineInvitation(ctx context.Context, req *pb.DeclineInvitationRequest, res *pb.DeclineInvitationResponse) error
 	WaitMessage(ctx context.Context, req *pb.WaitMessageRequest, res *pb.WaitMessageResponse) error
 	CheckSession(ctx context.Context, req *pb.CheckSessionRequest, res *pb.CheckSessionResponse) error
+	UpdateProfileX(ctx context.Context, req *pb.UpdateProfileRequest, res *pb.UpdateProfileResponse) error
+	GetProfilesX(ctx context.Context, req *pb.GetProfilesRequest, res *pb.GetProfilesResponse) error
 }
 
 type chatService struct {
 	repo        repo.Repository
 	log         *zerolog.Logger
 	flowClient  flow.Client
+	authClient  auth.Client
 	botClient   pbbot.BotService
 	chatCache   cache.ChatCache
 	eventRouter event.Router
@@ -53,6 +57,7 @@ func NewChatService(
 	repo repo.Repository,
 	log *zerolog.Logger,
 	flowClient flow.Client,
+	authClient auth.Client,
 	botClient pbbot.BotService,
 	chatCache cache.ChatCache,
 	eventRouter event.Router,
@@ -61,6 +66,7 @@ func NewChatService(
 		repo,
 		log,
 		flowClient,
+		authClient,
 		botClient,
 		chatCache,
 		eventRouter,
@@ -420,6 +426,54 @@ func (s *chatService) CheckSession(ctx context.Context, req *pb.CheckSessionRequ
 	return nil
 }
 
+func (s *chatService) UpdateProfileX(
+	ctx context.Context,
+	req *pb.UpdateProfileRequest,
+	res *pb.UpdateProfileResponse) error {
+	s.log.Trace().
+		Str("update", "profile").
+		Msgf("%v", req.GetItem())
+	profile, err := transformProfileToRepoModel(req.GetItem())
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	if err := s.repo.UpdateProfile(context.Background(), profile); err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	res.Item, err = transformProfileFromRepoModel(profile)
+	return err
+}
+
+func (s *chatService) GetProfilesX(ctx context.Context, req *pb.GetProfilesRequest, res *pb.GetProfilesResponse) error {
+	s.log.Trace().
+		Str("type", req.GetType()).
+		Int64("domain_id", req.GetDomainId()).
+		Msg("get profiles")
+	profiles, err := s.repo.GetProfiles(
+		context.Background(),
+		req.GetId(),
+		req.GetSize(),
+		req.GetPage(),
+		req.GetFields(),
+		req.GetSort(),
+		req.GetType(),
+		req.GetDomainId(),
+	)
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	result, err := transformProfilesFromRepoModel(profiles)
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	res.Items = result
+	return nil
+}
+
 func (s *chatService) GetConversationByID(ctx context.Context, req *pb.GetConversationByIDRequest, res *pb.GetConversationByIDResponse) error {
 	s.log.Trace().
 		Int64("conversation_id", req.GetId()).
@@ -568,6 +622,10 @@ func (s *chatService) GetProfileByID(ctx context.Context, req *pb.GetProfileByID
 	s.log.Trace().
 		Int64("profile_id", req.GetId()).
 		Msg("get profile by id")
+	if err := s.authClient.MicroAuthentication(&ctx); err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
 	profile, err := s.repo.GetProfileByID(context.Background(), req.GetId())
 	if err != nil {
 		s.log.Error().Msg(err.Error())

@@ -13,6 +13,7 @@ const (
 	writeCachedMessageStr = "cached_messages:%v:%v" // %v - conversation id, %v - message id
 	readCachedMessageStr  = "cached_messages:%v"    // %v - conversation id
 	conversationNodeStr   = "conversation:%v:node"  // %v - conversation id
+	userInfoStr           = "userinfo:%s"           // %s - token
 )
 
 type ChatCache interface {
@@ -32,6 +33,9 @@ type ChatCache interface {
 	WriteCachedMessage(conversationID int64, messageID int64, messageBytes []byte) error
 	DeleteCachedMessages(conversationID int64) error
 	DeleteCachedMessage(key string) error
+
+	SetUserInfo(token string, infoBytes []byte, expires int64) error
+	GetUserInfo(token string) (bool, error)
 }
 
 type chatCache struct {
@@ -41,6 +45,28 @@ type chatCache struct {
 func NewChatCache(redisStore store.Store) ChatCache {
 	return &chatCache{
 		redisStore,
+	}
+}
+
+func (c *chatCache) SetUserInfo(token string, infoBytes []byte, expires int64) error {
+	key := fmt.Sprintf(userInfoStr, token)
+	return c.redisStore.Write(&store.Record{
+		Key:    key,
+		Value:  infoBytes,
+		Expiry: time.Millisecond * time.Duration(expires),
+	})
+}
+
+func (c *chatCache) GetUserInfo(token string) (bool, error) {
+	key := fmt.Sprintf(userInfoStr, token)
+	info, err := c.redisStore.Read(key)
+	if err != nil && err.Error() != "not found" {
+		return false, err
+	}
+	if len(info) > 0 {
+		return true, nil
+	} else {
+		return false, nil
 	}
 }
 
