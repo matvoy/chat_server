@@ -478,6 +478,10 @@ func (s *chatService) GetConversationByID(ctx context.Context, req *pb.GetConver
 	s.log.Trace().
 		Int64("conversation_id", req.GetId()).
 		Msg("get conversation by id")
+	if err := s.authClient.MicroAuthentication(&ctx); err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
 	conversation, err := s.repo.GetConversationByID(context.Background(), req.GetId())
 	if err != nil {
 		s.log.Error().Msg(err.Error())
@@ -491,6 +495,10 @@ func (s *chatService) GetConversations(ctx context.Context, req *pb.GetConversat
 	s.log.Trace().
 		Int64("conversation_id", req.GetId()).
 		Msg("get conversations")
+	if err := s.authClient.MicroAuthentication(&ctx); err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
 	conversations, err := s.repo.GetConversations(
 		context.Background(),
 		req.GetId(),
@@ -519,6 +527,10 @@ func (s *chatService) CreateProfile(
 		Int64("schema_id", req.GetItem().GetSchemaId()).
 		Str("variables", fmt.Sprintf("%v", req.GetItem().GetVariables())).
 		Msg("create profile")
+	if err := s.authClient.MicroAuthentication(&ctx); err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
 	result, err := transformProfileToRepoModel(req.GetItem())
 	if err != nil {
 		s.log.Error().Msg(err.Error())
@@ -548,6 +560,10 @@ func (s *chatService) DeleteProfile(
 	s.log.Trace().
 		Int64("profile_id", req.GetId()).
 		Msg("delete profile")
+	if err := s.authClient.MicroAuthentication(&ctx); err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
 	profile, err := s.repo.GetProfileByID(context.Background(), req.GetId())
 	if err != nil {
 		s.log.Error().Msg(err.Error())
@@ -577,6 +593,10 @@ func (s *chatService) UpdateProfile(
 	s.log.Trace().
 		Str("update", "profile").
 		Msgf("%v", req.GetItem())
+	if err := s.authClient.MicroAuthentication(&ctx); err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
 	profile, err := transformProfileToRepoModel(req.GetItem())
 	if err != nil {
 		s.log.Error().Msg(err.Error())
@@ -595,6 +615,10 @@ func (s *chatService) GetProfiles(ctx context.Context, req *pb.GetProfilesReques
 		Str("type", req.GetType()).
 		Int64("domain_id", req.GetDomainId()).
 		Msg("get profiles")
+	if err := s.authClient.MicroAuthentication(&ctx); err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
 	profiles, err := s.repo.GetProfiles(
 		context.Background(),
 		req.GetId(),
@@ -644,6 +668,10 @@ func (s *chatService) GetHistoryMessages(ctx context.Context, req *pb.GetHistory
 	s.log.Trace().
 		Int64("conversation_id", req.GetConversationId()).
 		Msg("get history")
+	if err := s.authClient.MicroAuthentication(&ctx); err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
 	messages, err := s.repo.GetMessages(
 		context.Background(),
 		req.GetId(),

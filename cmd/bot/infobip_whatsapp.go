@@ -130,7 +130,7 @@ func (b *botService) configureInfobipWA(profile *pbchat.Profile) *infobipWAClien
 			return nil
 		}
 		profile.Variables["scenario_key"] = scenarioKey
-		if _, err := b.client.UpdateProfile(context.Background(), &pbchat.UpdateProfileRequest{
+		if _, err := b.client.UpdateProfileX(context.Background(), &pbchat.UpdateProfileRequest{
 			// Id:   profile.Id,
 			Item: profile,
 		}); err != nil {
