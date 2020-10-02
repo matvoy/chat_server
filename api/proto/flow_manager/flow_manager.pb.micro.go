@@ -44,6 +44,7 @@ func NewFlowChatServerServiceEndpoints() []*api.Endpoint {
 type FlowChatServerService interface {
 	Start(ctx context.Context, in *StartRequest, opts ...client.CallOption) (*StartResponse, error)
 	Break(ctx context.Context, in *BreakRequest, opts ...client.CallOption) (*BreakResponse, error)
+	LeaveConversation(ctx context.Context, in *LeaveConversationRequest, opts ...client.CallOption) (*LeaveConversationResponse, error)
 	ConfirmationMessage(ctx context.Context, in *ConfirmationMessageRequest, opts ...client.CallOption) (*ConfirmationMessageResponse, error)
 }
 
@@ -79,6 +80,16 @@ func (c *flowChatServerService) Break(ctx context.Context, in *BreakRequest, opt
 	return out, nil
 }
 
+func (c *flowChatServerService) LeaveConversation(ctx context.Context, in *LeaveConversationRequest, opts ...client.CallOption) (*LeaveConversationResponse, error) {
+	req := c.c.NewRequest(c.name, "FlowChatServerService.LeaveConversation", in)
+	out := new(LeaveConversationResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *flowChatServerService) ConfirmationMessage(ctx context.Context, in *ConfirmationMessageRequest, opts ...client.CallOption) (*ConfirmationMessageResponse, error) {
 	req := c.c.NewRequest(c.name, "FlowChatServerService.ConfirmationMessage", in)
 	out := new(ConfirmationMessageResponse)
@@ -94,6 +105,7 @@ func (c *flowChatServerService) ConfirmationMessage(ctx context.Context, in *Con
 type FlowChatServerServiceHandler interface {
 	Start(context.Context, *StartRequest, *StartResponse) error
 	Break(context.Context, *BreakRequest, *BreakResponse) error
+	LeaveConversation(context.Context, *LeaveConversationRequest, *LeaveConversationResponse) error
 	ConfirmationMessage(context.Context, *ConfirmationMessageRequest, *ConfirmationMessageResponse) error
 }
 
@@ -101,6 +113,7 @@ func RegisterFlowChatServerServiceHandler(s server.Server, hdlr FlowChatServerSe
 	type flowChatServerService interface {
 		Start(ctx context.Context, in *StartRequest, out *StartResponse) error
 		Break(ctx context.Context, in *BreakRequest, out *BreakResponse) error
+		LeaveConversation(ctx context.Context, in *LeaveConversationRequest, out *LeaveConversationResponse) error
 		ConfirmationMessage(ctx context.Context, in *ConfirmationMessageRequest, out *ConfirmationMessageResponse) error
 	}
 	type FlowChatServerService struct {
@@ -120,6 +133,10 @@ func (h *flowChatServerServiceHandler) Start(ctx context.Context, in *StartReque
 
 func (h *flowChatServerServiceHandler) Break(ctx context.Context, in *BreakRequest, out *BreakResponse) error {
 	return h.FlowChatServerServiceHandler.Break(ctx, in, out)
+}
+
+func (h *flowChatServerServiceHandler) LeaveConversation(ctx context.Context, in *LeaveConversationRequest, out *LeaveConversationResponse) error {
+	return h.FlowChatServerServiceHandler.LeaveConversation(ctx, in, out)
 }
 
 func (h *flowChatServerServiceHandler) ConfirmationMessage(ctx context.Context, in *ConfirmationMessageRequest, out *ConfirmationMessageResponse) error {

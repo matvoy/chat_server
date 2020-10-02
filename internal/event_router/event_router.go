@@ -259,6 +259,9 @@ func (e *eventRouter) RouteJoinConversation(channelID, conversationID *int64) er
 }
 
 func (e *eventRouter) RouteLeaveConversation(channelID, conversationID *int64) error {
+	if err := e.flowClient.LeaveConversation(*conversationID); err != nil {
+		return err
+	}
 	otherChannels, err := e.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, channelID)
 	if err != nil {
 		return err

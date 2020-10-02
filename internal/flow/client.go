@@ -18,6 +18,7 @@ import (
 type Client interface {
 	SendMessage(conversationID int64, message *pb.Message) error
 	Init(conversationID, profileID, domainID int64, message *pb.Message) error
+	LeaveConversation(conversationID int64) error
 	CloseConversation(conversationID int64) error
 }
 
@@ -170,6 +171,29 @@ func (s *flowClient) CloseConversation(conversationID int64) error {
 	s.chatCache.DeleteCachedMessages(conversationID)
 	s.chatCache.DeleteConfirmation(conversationID)
 	s.chatCache.DeleteConversationNode(conversationID)
+	return nil
+}
+
+func (s *flowClient) LeaveConversation(conversationID int64) error {
+	nodeID, err := s.chatCache.ReadConversationNode(conversationID)
+	if err != nil {
+		return err
+	}
+	if res, err := s.client.LeaveConversation(
+		context.Background(),
+		&pbmanager.LeaveConversationRequest{
+			ConversationId: conversationID,
+		},
+		client.WithSelectOption(
+			selector.WithFilter(
+				FilterNodes(string(nodeID)),
+			),
+		),
+	); err != nil {
+		return err
+	} else if res != nil && res.Error != nil {
+		return errors.New(res.Error.Message)
+	}
 	return nil
 }
 

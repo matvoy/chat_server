@@ -4,8 +4,6 @@ option go_package = "github.com/webitel/storage/grpc_api/storage";
 
 package storage;
 
-import "google/api/annotations.proto";
-
 service FileService {
     rpc UploadFile (stream UploadFileRequest) returns (UploadFileResponse) {}
 }
