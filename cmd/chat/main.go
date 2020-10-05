@@ -166,7 +166,7 @@ func main() {
 	cache := cache.NewChatCache(service.Options().Store)
 	flow := flow.NewClient(logger, flowClient, cache)
 	auth := auth.NewClient(logger, cache, authClient)
-	eventRouter := event.NewRouter(botClient, flow, service.Options().Broker, repo, logger)
+	eventRouter := event.NewRouter(botClient /*flow,*/, service.Options().Broker, repo, logger)
 	serv := NewChatService(repo, logger, flow, auth, botClient, cache, eventRouter)
 
 	if err := pb.RegisterChatServiceHandler(service.Server(), serv); err != nil {

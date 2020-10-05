@@ -19,7 +19,6 @@ import (
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/rs/zerolog"
 	"github.com/volatiletech/null/v8"
-	"google.golang.org/protobuf/proto"
 )
 
 type Service interface {
@@ -134,7 +133,19 @@ func (s *chatService) SendMessage(
 		s.log.Error().Msg(err.Error())
 		return err
 	}
-	if err := s.eventRouter.RouteMessage(channel, message); err != nil {
+	reqMessage := &pb.Message{
+		Id:   message.ID,
+		Type: message.Type,
+		Value: &pb.Message_TextMessage_{
+			TextMessage: &pb.Message_TextMessage{
+				Text: message.Text.String,
+			},
+		},
+	}
+	if !channel.Internal {
+		return s.flowClient.SendMessage(channel.ConversationID, reqMessage)
+	}
+	if err := s.eventRouter.RouteMessage(channel, reqMessage); err != nil {
 		s.log.Warn().Msg(err.Error())
 		return err
 	}
@@ -224,6 +235,9 @@ func (s *chatService) CloseConversation(
 	if err := s.eventRouter.RouteCloseConversation(closerChannel, req.GetCause()); err != nil {
 		s.log.Warn().Msg(err.Error())
 		return err
+	}
+	if !closerChannel.Internal {
+		return s.flowClient.CloseConversation(closerChannel.ConversationID)
 	}
 	return s.closeConversation(ctx, &conversationID)
 }
@@ -384,30 +398,30 @@ func (s *chatService) WaitMessage(ctx context.Context, req *pb.WaitMessageReques
 		Int64("conversation_id", req.GetConversationId()).
 		Str("confirmation_id", req.GetConfirmationId()).
 		Msg("accept confirmation")
-	cachedMessages, err := s.chatCache.ReadCachedMessages(req.GetConversationId())
-	if err != nil {
-		s.log.Error().Msg(err.Error())
-		return err
-	}
-	if cachedMessages != nil {
-		messages := make([]*pb.Message, 0, len(cachedMessages))
-		var tmp *pb.Message
-		var err error
-		s.log.Info().Msg("send cached messages")
-		for _, m := range cachedMessages {
-			err = proto.Unmarshal(m.Value, tmp)
-			if err != nil {
-				s.log.Error().Msg(err.Error())
-				return err
-			}
-			messages = append(messages, tmp)
-			s.chatCache.DeleteCachedMessage(m.Key)
-		}
-		res.Messages = messages
-		s.chatCache.DeleteConfirmation(req.GetConversationId())
-		res.TimeoutSec = int64(timeout)
-		return nil
-	}
+	// cachedMessages, err := s.chatCache.ReadCachedMessages(req.GetConversationId())
+	// if err != nil {
+	// 	s.log.Error().Msg(err.Error())
+	// 	return err
+	// }
+	// if cachedMessages != nil {
+	// 	messages := make([]*pb.Message, 0, len(cachedMessages))
+	// 	var tmp *pb.Message
+	// 	var err error
+	// 	s.log.Info().Msg("send cached messages")
+	// 	for _, m := range cachedMessages {
+	// 		err = proto.Unmarshal(m.Value, tmp)
+	// 		if err != nil {
+	// 			s.log.Error().Msg(err.Error())
+	// 			return err
+	// 		}
+	// 		messages = append(messages, tmp)
+	// 		s.chatCache.DeleteCachedMessage(m.Key)
+	// 	}
+	// 	res.Messages = messages
+	// 	s.chatCache.DeleteConfirmation(req.GetConversationId())
+	// 	res.TimeoutSec = int64(timeout)
+	// 	return nil
+	// }
 	if err := s.chatCache.WriteConfirmation(req.GetConversationId(), []byte(req.GetConfirmationId())); err != nil {
 		s.log.Error().Msg(err.Error())
 		return err

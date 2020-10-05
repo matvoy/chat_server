@@ -12,7 +12,6 @@ import (
 	"github.com/micro/go-micro/v2/client/selector"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/rs/zerolog"
-	"google.golang.org/protobuf/proto"
 )
 
 type BreakBridgeCause int32
@@ -61,69 +60,71 @@ func (s *flowClient) SendMessage(conversationID int64, message *pb.Message) erro
 	if err != nil {
 		return err
 	}
-	if confirmationID != nil {
-		s.log.Debug().
-			Int64("conversation_id", conversationID).
-			Str("confirmation_id", string(confirmationID)).
-			Msg("send confirmed messages")
-		messages := []*pbmanager.Message{
-			{
-				Id:   message.GetId(),
-				Type: message.GetType(),
-				Value: &pbmanager.Message_TextMessage_{
-					TextMessage: &pbmanager.Message_TextMessage{
-						Text: message.GetTextMessage().GetText(),
-					},
-				},
-			},
-		}
-		message := &pbmanager.ConfirmationMessageRequest{
-			ConversationId: conversationID,
-			ConfirmationId: string(confirmationID),
-			Messages:       messages,
-		}
-		nodeID, err := s.chatCache.ReadConversationNode(conversationID)
-		if err != nil {
-			return err
-		}
-		if res, err := s.client.ConfirmationMessage(
-			context.Background(),
-			message,
-			client.WithSelectOption(
-				selector.WithFilter(
-					FilterNodes(string(nodeID)),
-				),
-			),
-		); err != nil || res.Error != nil {
-			if res != nil {
-				return errors.New(res.Error.Message)
-			}
-			return err
-		}
-		s.chatCache.DeleteConfirmation(conversationID)
+	if confirmationID == nil {
 		return nil
 	}
 	s.log.Debug().
 		Int64("conversation_id", conversationID).
-		Msg("cache messages for confirmation")
-	cacheMessage := &pb.Message{
-		Id:   message.GetId(),
-		Type: message.GetType(),
-		Value: &pb.Message_TextMessage_{
-			TextMessage: &pb.Message_TextMessage{
-				Text: message.GetTextMessage().GetText(),
+		Str("confirmation_id", string(confirmationID)).
+		Msg("send confirmed messages")
+	messages := []*pbmanager.Message{
+		{
+			Id:   message.GetId(),
+			Type: message.GetType(),
+			Value: &pbmanager.Message_TextMessage_{
+				TextMessage: &pbmanager.Message_TextMessage{
+					Text: message.GetTextMessage().GetText(),
+				},
 			},
 		},
 	}
-	messageBytes, err := proto.Marshal(cacheMessage)
+	messageReq := &pbmanager.ConfirmationMessageRequest{
+		ConversationId: conversationID,
+		ConfirmationId: string(confirmationID),
+		Messages:       messages,
+	}
+	nodeID, err := s.chatCache.ReadConversationNode(conversationID)
 	if err != nil {
-		s.log.Error().Msg(err.Error())
-		return nil
+		return err
 	}
-	if err := s.chatCache.WriteCachedMessage(conversationID, message.GetId(), messageBytes); err != nil {
-		s.log.Error().Msg(err.Error())
+	if res, err := s.client.ConfirmationMessage(
+		context.Background(),
+		messageReq,
+		client.WithSelectOption(
+			selector.WithFilter(
+				FilterNodes(string(nodeID)),
+			),
+		),
+	); err != nil || res.Error != nil {
+		if res != nil {
+			return errors.New(res.Error.Message)
+		}
+		return err
 	}
+	s.chatCache.DeleteConfirmation(conversationID)
 	return nil
+
+	// s.log.Debug().
+	// 	Int64("conversation_id", conversationID).
+	// 	Msg("cache messages for confirmation")
+	// cacheMessage := &pb.Message{
+	// 	Id:   message.GetId(),
+	// 	Type: message.GetType(),
+	// 	Value: &pb.Message_TextMessage_{
+	// 		TextMessage: &pb.Message_TextMessage{
+	// 			Text: message.GetTextMessage().GetText(),
+	// 		},
+	// 	},
+	// }
+	// messageBytes, err := proto.Marshal(cacheMessage)
+	// if err != nil {
+	// 	s.log.Error().Msg(err.Error())
+	// 	return nil
+	// }
+	// if err := s.chatCache.WriteCachedMessage(conversationID, message.GetId(), messageBytes); err != nil {
+	// 	s.log.Error().Msg(err.Error())
+	// }
+	// return nil
 }
 
 func (s *flowClient) Init(conversationID, profileID, domainID int64, message *pb.Message) error {

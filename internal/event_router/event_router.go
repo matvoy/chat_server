@@ -8,7 +8,6 @@ import (
 
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
 	pb "github.com/matvoy/chat_server/api/proto/chat"
-	"github.com/matvoy/chat_server/internal/flow"
 	"github.com/matvoy/chat_server/internal/repo"
 	"github.com/matvoy/chat_server/models"
 	"github.com/matvoy/chat_server/pkg/events"
@@ -18,11 +17,11 @@ import (
 )
 
 type eventRouter struct {
-	botClient  pbbot.BotService
-	flowClient flow.Client
-	broker     broker.Broker
-	repo       repo.Repository
-	log        *zerolog.Logger
+	botClient pbbot.BotService
+	// flowClient flow.Client
+	broker broker.Broker
+	repo   repo.Repository
+	log    *zerolog.Logger
 }
 
 type Router interface {
@@ -32,20 +31,20 @@ type Router interface {
 	RouteInvite(conversationID, userID *int64) error
 	RouteJoinConversation(channelID, conversationID *int64) error
 	RouteLeaveConversation(channelID, conversationID *int64) error
-	RouteMessage(channel *models.Channel, message *models.Message) error
+	RouteMessage(channel *models.Channel, message *pb.Message) error
 	RouteMessageFromFlow(conversationID *int64, message *pb.Message) error
 }
 
 func NewRouter(
 	botClient pbbot.BotService,
-	flowClient flow.Client,
+	// flowClient flow.Client,
 	broker broker.Broker,
 	repo repo.Repository,
 	log *zerolog.Logger,
 ) Router {
 	return &eventRouter{
 		botClient,
-		flowClient,
+		// flowClient,
 		broker,
 		repo,
 		log,
@@ -58,9 +57,9 @@ func (e *eventRouter) RouteCloseConversation(channel *models.Channel, cause stri
 		return err
 	}
 	if otherChannels == nil {
-		if !channel.Internal {
-			return e.flowClient.CloseConversation(channel.ConversationID)
-		}
+		// if !channel.Internal {
+		// 	return e.flowClient.CloseConversation(channel.ConversationID)
+		// }
 		return nil
 	}
 	body, _ := json.Marshal(events.CloseConversationEvent{
@@ -309,24 +308,15 @@ func (e *eventRouter) RouteLeaveConversation(channelID, conversationID *int64) e
 	return nil
 }
 
-func (e *eventRouter) RouteMessage(channel *models.Channel, message *models.Message) error {
+func (e *eventRouter) RouteMessage(channel *models.Channel, message *pb.Message) error {
 	otherChannels, err := e.repo.GetChannels(context.Background(), nil, &channel.ConversationID, nil, nil, &channel.ID)
 	if err != nil {
 		return err
 	}
-	reqMessage := &pb.Message{
-		Id:   message.ID,
-		Type: message.Type,
-		Value: &pb.Message_TextMessage_{
-			TextMessage: &pb.Message_TextMessage{
-				Text: message.Text.String,
-			},
-		},
-	}
 	if otherChannels == nil {
-		if !channel.Internal {
-			return e.flowClient.SendMessage(channel.ConversationID, reqMessage)
-		}
+		// if !channel.Internal {
+		// 	return e.flowClient.SendMessage(channel.ConversationID, reqMessage)
+		// }
 		return nil
 	}
 	body, _ := json.Marshal(events.MessageEvent{
@@ -336,9 +326,9 @@ func (e *eventRouter) RouteMessage(channel *models.Channel, message *models.Mess
 		},
 		FromChannelID: channel.ID,
 		// ToChannelID:    item.ID,
-		MessageID: message.ID,
+		MessageID: message.Id,
 		Type:      message.Type,
-		Value:     []byte(message.Text.String),
+		Value:     []byte(message.GetTextMessage().GetText()),
 	})
 	for _, item := range otherChannels {
 		var err error
@@ -349,7 +339,7 @@ func (e *eventRouter) RouteMessage(channel *models.Channel, message *models.Mess
 			}
 		case "telegram", "infobip-whatsapp":
 			{
-				err = e.sendMessageToBotUser(channel, item, reqMessage)
+				err = e.sendMessageToBotUser(channel, item, message)
 			}
 		default:
 		}
