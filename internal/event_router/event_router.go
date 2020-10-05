@@ -226,8 +226,10 @@ func (e *eventRouter) sendInviteToWebitelUser(domainID, conversationID, userID *
 		"user_id":         *userID,
 	})
 	msg := &broker.Message{
-		Header: map[string]string{},
-		Body:   body,
+		Header: map[string]string{
+			"content_type": "text/json",
+		},
+		Body: body,
 	}
 	if err := e.broker.Publish(fmt.Sprintf("event.%s.%v.%v", events.UserInvitationEventType, *domainID, *userID), msg); err != nil {
 		return err

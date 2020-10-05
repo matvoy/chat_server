@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	"time"
 
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
 	pb "github.com/matvoy/chat_server/api/proto/chat"
@@ -324,6 +325,22 @@ func (s *chatService) InviteToConversation(
 	if err := s.eventRouter.RouteInvite(&invite.ConversationID, &invite.UserID); err != nil {
 		s.log.Warn().Msg(err.Error())
 		return err
+	}
+	if req.GetTimeoutSec() != 0 {
+		go func() {
+			time.Sleep(time.Second * time.Duration(req.GetTimeoutSec()))
+			if val, err := s.repo.GetInviteByID(context.Background(), invite.ID); err != nil {
+				s.log.Error().Msg(err.Error())
+			} else if val != nil {
+				if err := s.flowClient.BreakBridge(req.GetConversationId(), flow.TimeoutCause); err != nil {
+					s.log.Error().Msg(err.Error())
+				}
+				if err := s.repo.DeleteInvite(context.Background(), val.ID); err != nil {
+					s.log.Error().Msg(err.Error())
+				}
+			}
+
+		}()
 	}
 	res.InviteId = invite.ID
 	return nil

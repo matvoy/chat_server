@@ -14,8 +14,10 @@ import (
 
 func (e *eventRouter) sendEventToWebitelUser(from *models.Channel, to *models.Channel, eventType string, body []byte) error {
 	msg := &broker.Message{
-		Header: map[string]string{},
-		Body:   body,
+		Header: map[string]string{
+			"content_type": "text/json",
+		},
+		Body: body,
 	}
 	if err := e.broker.Publish(fmt.Sprintf("event.%s.%v.%v", eventType, to.DomainID, to.UserID), msg); err != nil {
 		return err
