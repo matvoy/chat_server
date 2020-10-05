@@ -20,7 +20,7 @@ type telegramBody struct {
 	Message struct {
 		MessageID int64       `json:"message_id"`
 		Text      string      `json:"text"`
-		Photo     []PhotoSize `json:"photo"`
+		Photo     []PhotoSize `json:"photo"` // image/jpeg
 		From      struct {
 			Username  string `json:"username"`
 			ID        int64  `json:"id"`

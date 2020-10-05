@@ -15,10 +15,26 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+type BreakBridgeCause int32
+
+const (
+	DeclineInvitationCause BreakBridgeCause = iota
+	LeaveConversationCause
+	TimeoutCause
+)
+
+func (c BreakBridgeCause) String() string {
+	return [...]string{
+		"DECLINE_INVITATION",
+		"LEAVE_CONVERSATION",
+		"TIMEOUT",
+	}[c]
+}
+
 type Client interface {
 	SendMessage(conversationID int64, message *pb.Message) error
 	Init(conversationID, profileID, domainID int64, message *pb.Message) error
-	LeaveConversation(conversationID int64) error
+	BreakBridge(conversationID int64, cause BreakBridgeCause) error
 	CloseConversation(conversationID int64) error
 }
 
@@ -174,15 +190,16 @@ func (s *flowClient) CloseConversation(conversationID int64) error {
 	return nil
 }
 
-func (s *flowClient) LeaveConversation(conversationID int64) error {
+func (s *flowClient) BreakBridge(conversationID int64, cause BreakBridgeCause) error {
 	nodeID, err := s.chatCache.ReadConversationNode(conversationID)
 	if err != nil {
 		return err
 	}
-	if res, err := s.client.LeaveConversation(
+	if res, err := s.client.BreakBridge(
 		context.Background(),
-		&pbmanager.LeaveConversationRequest{
+		&pbmanager.BreakBridgeRequest{
 			ConversationId: conversationID,
+			Cause:          cause.String(),
 		},
 		client.WithSelectOption(
 			selector.WithFilter(

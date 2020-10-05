@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
 	pb "github.com/matvoy/chat_server/api/proto/chat"
@@ -63,9 +64,12 @@ func (e *eventRouter) RouteCloseConversation(channel *models.Channel, cause stri
 		return nil
 	}
 	body, _ := json.Marshal(events.CloseConversationEvent{
-		ConversationID: channel.ConversationID,
-		FromChannelID:  channel.ID,
-		Cause:          cause,
+		BaseEvent: events.BaseEvent{
+			ConversationID: channel.ConversationID,
+			Timestamp:      time.Now().UnixNano() / 1000,
+		},
+		FromChannelID: channel.ID,
+		Cause:         cause,
 	})
 	for _, item := range otherChannels {
 		var err error
@@ -149,8 +153,11 @@ func (e *eventRouter) RouteDeclineInvite(userID, conversationID *int64) error {
 		return nil
 	}
 	body, _ := json.Marshal(events.DeclineInvitationEvent{
-		ConversationID: *conversationID,
-		UserID:         *userID,
+		BaseEvent: events.BaseEvent{
+			ConversationID: *conversationID,
+			Timestamp:      time.Now().UnixNano() / 1000,
+		},
+		UserID: *userID,
 	})
 	// TO DO declineInvitationToFlow??
 	for _, item := range otherChannels {
@@ -186,8 +193,11 @@ func (e *eventRouter) RouteInvite(conversationID, userID *int64) error {
 		return err
 	}
 	body, _ := json.Marshal(events.InviteConversationEvent{
-		ConversationID: *conversationID,
-		UserID:         *userID,
+		BaseEvent: events.BaseEvent{
+			ConversationID: *conversationID,
+			Timestamp:      time.Now().UnixNano() / 1000,
+		},
+		UserID: *userID,
 	})
 	for _, item := range otherChannels {
 		switch item.Type {
@@ -234,7 +244,10 @@ func (e *eventRouter) RouteJoinConversation(channelID, conversationID *int64) er
 		return nil
 	}
 	body, _ := json.Marshal(events.JoinConversationEvent{
-		ConversationID:  *conversationID,
+		BaseEvent: events.BaseEvent{
+			ConversationID: *conversationID,
+			Timestamp:      time.Now().UnixNano() / 1000,
+		},
 		JoinedChannelID: *channelID,
 	})
 	for _, item := range otherChannels {
@@ -259,9 +272,6 @@ func (e *eventRouter) RouteJoinConversation(channelID, conversationID *int64) er
 }
 
 func (e *eventRouter) RouteLeaveConversation(channelID, conversationID *int64) error {
-	if err := e.flowClient.LeaveConversation(*conversationID); err != nil {
-		return err
-	}
 	otherChannels, err := e.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, channelID)
 	if err != nil {
 		return err
@@ -270,7 +280,10 @@ func (e *eventRouter) RouteLeaveConversation(channelID, conversationID *int64) e
 		return nil
 	}
 	body, _ := json.Marshal(events.LeaveConversationEvent{
-		ConversationID:  *conversationID,
+		BaseEvent: events.BaseEvent{
+			ConversationID: *conversationID,
+			Timestamp:      time.Now().UnixNano() / 1000,
+		},
 		LeavedChannelID: *channelID,
 	})
 	for _, item := range otherChannels {
@@ -315,8 +328,11 @@ func (e *eventRouter) RouteMessage(channel *models.Channel, message *models.Mess
 		return nil
 	}
 	body, _ := json.Marshal(events.MessageEvent{
-		ConversationID: channel.ConversationID,
-		FromChannelID:  channel.ID,
+		BaseEvent: events.BaseEvent{
+			ConversationID: channel.ConversationID,
+			Timestamp:      time.Now().UnixNano() / 1000,
+		},
+		FromChannelID: channel.ID,
 		// ToChannelID:    item.ID,
 		MessageID: message.ID,
 		Type:      message.Type,

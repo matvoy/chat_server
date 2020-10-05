@@ -28,6 +28,7 @@ type Invite struct {
 	ConversationID int64       `boil:"conversation_id" json:"conversation_id" toml:"conversation_id" yaml:"conversation_id"`
 	UserID         int64       `boil:"user_id" json:"user_id" toml:"user_id" yaml:"user_id"`
 	Title          null.String `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
+	TimeoutSec     int64       `boil:"timeout_sec" json:"timeout_sec" toml:"timeout_sec" yaml:"timeout_sec"`
 
 	R *inviteR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L inviteL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -38,11 +39,13 @@ var InviteColumns = struct {
 	ConversationID string
 	UserID         string
 	Title          string
+	TimeoutSec     string
 }{
 	ID:             "id",
 	ConversationID: "conversation_id",
 	UserID:         "user_id",
 	Title:          "title",
+	TimeoutSec:     "timeout_sec",
 }
 
 // Generated where
@@ -52,11 +55,13 @@ var InviteWhere = struct {
 	ConversationID whereHelperint64
 	UserID         whereHelperint64
 	Title          whereHelpernull_String
+	TimeoutSec     whereHelperint64
 }{
 	ID:             whereHelperint64{field: "\"chat\".\"invite\".\"id\""},
 	ConversationID: whereHelperint64{field: "\"chat\".\"invite\".\"conversation_id\""},
 	UserID:         whereHelperint64{field: "\"chat\".\"invite\".\"user_id\""},
 	Title:          whereHelpernull_String{field: "\"chat\".\"invite\".\"title\""},
+	TimeoutSec:     whereHelperint64{field: "\"chat\".\"invite\".\"timeout_sec\""},
 }
 
 // InviteRels is where relationship names are stored.
@@ -80,9 +85,9 @@ func (*inviteR) NewStruct() *inviteR {
 type inviteL struct{}
 
 var (
-	inviteAllColumns            = []string{"id", "conversation_id", "user_id", "title"}
+	inviteAllColumns            = []string{"id", "conversation_id", "user_id", "title", "timeout_sec"}
 	inviteColumnsWithoutDefault = []string{"conversation_id", "user_id", "title"}
-	inviteColumnsWithDefault    = []string{"id"}
+	inviteColumnsWithDefault    = []string{"id", "timeout_sec"}
 	invitePrimaryKeyColumns     = []string{"id"}
 )
 

@@ -12,12 +12,12 @@ import (
 	"github.com/volatiletech/null/v8"
 )
 
-func (s *chatService) closeConversation(conversationID *int64) error {
+func (s *chatService) closeConversation(ctx context.Context, conversationID *int64) error {
 	if err := s.repo.WithTransaction(func(tx *sql.Tx) error {
-		if err := s.repo.CloseConversation(context.Background(), *conversationID); err != nil {
+		if err := s.repo.CloseConversation(ctx, *conversationID); err != nil {
 			return err
 		}
-		if err := s.repo.CloseChannels(context.Background(), *conversationID); err != nil {
+		if err := s.repo.CloseChannels(ctx, *conversationID); err != nil {
 			return err
 		}
 		return nil

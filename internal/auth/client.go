@@ -73,7 +73,7 @@ func (c *client) MicroAuthentication(rpc *context.Context) error {
 	uiReq := &pbauth.UserinfoRequest{
 		AccessToken: token,
 	}
-	ctx := metadata.Set(context.Background(), h2pTokenAccess, token)
+	ctx := metadata.Set(*rpc, h2pTokenAccess, token)
 	info, err := c.authClient.UserInfo(ctx, uiReq)
 	if err != nil {
 		return errors.Unauthorized("failed to get userinfo from app", err.Error())

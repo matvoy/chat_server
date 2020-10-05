@@ -180,6 +180,7 @@ message InviteToConversationRequest {
   User user = 1;
   int64 conversation_id = 2;
   int64 inviter_channel_id = 3;
+  int64 timeout_sec = 4;
 }
 
 message InviteToConversationResponse {
