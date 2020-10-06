@@ -34,7 +34,7 @@ type Router interface {
 	RouteMessage(channel *models.Channel, message *pb.Message) error
 	RouteMessageFromFlow(conversationID *int64, message *pb.Message) error
 	SendInviteToWebitelUser(domainID, conversationID, userID, inviteID *int64) error
-	SendExpireInviteToWebitelUser(domainID, conversationID, userID, inviteID *int64) error
+	SendDeclineInviteToWebitelUser(domainID, conversationID, userID, inviteID *int64) error
 }
 
 func NewRouter(
@@ -241,13 +241,14 @@ func (e *eventRouter) SendInviteToWebitelUser(domainID, conversationID, userID, 
 	return nil
 }
 
-func (e *eventRouter) SendExpireInviteToWebitelUser(domainID, conversationID, userID, inviteID *int64) error {
-	body, _ := json.Marshal(events.ExpireInvitationEvent{
+func (e *eventRouter) SendDeclineInviteToWebitelUser(domainID, conversationID, userID, inviteID *int64) error {
+	body, _ := json.Marshal(events.DeclineInvitationEvent{
 		BaseEvent: events.BaseEvent{
 			ConversationID: *conversationID,
 			Timestamp:      time.Now().Unix() * 1000,
 		},
 		InviteID: *inviteID,
+		UserID:   *userID,
 	})
 	msg := &broker.Message{
 		Header: map[string]string{
@@ -255,7 +256,7 @@ func (e *eventRouter) SendExpireInviteToWebitelUser(domainID, conversationID, us
 		},
 		Body: body,
 	}
-	if err := e.broker.Publish(fmt.Sprintf("event.%s.%v.%v", events.ExpireInvitationEventType, *domainID, *userID), msg); err != nil {
+	if err := e.broker.Publish(fmt.Sprintf("event.%s.%v.%v", events.DeclineInvitationEventType, *domainID, *userID), msg); err != nil {
 		return err
 	}
 	return nil

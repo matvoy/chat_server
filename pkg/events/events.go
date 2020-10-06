@@ -56,10 +56,6 @@ type UserInvitationEvent struct {
 
 type DeclineInvitationEvent struct {
 	BaseEvent
-	UserID int64 `json:"user_id"`
-}
-
-type ExpireInvitationEvent struct {
-	BaseEvent
+	UserID   int64 `json:"user_id"`
 	InviteID int64 `json:"invite_id"`
 }

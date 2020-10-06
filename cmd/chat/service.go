@@ -362,7 +362,7 @@ func (s *chatService) InviteToConversation(
 				if err := s.flowClient.BreakBridge(req.GetConversationId(), flow.TimeoutCause); err != nil {
 					s.log.Error().Msg(err.Error())
 				}
-				if err := s.eventRouter.SendExpireInviteToWebitelUser(&domainID, &invite.ConversationID, &invite.UserID, &invite.ID); err != nil {
+				if err := s.eventRouter.SendDeclineInviteToWebitelUser(&domainID, &invite.ConversationID, &invite.UserID, &invite.ID); err != nil {
 					s.log.Error().Msg(err.Error())
 				}
 				if err := s.repo.DeleteInvite(context.Background(), val.ID); err != nil {
