@@ -14,8 +14,6 @@ service ChatService {
   rpc DeclineInvitation(DeclineInvitationRequest) returns (DeclineInvitationResponse) {}
   rpc CheckSession(CheckSessionRequest) returns (CheckSessionResponse) {}
   rpc WaitMessage(WaitMessageRequest) returns (WaitMessageResponse) {}
-  rpc GetProfilesX(GetProfilesRequest) returns (GetProfilesResponse) {}
-  rpc UpdateProfileX(UpdateProfileRequest) returns (UpdateProfileResponse) {}
   
   rpc GetConversationByID(GetConversationByIDRequest) returns (GetConversationByIDResponse) {}
   rpc GetConversations(GetConversationsRequest) returns (GetConversationsResponse) {}

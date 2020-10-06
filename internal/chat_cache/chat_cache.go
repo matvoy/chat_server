@@ -53,7 +53,7 @@ func (c *chatCache) SetUserInfo(token string, infoBytes []byte, expires int64) e
 	return c.redisStore.Write(&store.Record{
 		Key:    key,
 		Value:  infoBytes,
-		Expiry: time.Millisecond * time.Duration(expires),
+		Expiry: time.Millisecond * time.Duration(expires-time.Now().Unix()*1000),
 	})
 }
 

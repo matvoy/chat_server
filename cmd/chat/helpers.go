@@ -97,13 +97,13 @@ func transformConversationFromRepoModel(c *repo.Conversation) *pb.Conversation {
 		DomainId: c.DomainID,
 	}
 	if c.CreatedAt != nil {
-		result.CreatedAt = c.CreatedAt.UnixNano()
+		result.CreatedAt = c.CreatedAt.Unix() * 1000
 	}
 	if c.ClosedAt != nil {
-		result.ClosedAt = c.ClosedAt.UnixNano()
+		result.ClosedAt = c.ClosedAt.Unix() * 1000
 	}
 	if c.UpdatedAt != nil {
-		result.UpdatedAt = c.UpdatedAt.UnixNano()
+		result.UpdatedAt = c.UpdatedAt.Unix() * 1000
 	}
 	members := make([]*pb.Member, 0, len(c.Members))
 	for _, item := range c.Members {
@@ -140,10 +140,10 @@ func transformMessageFromRepoModel(message *models.Message) *pb.HistoryMessage {
 		Text: message.Text.String,
 	}
 	if message.CreatedAt.Valid {
-		result.CreatedAt = message.CreatedAt.Time.UnixNano()
+		result.CreatedAt = message.CreatedAt.Time.Unix() * 1000
 	}
 	if message.UpdatedAt.Valid {
-		result.UpdatedAt = message.UpdatedAt.Time.UnixNano()
+		result.UpdatedAt = message.UpdatedAt.Time.Unix() * 1000
 	}
 	return result
 }

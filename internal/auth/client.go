@@ -14,6 +14,9 @@ import (
 )
 
 const (
+	botServiceKey  = `Micro-From-Service`
+	botServiceName = `webitel.chat.bot`
+
 	h2pDomainId      = `x-webitel-dc`
 	h2pDomainName    = `x-webitel-domain`
 	h2pTokenAccess   = `x-webitel-access`
@@ -52,6 +55,10 @@ func (c *client) MicroAuthentication(rpc *context.Context) error {
 	md, _ := metadata.FromContext(*rpc)
 	if len(md) == 0 {
 		return errors.Unauthorized("no metadata", "")
+	}
+	serviceName, ok := md[botServiceKey]
+	if ok && serviceName == botServiceName {
+		return nil
 	}
 	// context authorization credentials
 	_, token, err := getAuthTokenFromMetadata(md)

@@ -2972,7 +2972,7 @@ var file_chat_proto_rawDesc = []byte{
 	0x65, 0x6d, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x23, 0x2e, 0x77, 0x65, 0x62, 0x69,
 	0x74, 0x65, 0x6c, 0x2e, 0x63, 0x68, 0x61, 0x74, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e,
 	0x48, 0x69, 0x73, 0x74, 0x6f, 0x72, 0x79, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x52, 0x05,
-	0x69, 0x74, 0x65, 0x6d, 0x73, 0x32, 0xcd, 0x10, 0x0a, 0x0b, 0x43, 0x68, 0x61, 0x74, 0x53, 0x65,
+	0x69, 0x74, 0x65, 0x6d, 0x73, 0x32, 0xfd, 0x0e, 0x0a, 0x0b, 0x43, 0x68, 0x61, 0x74, 0x53, 0x65,
 	0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x62, 0x0a, 0x0b, 0x53, 0x65, 0x6e, 0x64, 0x4d, 0x65, 0x73,
 	0x73, 0x61, 0x67, 0x65, 0x12, 0x27, 0x2e, 0x77, 0x65, 0x62, 0x69, 0x74, 0x65, 0x6c, 0x2e, 0x63,
 	0x68, 0x61, 0x74, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x53, 0x65, 0x6e, 0x64, 0x4d,
@@ -3036,20 +3036,7 @@ var file_chat_proto_rawDesc = []byte{
 	0x57, 0x61, 0x69, 0x74, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65,
 	0x73, 0x74, 0x1a, 0x28, 0x2e, 0x77, 0x65, 0x62, 0x69, 0x74, 0x65, 0x6c, 0x2e, 0x63, 0x68, 0x61,
 	0x74, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x57, 0x61, 0x69, 0x74, 0x4d, 0x65, 0x73,
-	0x73, 0x61, 0x67, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x63,
-	0x0a, 0x0c, 0x47, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x58, 0x12, 0x27,
-	0x2e, 0x77, 0x65, 0x62, 0x69, 0x74, 0x65, 0x6c, 0x2e, 0x63, 0x68, 0x61, 0x74, 0x2e, 0x73, 0x65,
-	0x72, 0x76, 0x65, 0x72, 0x2e, 0x47, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x66, 0x69, 0x6c, 0x65, 0x73,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x28, 0x2e, 0x77, 0x65, 0x62, 0x69, 0x74, 0x65,
-	0x6c, 0x2e, 0x63, 0x68, 0x61, 0x74, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x47, 0x65,
-	0x74, 0x50, 0x72, 0x6f, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x22, 0x00, 0x12, 0x69, 0x0a, 0x0e, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x50, 0x72, 0x6f,
-	0x66, 0x69, 0x6c, 0x65, 0x58, 0x12, 0x29, 0x2e, 0x77, 0x65, 0x62, 0x69, 0x74, 0x65, 0x6c, 0x2e,
-	0x63, 0x68, 0x61, 0x74, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x55, 0x70, 0x64, 0x61,
-	0x74, 0x65, 0x50, 0x72, 0x6f, 0x66, 0x69, 0x6c, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x1a, 0x2a, 0x2e, 0x77, 0x65, 0x62, 0x69, 0x74, 0x65, 0x6c, 0x2e, 0x63, 0x68, 0x61, 0x74, 0x2e,
-	0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x50, 0x72, 0x6f,
-	0x66, 0x69, 0x6c, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x7a,
+	0x73, 0x61, 0x67, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x7a,
 	0x0a, 0x13, 0x47, 0x65, 0x74, 0x43, 0x6f, 0x6e, 0x76, 0x65, 0x72, 0x73, 0x61, 0x74, 0x69, 0x6f,
 	0x6e, 0x42, 0x79, 0x49, 0x44, 0x12, 0x2f, 0x2e, 0x77, 0x65, 0x62, 0x69, 0x74, 0x65, 0x6c, 0x2e,
 	0x63, 0x68, 0x61, 0x74, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x47, 0x65, 0x74, 0x43,
@@ -3198,37 +3185,33 @@ var file_chat_proto_depIdxs = []int32{
 	24, // 24: webitel.chat.server.ChatService.DeclineInvitation:input_type -> webitel.chat.server.DeclineInvitationRequest
 	10, // 25: webitel.chat.server.ChatService.CheckSession:input_type -> webitel.chat.server.CheckSessionRequest
 	8,  // 26: webitel.chat.server.ChatService.WaitMessage:input_type -> webitel.chat.server.WaitMessageRequest
-	26, // 27: webitel.chat.server.ChatService.GetProfilesX:input_type -> webitel.chat.server.GetProfilesRequest
-	34, // 28: webitel.chat.server.ChatService.UpdateProfileX:input_type -> webitel.chat.server.UpdateProfileRequest
-	36, // 29: webitel.chat.server.ChatService.GetConversationByID:input_type -> webitel.chat.server.GetConversationByIDRequest
-	38, // 30: webitel.chat.server.ChatService.GetConversations:input_type -> webitel.chat.server.GetConversationsRequest
-	26, // 31: webitel.chat.server.ChatService.GetProfiles:input_type -> webitel.chat.server.GetProfilesRequest
-	28, // 32: webitel.chat.server.ChatService.GetProfileByID:input_type -> webitel.chat.server.GetProfileByIDRequest
-	30, // 33: webitel.chat.server.ChatService.CreateProfile:input_type -> webitel.chat.server.CreateProfileRequest
-	32, // 34: webitel.chat.server.ChatService.DeleteProfile:input_type -> webitel.chat.server.DeleteProfileRequest
-	34, // 35: webitel.chat.server.ChatService.UpdateProfile:input_type -> webitel.chat.server.UpdateProfileRequest
-	40, // 36: webitel.chat.server.ChatService.GetHistoryMessages:input_type -> webitel.chat.server.GetHistoryMessagesRequest
-	13, // 37: webitel.chat.server.ChatService.SendMessage:output_type -> webitel.chat.server.SendMessageResponse
-	15, // 38: webitel.chat.server.ChatService.StartConversation:output_type -> webitel.chat.server.StartConversationResponse
-	17, // 39: webitel.chat.server.ChatService.CloseConversation:output_type -> webitel.chat.server.CloseConversationResponse
-	19, // 40: webitel.chat.server.ChatService.JoinConversation:output_type -> webitel.chat.server.JoinConversationResponse
-	21, // 41: webitel.chat.server.ChatService.LeaveConversation:output_type -> webitel.chat.server.LeaveConversationResponse
-	23, // 42: webitel.chat.server.ChatService.InviteToConversation:output_type -> webitel.chat.server.InviteToConversationResponse
-	25, // 43: webitel.chat.server.ChatService.DeclineInvitation:output_type -> webitel.chat.server.DeclineInvitationResponse
-	11, // 44: webitel.chat.server.ChatService.CheckSession:output_type -> webitel.chat.server.CheckSessionResponse
-	9,  // 45: webitel.chat.server.ChatService.WaitMessage:output_type -> webitel.chat.server.WaitMessageResponse
-	27, // 46: webitel.chat.server.ChatService.GetProfilesX:output_type -> webitel.chat.server.GetProfilesResponse
-	35, // 47: webitel.chat.server.ChatService.UpdateProfileX:output_type -> webitel.chat.server.UpdateProfileResponse
-	37, // 48: webitel.chat.server.ChatService.GetConversationByID:output_type -> webitel.chat.server.GetConversationByIDResponse
-	39, // 49: webitel.chat.server.ChatService.GetConversations:output_type -> webitel.chat.server.GetConversationsResponse
-	27, // 50: webitel.chat.server.ChatService.GetProfiles:output_type -> webitel.chat.server.GetProfilesResponse
-	29, // 51: webitel.chat.server.ChatService.GetProfileByID:output_type -> webitel.chat.server.GetProfileByIDResponse
-	31, // 52: webitel.chat.server.ChatService.CreateProfile:output_type -> webitel.chat.server.CreateProfileResponse
-	33, // 53: webitel.chat.server.ChatService.DeleteProfile:output_type -> webitel.chat.server.DeleteProfileResponse
-	35, // 54: webitel.chat.server.ChatService.UpdateProfile:output_type -> webitel.chat.server.UpdateProfileResponse
-	41, // 55: webitel.chat.server.ChatService.GetHistoryMessages:output_type -> webitel.chat.server.GetHistoryMessagesResponse
-	37, // [37:56] is the sub-list for method output_type
-	18, // [18:37] is the sub-list for method input_type
+	36, // 27: webitel.chat.server.ChatService.GetConversationByID:input_type -> webitel.chat.server.GetConversationByIDRequest
+	38, // 28: webitel.chat.server.ChatService.GetConversations:input_type -> webitel.chat.server.GetConversationsRequest
+	26, // 29: webitel.chat.server.ChatService.GetProfiles:input_type -> webitel.chat.server.GetProfilesRequest
+	28, // 30: webitel.chat.server.ChatService.GetProfileByID:input_type -> webitel.chat.server.GetProfileByIDRequest
+	30, // 31: webitel.chat.server.ChatService.CreateProfile:input_type -> webitel.chat.server.CreateProfileRequest
+	32, // 32: webitel.chat.server.ChatService.DeleteProfile:input_type -> webitel.chat.server.DeleteProfileRequest
+	34, // 33: webitel.chat.server.ChatService.UpdateProfile:input_type -> webitel.chat.server.UpdateProfileRequest
+	40, // 34: webitel.chat.server.ChatService.GetHistoryMessages:input_type -> webitel.chat.server.GetHistoryMessagesRequest
+	13, // 35: webitel.chat.server.ChatService.SendMessage:output_type -> webitel.chat.server.SendMessageResponse
+	15, // 36: webitel.chat.server.ChatService.StartConversation:output_type -> webitel.chat.server.StartConversationResponse
+	17, // 37: webitel.chat.server.ChatService.CloseConversation:output_type -> webitel.chat.server.CloseConversationResponse
+	19, // 38: webitel.chat.server.ChatService.JoinConversation:output_type -> webitel.chat.server.JoinConversationResponse
+	21, // 39: webitel.chat.server.ChatService.LeaveConversation:output_type -> webitel.chat.server.LeaveConversationResponse
+	23, // 40: webitel.chat.server.ChatService.InviteToConversation:output_type -> webitel.chat.server.InviteToConversationResponse
+	25, // 41: webitel.chat.server.ChatService.DeclineInvitation:output_type -> webitel.chat.server.DeclineInvitationResponse
+	11, // 42: webitel.chat.server.ChatService.CheckSession:output_type -> webitel.chat.server.CheckSessionResponse
+	9,  // 43: webitel.chat.server.ChatService.WaitMessage:output_type -> webitel.chat.server.WaitMessageResponse
+	37, // 44: webitel.chat.server.ChatService.GetConversationByID:output_type -> webitel.chat.server.GetConversationByIDResponse
+	39, // 45: webitel.chat.server.ChatService.GetConversations:output_type -> webitel.chat.server.GetConversationsResponse
+	27, // 46: webitel.chat.server.ChatService.GetProfiles:output_type -> webitel.chat.server.GetProfilesResponse
+	29, // 47: webitel.chat.server.ChatService.GetProfileByID:output_type -> webitel.chat.server.GetProfileByIDResponse
+	31, // 48: webitel.chat.server.ChatService.CreateProfile:output_type -> webitel.chat.server.CreateProfileResponse
+	33, // 49: webitel.chat.server.ChatService.DeleteProfile:output_type -> webitel.chat.server.DeleteProfileResponse
+	35, // 50: webitel.chat.server.ChatService.UpdateProfile:output_type -> webitel.chat.server.UpdateProfileResponse
+	41, // 51: webitel.chat.server.ChatService.GetHistoryMessages:output_type -> webitel.chat.server.GetHistoryMessagesResponse
+	35, // [35:52] is the sub-list for method output_type
+	18, // [18:35] is the sub-list for method input_type
 	18, // [18:18] is the sub-list for extension type_name
 	18, // [18:18] is the sub-list for extension extendee
 	0,  // [0:18] is the sub-list for field type_name

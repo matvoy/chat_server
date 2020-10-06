@@ -39,8 +39,6 @@ type Service interface {
 	DeclineInvitation(ctx context.Context, req *pb.DeclineInvitationRequest, res *pb.DeclineInvitationResponse) error
 	WaitMessage(ctx context.Context, req *pb.WaitMessageRequest, res *pb.WaitMessageResponse) error
 	CheckSession(ctx context.Context, req *pb.CheckSessionRequest, res *pb.CheckSessionResponse) error
-	UpdateProfileX(ctx context.Context, req *pb.UpdateProfileRequest, res *pb.UpdateProfileResponse) error
-	GetProfilesX(ctx context.Context, req *pb.GetProfilesRequest, res *pb.GetProfilesResponse) error
 }
 
 type chatService struct {
@@ -468,54 +466,6 @@ func (s *chatService) CheckSession(ctx context.Context, req *pb.CheckSessionRequ
 		res.Exists = false
 		res.ClientId = client.ID
 	}
-	return nil
-}
-
-func (s *chatService) UpdateProfileX(
-	ctx context.Context,
-	req *pb.UpdateProfileRequest,
-	res *pb.UpdateProfileResponse) error {
-	s.log.Trace().
-		Str("update", "profile").
-		Msgf("%v", req.GetItem())
-	profile, err := transformProfileToRepoModel(req.GetItem())
-	if err != nil {
-		s.log.Error().Msg(err.Error())
-		return err
-	}
-	if err := s.repo.UpdateProfile(ctx, profile); err != nil {
-		s.log.Error().Msg(err.Error())
-		return err
-	}
-	res.Item, err = transformProfileFromRepoModel(profile)
-	return err
-}
-
-func (s *chatService) GetProfilesX(ctx context.Context, req *pb.GetProfilesRequest, res *pb.GetProfilesResponse) error {
-	s.log.Trace().
-		Str("type", req.GetType()).
-		Int64("domain_id", req.GetDomainId()).
-		Msg("get profiles")
-	profiles, err := s.repo.GetProfiles(
-		ctx,
-		req.GetId(),
-		req.GetSize(),
-		req.GetPage(),
-		req.GetFields(),
-		req.GetSort(),
-		req.GetType(),
-		req.GetDomainId(),
-	)
-	if err != nil {
-		s.log.Error().Msg(err.Error())
-		return err
-	}
-	result, err := transformProfilesFromRepoModel(profiles)
-	if err != nil {
-		s.log.Error().Msg(err.Error())
-		return err
-	}
-	res.Items = result
 	return nil
 }
 

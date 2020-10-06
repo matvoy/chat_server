@@ -65,7 +65,7 @@ func (e *eventRouter) RouteCloseConversation(channel *models.Channel, cause stri
 	body, _ := json.Marshal(events.CloseConversationEvent{
 		BaseEvent: events.BaseEvent{
 			ConversationID: channel.ConversationID,
-			Timestamp:      time.Now().UnixNano() / 1000,
+			Timestamp:      time.Now().Unix() * 1000,
 		},
 		FromChannelID: channel.ID,
 		Cause:         cause,
@@ -154,7 +154,7 @@ func (e *eventRouter) RouteDeclineInvite(userID, conversationID *int64) error {
 	body, _ := json.Marshal(events.DeclineInvitationEvent{
 		BaseEvent: events.BaseEvent{
 			ConversationID: *conversationID,
-			Timestamp:      time.Now().UnixNano() / 1000,
+			Timestamp:      time.Now().Unix() * 1000,
 		},
 		UserID: *userID,
 	})
@@ -194,7 +194,7 @@ func (e *eventRouter) RouteInvite(conversationID, userID *int64) error {
 	body, _ := json.Marshal(events.InviteConversationEvent{
 		BaseEvent: events.BaseEvent{
 			ConversationID: *conversationID,
-			Timestamp:      time.Now().UnixNano() / 1000,
+			Timestamp:      time.Now().Unix() * 1000,
 		},
 		UserID: *userID,
 	})
@@ -247,7 +247,7 @@ func (e *eventRouter) RouteJoinConversation(channelID, conversationID *int64) er
 	body, _ := json.Marshal(events.JoinConversationEvent{
 		BaseEvent: events.BaseEvent{
 			ConversationID: *conversationID,
-			Timestamp:      time.Now().UnixNano() / 1000,
+			Timestamp:      time.Now().Unix() * 1000,
 		},
 		JoinedChannelID: *channelID,
 	})
@@ -283,7 +283,7 @@ func (e *eventRouter) RouteLeaveConversation(channelID, conversationID *int64) e
 	body, _ := json.Marshal(events.LeaveConversationEvent{
 		BaseEvent: events.BaseEvent{
 			ConversationID: *conversationID,
-			Timestamp:      time.Now().UnixNano() / 1000,
+			Timestamp:      time.Now().Unix() * 1000,
 		},
 		LeavedChannelID: *channelID,
 	})
@@ -322,7 +322,7 @@ func (e *eventRouter) RouteMessage(channel *models.Channel, message *pb.Message)
 	body, _ := json.Marshal(events.MessageEvent{
 		BaseEvent: events.BaseEvent{
 			ConversationID: channel.ConversationID,
-			Timestamp:      time.Now().UnixNano() / 1000,
+			Timestamp:      time.Now().Unix() * 1000,
 		},
 		FromChannelID: channel.ID,
 		// ToChannelID:    item.ID,
@@ -376,14 +376,14 @@ func (e *eventRouter) RouteMessageFromFlow(conversationID *int64, message *pb.Me
 		default:
 		}
 		if err != nil {
-			e.log.Warn().
+			e.log.Error().
 				Int64("channel_id", item.ID).
 				Bool("internal", item.Internal).
 				Int64("user_id", item.UserID).
 				Int64("conversation_id", item.ConversationID).
 				Str("type", item.Type).
 				Str("connection", item.Connection.String).
-				Msg("failed to send message to channel [from flow]")
+				Msg(err.Error())
 		}
 	}
 	return nil
