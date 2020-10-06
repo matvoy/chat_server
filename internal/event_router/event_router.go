@@ -33,6 +33,8 @@ type Router interface {
 	RouteLeaveConversation(channelID, conversationID *int64) error
 	RouteMessage(channel *models.Channel, message *pb.Message) error
 	RouteMessageFromFlow(conversationID *int64, message *pb.Message) error
+	SendInviteToWebitelUser(domainID, conversationID, userID, inviteID *int64) error
+	SendExpireInviteToWebitelUser(domainID, conversationID, userID, inviteID *int64) error
 }
 
 func NewRouter(
@@ -188,9 +190,9 @@ func (e *eventRouter) RouteInvite(conversationID, userID *int64) error {
 	if otherChannels == nil {
 		return nil
 	}
-	if err := e.sendInviteToWebitelUser(&otherChannels[0].DomainID, conversationID, userID); err != nil {
-		return err
-	}
+	// if err := e.sendInviteToWebitelUser(&otherChannels[0].DomainID, conversationID, userID); err != nil {
+	// 	return err
+	// }
 	body, _ := json.Marshal(events.InviteConversationEvent{
 		BaseEvent: events.BaseEvent{
 			ConversationID: *conversationID,
@@ -219,10 +221,13 @@ func (e *eventRouter) RouteInvite(conversationID, userID *int64) error {
 	return nil
 }
 
-func (e *eventRouter) sendInviteToWebitelUser(domainID, conversationID, userID *int64) error {
-	body, _ := json.Marshal(map[string]int64{
-		"conversation_id": *conversationID,
-		"user_id":         *userID,
+func (e *eventRouter) SendInviteToWebitelUser(domainID, conversationID, userID, inviteID *int64) error {
+	body, _ := json.Marshal(events.UserInvitationEvent{
+		BaseEvent: events.BaseEvent{
+			ConversationID: *conversationID,
+			Timestamp:      time.Now().Unix() * 1000,
+		},
+		InviteID: *inviteID,
 	})
 	msg := &broker.Message{
 		Header: map[string]string{
@@ -231,6 +236,26 @@ func (e *eventRouter) sendInviteToWebitelUser(domainID, conversationID, userID *
 		Body: body,
 	}
 	if err := e.broker.Publish(fmt.Sprintf("event.%s.%v.%v", events.UserInvitationEventType, *domainID, *userID), msg); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (e *eventRouter) SendExpireInviteToWebitelUser(domainID, conversationID, userID, inviteID *int64) error {
+	body, _ := json.Marshal(events.ExpireInvitationEvent{
+		BaseEvent: events.BaseEvent{
+			ConversationID: *conversationID,
+			Timestamp:      time.Now().Unix() * 1000,
+		},
+		InviteID: *inviteID,
+	})
+	msg := &broker.Message{
+		Header: map[string]string{
+			"content_type": "text/json",
+		},
+		Body: body,
+	}
+	if err := e.broker.Publish(fmt.Sprintf("event.%s.%v.%v", events.ExpireInvitationEventType, *domainID, *userID), msg); err != nil {
 		return err
 	}
 	return nil

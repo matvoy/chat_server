@@ -9,6 +9,7 @@ import (
 
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
 	pb "github.com/matvoy/chat_server/api/proto/chat"
+	pbstorage "github.com/matvoy/chat_server/api/proto/storage"
 	"github.com/matvoy/chat_server/internal/auth"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 	event "github.com/matvoy/chat_server/internal/event_router"
@@ -42,13 +43,14 @@ type Service interface {
 }
 
 type chatService struct {
-	repo        repo.Repository
-	log         *zerolog.Logger
-	flowClient  flow.Client
-	authClient  auth.Client
-	botClient   pbbot.BotService
-	chatCache   cache.ChatCache
-	eventRouter event.Router
+	repo          repo.Repository
+	log           *zerolog.Logger
+	flowClient    flow.Client
+	authClient    auth.Client
+	botClient     pbbot.BotService
+	storageClient pbstorage.FileService
+	chatCache     cache.ChatCache
+	eventRouter   event.Router
 }
 
 func NewChatService(
@@ -57,6 +59,7 @@ func NewChatService(
 	flowClient flow.Client,
 	authClient auth.Client,
 	botClient pbbot.BotService,
+	storageClient pbstorage.FileService,
 	chatCache cache.ChatCache,
 	eventRouter event.Router,
 ) *chatService {
@@ -66,6 +69,7 @@ func NewChatService(
 		flowClient,
 		authClient,
 		botClient,
+		storageClient,
 		chatCache,
 		eventRouter,
 	}
@@ -324,7 +328,9 @@ func (s *chatService) InviteToConversation(
 		Int64("user.id", req.GetUser().GetUserId()).
 		Bool("user.internal", req.GetUser().GetInternal()).
 		Int64("conversation_id", req.GetConversationId()).
+		Int64("domain_id", req.GetDomainId()).
 		Msg("invite to conversation")
+	domainID := req.GetDomainId()
 	invite := &models.Invite{
 		ConversationID: req.GetConversationId(),
 		UserID:         req.GetUser().GetUserId(),
@@ -332,6 +338,10 @@ func (s *chatService) InviteToConversation(
 	}
 	if err := s.repo.CreateInvite(ctx, invite); err != nil {
 		s.log.Error().Msg(err.Error())
+		return err
+	}
+	if err := s.eventRouter.SendInviteToWebitelUser(&domainID, &invite.ConversationID, &invite.UserID, &invite.ID); err != nil {
+		s.log.Warn().Msg(err.Error())
 		return err
 	}
 	if err := s.eventRouter.RouteInvite(&invite.ConversationID, &invite.UserID); err != nil {
@@ -344,7 +354,15 @@ func (s *chatService) InviteToConversation(
 			if val, err := s.repo.GetInviteByID(context.Background(), invite.ID); err != nil {
 				s.log.Error().Msg(err.Error())
 			} else if val != nil {
+				s.log.Trace().
+					Int64("invite_id", invite.ID).
+					Int64("user_id", invite.UserID).
+					Int64("conversation_id", invite.ConversationID).
+					Msg("autodecline invitation")
 				if err := s.flowClient.BreakBridge(req.GetConversationId(), flow.TimeoutCause); err != nil {
+					s.log.Error().Msg(err.Error())
+				}
+				if err := s.eventRouter.SendExpireInviteToWebitelUser(&domainID, &invite.ConversationID, &invite.UserID, &invite.ID); err != nil {
 					s.log.Error().Msg(err.Error())
 				}
 				if err := s.repo.DeleteInvite(context.Background(), val.ID); err != nil {

@@ -179,6 +179,7 @@ message InviteToConversationRequest {
   int64 conversation_id = 2;
   int64 inviter_channel_id = 3;
   int64 timeout_sec = 4;
+  int64 domain_id = 5;
 }
 
 message InviteToConversationResponse {

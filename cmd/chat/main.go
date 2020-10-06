@@ -9,6 +9,7 @@ import (
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
 	pb "github.com/matvoy/chat_server/api/proto/chat"
 	pbmanager "github.com/matvoy/chat_server/api/proto/flow_manager"
+	pbstorage "github.com/matvoy/chat_server/api/proto/storage"
 	"github.com/matvoy/chat_server/internal/auth"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 	event "github.com/matvoy/chat_server/internal/event_router"
@@ -41,11 +42,12 @@ var (
 	service    micro.Service
 	redisStore store.Store
 	// rabbitBroker broker.Broker
-	redisTable string
-	flowClient pbmanager.FlowChatServerService
-	botClient  pbbot.BotService
-	authClient pbauth.AuthService
-	timeout    uint64
+	redisTable    string
+	flowClient    pbmanager.FlowChatServerService
+	botClient     pbbot.BotService
+	authClient    pbauth.AuthService
+	storageClient pbstorage.FileService
+	timeout       uint64
 )
 
 func init() {
@@ -121,6 +123,7 @@ func main() {
 			flowClient = pbmanager.NewFlowChatServerService("workflow", service.Client())
 			botClient = pbbot.NewBotService("webitel.chat.bot", service.Client())
 			authClient = pbauth.NewAuthService("go.webitel.app", service.Client())
+			storageClient = pbstorage.NewFileService("storage", service.Client())
 			return nil
 		}),
 		micro.Broker(
@@ -167,7 +170,7 @@ func main() {
 	flow := flow.NewClient(logger, flowClient, cache)
 	auth := auth.NewClient(logger, cache, authClient)
 	eventRouter := event.NewRouter(botClient /*flow,*/, service.Options().Broker, repo, logger)
-	serv := NewChatService(repo, logger, flow, auth, botClient, cache, eventRouter)
+	serv := NewChatService(repo, logger, flow, auth, botClient, storageClient, cache, eventRouter)
 
 	if err := pb.RegisterChatServiceHandler(service.Server(), serv); err != nil {
 		logger.Fatal().

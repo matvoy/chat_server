@@ -7,6 +7,7 @@ const (
 	LeaveConversationEventType  = "leave_conversation"
 	InviteConversationEventType = "invite_conversation"
 	UserInvitationEventType     = "user_invite"
+	ExpireInvitationEventType   = "expire_invite"
 	DeclineInvitationEventType  = "decline_invite"
 )
 
@@ -52,7 +53,13 @@ type UserInvitationEvent struct {
 	BaseEvent
 	InviteID int64 `json:"invite_id"`
 }
+
 type DeclineInvitationEvent struct {
 	BaseEvent
 	UserID int64 `json:"user_id"`
+}
+
+type ExpireInvitationEvent struct {
+	BaseEvent
+	InviteID int64 `json:"invite_id"`
 }
