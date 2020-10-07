@@ -140,7 +140,7 @@ func (b *botService) TelegramWebhookHandler(w http.ResponseWriter, r *http.Reque
 	}
 	b.log.Debug().
 		Bool("exists", resCheck.Exists).
-		Int64("channel_id", resCheck.ChannelId).
+		Str("channel_id", resCheck.ChannelId).
 		Int64("client_id", resCheck.ClientId).
 		Msg("check user")
 

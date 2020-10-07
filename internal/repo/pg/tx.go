@@ -7,6 +7,7 @@ import (
 
 	"github.com/matvoy/chat_server/models"
 
+	"github.com/google/uuid"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
@@ -31,6 +32,7 @@ func (repo *PgRepository) WithTransaction(txFunc func(*sql.Tx) error) (err error
 }
 
 func (repo *PgRepository) CreateConversationTx(ctx context.Context, tx boil.ContextExecutor, c *models.Conversation) error {
+	c.ID = uuid.New().String()
 	if err := c.Insert(ctx, tx, boil.Infer()); err != nil {
 		return err
 	}
@@ -119,6 +121,7 @@ func (repo *PgRepository) CreateChannelTx(
 	ctx context.Context,
 	tx boil.ContextExecutor,
 	c *models.Channel) error {
+	c.ID = uuid.New().String()
 	if err := c.Insert(ctx, tx, boil.Infer()); err != nil {
 		return err
 	}
