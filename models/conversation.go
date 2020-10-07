@@ -24,7 +24,7 @@ import (
 
 // Conversation is an object representing the database table.
 type Conversation struct {
-	ID        int64       `boil:"id" json:"id" toml:"id" yaml:"id"`
+	ID        string      `boil:"id" json:"id" toml:"id" yaml:"id"`
 	Title     null.String `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
 	CreatedAt null.Time   `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
 	ClosedAt  null.Time   `boil:"closed_at" json:"closed_at,omitempty" toml:"closed_at" yaml:"closed_at,omitempty"`
@@ -54,14 +54,14 @@ var ConversationColumns = struct {
 // Generated where
 
 var ConversationWhere = struct {
-	ID        whereHelperint64
+	ID        whereHelperstring
 	Title     whereHelpernull_String
 	CreatedAt whereHelpernull_Time
 	ClosedAt  whereHelpernull_Time
 	UpdatedAt whereHelpernull_Time
 	DomainID  whereHelperint64
 }{
-	ID:        whereHelperint64{field: "\"chat\".\"conversation\".\"id\""},
+	ID:        whereHelperstring{field: "\"chat\".\"conversation\".\"id\""},
 	Title:     whereHelpernull_String{field: "\"chat\".\"conversation\".\"title\""},
 	CreatedAt: whereHelpernull_Time{field: "\"chat\".\"conversation\".\"created_at\""},
 	ClosedAt:  whereHelpernull_Time{field: "\"chat\".\"conversation\".\"closed_at\""},
@@ -97,8 +97,8 @@ type conversationL struct{}
 
 var (
 	conversationAllColumns            = []string{"id", "title", "created_at", "closed_at", "updated_at", "domain_id"}
-	conversationColumnsWithoutDefault = []string{"title", "created_at", "closed_at", "updated_at", "domain_id"}
-	conversationColumnsWithDefault    = []string{"id"}
+	conversationColumnsWithoutDefault = []string{"id", "title", "created_at", "closed_at", "updated_at", "domain_id"}
+	conversationColumnsWithDefault    = []string{}
 	conversationPrimaryKeyColumns     = []string{"id"}
 )
 
@@ -901,7 +901,7 @@ func Conversations(mods ...qm.QueryMod) conversationQuery {
 
 // FindConversation retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindConversation(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCols ...string) (*Conversation, error) {
+func FindConversation(ctx context.Context, exec boil.ContextExecutor, iD string, selectCols ...string) (*Conversation, error) {
 	conversationObj := &Conversation{}
 
 	sel := "*"
@@ -1419,7 +1419,7 @@ func (o *ConversationSlice) ReloadAll(ctx context.Context, exec boil.ContextExec
 }
 
 // ConversationExists checks if the Conversation row exists.
-func ConversationExists(ctx context.Context, exec boil.ContextExecutor, iD int64) (bool, error) {
+func ConversationExists(ctx context.Context, exec boil.ContextExecutor, iD string) (bool, error) {
 	var exists bool
 	sql := "select exists(select 1 from \"chat\".\"conversation\" where \"id\"=$1 limit 1)"
 

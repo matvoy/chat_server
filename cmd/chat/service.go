@@ -81,8 +81,8 @@ func (s *chatService) SendMessage(
 	res *pb.SendMessageResponse,
 ) error {
 	s.log.Trace().
-		Int64("channel_id", req.GetChannelId()).
-		Int64("conversation_id", req.GetConversationId()).
+		Str("channel_id", req.GetChannelId()).
+		Str("conversation_id", req.GetConversationId()).
 		Bool("from_flow", req.GetFromFlow()).
 		Msg("send message")
 	if req.GetFromFlow() {
@@ -91,7 +91,7 @@ func (s *chatService) SendMessage(
 			Type:           "text",
 			ConversationID: conversationID,
 			Text: null.String{
-				req.GetMessage().GetTextMessage().GetText(),
+				req.GetMessage().GetText(),
 				true,
 			},
 		}
@@ -121,13 +121,13 @@ func (s *chatService) SendMessage(
 
 	message := &models.Message{
 		Type: "text",
-		ChannelID: null.Int64{
+		ChannelID: null.String{
 			channel.ID,
 			true,
 		},
 		ConversationID: channel.ConversationID,
 		Text: null.String{
-			req.GetMessage().GetTextMessage().GetText(),
+			req.GetMessage().GetText(),
 			true,
 		},
 	}
@@ -138,10 +138,8 @@ func (s *chatService) SendMessage(
 	reqMessage := &pb.Message{
 		Id:   message.ID,
 		Type: message.Type,
-		Value: &pb.Message_TextMessage_{
-			TextMessage: &pb.Message_TextMessage{
-				Text: message.Text.String,
-			},
+		Value: &pb.Message_Text{
+			Text: message.Text.String,
 		},
 	}
 	if !channel.Internal {
@@ -214,9 +212,9 @@ func (s *chatService) CloseConversation(
 	res *pb.CloseConversationResponse,
 ) error {
 	s.log.Trace().
-		Int64("conversation_id", req.GetConversationId()).
+		Str("conversation_id", req.GetConversationId()).
 		Str("cause", req.GetCause()).
-		Int64("closer_channel_id", req.GetCloserChannelId()).
+		Str("closer_channel_id", req.GetCloserChannelId()).
 		Msg("close conversation")
 	conversationID := req.GetConversationId()
 	if req.FromFlow {
@@ -250,7 +248,7 @@ func (s *chatService) JoinConversation(
 	res *pb.JoinConversationResponse,
 ) error {
 	s.log.Trace().
-		Int64("invite_id", req.GetInviteId()).
+		Str("invite_id", req.GetInviteId()).
 		Msg("join conversation")
 	invite, err := s.repo.GetInviteByID(ctx, req.GetInviteId())
 	if err != nil {
@@ -294,8 +292,8 @@ func (s *chatService) LeaveConversation(
 	channelID := req.GetChannelId()
 	conversationID := req.GetConversationId()
 	s.log.Trace().
-		Int64("channel_id", channelID).
-		Int64("conversation_id", conversationID).
+		Str("channel_id", channelID).
+		Str("conversation_id", conversationID).
 		Msg("leave conversation")
 
 	if err := s.repo.CloseChannel(ctx, channelID); err != nil {
@@ -327,7 +325,7 @@ func (s *chatService) InviteToConversation(
 		Str("user.type", req.GetUser().GetType()).
 		Int64("user.id", req.GetUser().GetUserId()).
 		Bool("user.internal", req.GetUser().GetInternal()).
-		Int64("conversation_id", req.GetConversationId()).
+		Str("conversation_id", req.GetConversationId()).
 		Int64("domain_id", req.GetDomainId()).
 		Msg("invite to conversation")
 	domainID := req.GetDomainId()
@@ -355,9 +353,9 @@ func (s *chatService) InviteToConversation(
 				s.log.Error().Msg(err.Error())
 			} else if val != nil {
 				s.log.Trace().
-					Int64("invite_id", invite.ID).
+					Str("invite_id", invite.ID).
 					Int64("user_id", invite.UserID).
-					Int64("conversation_id", invite.ConversationID).
+					Str("conversation_id", invite.ConversationID).
 					Msg("autodecline invitation")
 				if err := s.flowClient.BreakBridge(req.GetConversationId(), flow.TimeoutCause); err != nil {
 					s.log.Error().Msg(err.Error())
@@ -384,8 +382,8 @@ func (s *chatService) DeclineInvitation(
 	userID := req.GetUserId()
 	conversationID := req.GetConversationId()
 	s.log.Trace().
-		Int64("invite_id", req.GetInviteId()).
-		Int64("conversation_id", conversationID).
+		Str("invite_id", req.GetInviteId()).
+		Str("conversation_id", conversationID).
 		Int64("user_id", userID).
 		Msg("decline invitation")
 	invite, err := s.repo.GetInviteByID(ctx, req.GetInviteId())
@@ -411,7 +409,7 @@ func (s *chatService) DeclineInvitation(
 
 func (s *chatService) WaitMessage(ctx context.Context, req *pb.WaitMessageRequest, res *pb.WaitMessageResponse) error {
 	s.log.Debug().
-		Int64("conversation_id", req.GetConversationId()).
+		Str("conversation_id", req.GetConversationId()).
 		Str("confirmation_id", req.GetConfirmationId()).
 		Msg("accept confirmation")
 	// cachedMessages, err := s.chatCache.ReadCachedMessages(req.GetConversationId())
@@ -489,7 +487,7 @@ func (s *chatService) CheckSession(ctx context.Context, req *pb.CheckSessionRequ
 
 func (s *chatService) GetConversationByID(ctx context.Context, req *pb.GetConversationByIDRequest, res *pb.GetConversationByIDResponse) error {
 	s.log.Trace().
-		Int64("conversation_id", req.GetId()).
+		Str("conversation_id", req.GetId()).
 		Msg("get conversation by id")
 	if err := s.authClient.MicroAuthentication(&ctx); err != nil {
 		s.log.Error().Msg(err.Error())
@@ -506,7 +504,7 @@ func (s *chatService) GetConversationByID(ctx context.Context, req *pb.GetConver
 
 func (s *chatService) GetConversations(ctx context.Context, req *pb.GetConversationsRequest, res *pb.GetConversationsResponse) error {
 	s.log.Trace().
-		Int64("conversation_id", req.GetId()).
+		Str("conversation_id", req.GetId()).
 		Msg("get conversations")
 	if err := s.authClient.MicroAuthentication(&ctx); err != nil {
 		s.log.Error().Msg(err.Error())
@@ -679,7 +677,7 @@ func (s *chatService) GetProfileByID(ctx context.Context, req *pb.GetProfileByID
 
 func (s *chatService) GetHistoryMessages(ctx context.Context, req *pb.GetHistoryMessagesRequest, res *pb.GetHistoryMessagesResponse) error {
 	s.log.Trace().
-		Int64("conversation_id", req.GetConversationId()).
+		Str("conversation_id", req.GetConversationId()).
 		Msg("get history")
 	if err := s.authClient.MicroAuthentication(&ctx); err != nil {
 		s.log.Error().Msg(err.Error())

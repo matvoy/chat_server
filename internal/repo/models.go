@@ -5,7 +5,7 @@ import (
 )
 
 type Conversation struct {
-	ID        int64      `json:"id"`
+	ID        string     `json:"id"`
 	Title     *string    `json:"title,omitempty"`
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	ClosedAt  *time.Time `json:"closed_at,omitempty"`
@@ -15,7 +15,7 @@ type Conversation struct {
 }
 
 type Member struct {
-	ChannelID int64  `json:"channel_id"`
+	ChannelID string `json:"channel_id"`
 	UserID    int64  `json:"user_id"`
 	Username  string `json:"username"`
 	Type      string `json:"type"`

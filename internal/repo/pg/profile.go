@@ -34,7 +34,7 @@ func (repo *PgRepository) GetProfiles(ctx context.Context, id int64, size, page 
 		query = append(query, qm.Offset(int((page-1)*size)))
 	}
 	if id != 0 {
-		query = append(query, models.ConversationWhere.ID.EQ(id))
+		query = append(query, models.ProfileWhere.ID.EQ(id))
 	}
 	if fields != nil && len(fields) > 0 {
 		query = append(query, qm.Select(fields...))

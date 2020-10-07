@@ -8,6 +8,7 @@ import (
 	"github.com/matvoy/chat_server/internal/repo"
 	"github.com/matvoy/chat_server/models"
 
+	"github.com/google/uuid"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
@@ -26,7 +27,7 @@ import (
 // 	return result, nil
 // }
 
-func (r *PgRepository) GetConversationByID(ctx context.Context, id int64) (*repo.Conversation, error) {
+func (r *PgRepository) GetConversationByID(ctx context.Context, id string) (*repo.Conversation, error) {
 	c, err := models.Conversations(
 		models.ConversationWhere.ID.EQ(id),
 		qm.Load(models.ConversationRels.Channels),
@@ -77,13 +78,14 @@ func (r *PgRepository) GetConversationByID(ctx context.Context, id int64) (*repo
 }
 
 func (r *PgRepository) CreateConversation(ctx context.Context, c *models.Conversation) error {
+	c.ID = uuid.New().String()
 	if err := c.Insert(ctx, r.db, boil.Infer()); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *PgRepository) CloseConversation(ctx context.Context, id int64) error {
+func (r *PgRepository) CloseConversation(ctx context.Context, id string) error {
 	// result, err := models.Conversations(qm.Where("LOWER(session_id) like ?", strings.ToLower(sessionID)), qm.Where("closed_at is null")).
 	// 	One(ctx, repo.db)
 	result, err := models.Conversations(models.ConversationWhere.ID.EQ(id)).
@@ -103,7 +105,7 @@ func (r *PgRepository) CloseConversation(ctx context.Context, id int64) error {
 	return err
 }
 
-func (r *PgRepository) GetConversations(ctx context.Context, id int64, size, page int32, fields, sort []string, domainID int64) ([]*repo.Conversation, error) {
+func (r *PgRepository) GetConversations(ctx context.Context, id string, size, page int32, fields, sort []string, domainID int64) ([]*repo.Conversation, error) {
 	query := make([]qm.QueryMod, 0, 6)
 	query = append(query, qm.Load(models.ConversationRels.Channels))
 	if size != 0 {
@@ -114,7 +116,7 @@ func (r *PgRepository) GetConversations(ctx context.Context, id int64, size, pag
 	if page != 0 {
 		query = append(query, qm.Offset(int((page-1)*size)))
 	}
-	if id != 0 {
+	if id != "" {
 		query = append(query, models.ConversationWhere.ID.EQ(id))
 	}
 	if fields != nil && len(fields) > 0 {

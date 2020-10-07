@@ -12,13 +12,13 @@ const (
 )
 
 type BaseEvent struct {
-	ConversationID int64 `json:"conversation_id"`
-	Timestamp      int64 `json:"timestamp"`
+	ConversationID string `json:"conversation_id"`
+	Timestamp      int64  `json:"timestamp"`
 }
 
 type MessageEvent struct {
 	BaseEvent
-	FromChannelID int64 `json:"from_channel_id"`
+	FromChannelID string `json:"from_channel_id"`
 	// ToChannelID    int64  `json:"to_channel_id"`
 	MessageID int64  `json:"message_id"`
 	Type      string `json:"message_type"`
@@ -27,20 +27,20 @@ type MessageEvent struct {
 
 type CloseConversationEvent struct {
 	BaseEvent
-	FromChannelID int64 `json:"from_channel_id"`
+	FromChannelID string `json:"from_channel_id"`
 	// ToChannelID    int64  `json:"to_channel_id"`
 	Cause string `json:"cause"`
 }
 
 type JoinConversationEvent struct {
 	BaseEvent
-	JoinedChannelID int64 `json:"joined_channel_id"`
+	JoinedChannelID string `json:"joined_channel_id"`
 	// JoinedUserID    int64 `json:"joined_user_id"`
 }
 
 type LeaveConversationEvent struct {
 	BaseEvent
-	LeavedChannelID int64 `json:"leaved_channel_id"`
+	LeavedChannelID string `json:"leaved_channel_id"`
 	// LeavedUserID    int64 `json:"leaved_user_id"`
 }
 
@@ -51,11 +51,11 @@ type InviteConversationEvent struct {
 
 type UserInvitationEvent struct {
 	BaseEvent
-	InviteID int64 `json:"invite_id"`
+	InviteID string `json:"invite_id"`
 }
 
 type DeclineInvitationEvent struct {
 	BaseEvent
-	UserID   int64 `json:"user_id"`
-	InviteID int64 `json:"invite_id"`
+	UserID   int64  `json:"user_id"`
+	InviteID string `json:"invite_id"`
 }

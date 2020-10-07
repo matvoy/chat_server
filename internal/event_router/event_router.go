@@ -26,15 +26,15 @@ type eventRouter struct {
 
 type Router interface {
 	RouteCloseConversation(channel *models.Channel, cause string) error
-	RouteCloseConversationFromFlow(conversationID *int64, cause string) error
-	RouteDeclineInvite(userID, conversationID *int64) error
-	RouteInvite(conversationID, userID *int64) error
-	RouteJoinConversation(channelID, conversationID *int64) error
-	RouteLeaveConversation(channelID, conversationID *int64) error
+	RouteCloseConversationFromFlow(conversationID *string, cause string) error
+	RouteDeclineInvite(userID *int64, conversationID *string) error
+	RouteInvite(conversationID *string, userID *int64) error
+	RouteJoinConversation(channelID, conversationID *string) error
+	RouteLeaveConversation(channelID, conversationID *string) error
 	RouteMessage(channel *models.Channel, message *pb.Message) error
-	RouteMessageFromFlow(conversationID *int64, message *pb.Message) error
-	SendInviteToWebitelUser(domainID, conversationID, userID, inviteID *int64) error
-	SendDeclineInviteToWebitelUser(domainID, conversationID, userID, inviteID *int64) error
+	RouteMessageFromFlow(conversationID *string, message *pb.Message) error
+	SendInviteToWebitelUser(domainID *int64, conversationID *string, userID *int64, inviteID *string) error
+	SendDeclineInviteToWebitelUser(domainID *int64, conversationID *string, userID *int64, inviteID *string) error
 }
 
 func NewRouter(
@@ -83,10 +83,8 @@ func (e *eventRouter) RouteCloseConversation(channel *models.Channel, cause stri
 			{
 				reqMessage := &pb.Message{
 					Type: "text",
-					Value: &pb.Message_TextMessage_{
-						TextMessage: &pb.Message_TextMessage{
-							Text: cause,
-						},
+					Value: &pb.Message_Text{
+						Text: cause,
 					},
 				}
 				err = e.sendMessageToBotUser(channel, item, reqMessage)
@@ -95,10 +93,10 @@ func (e *eventRouter) RouteCloseConversation(channel *models.Channel, cause stri
 		}
 		if err != nil {
 			e.log.Warn().
-				Int64("channel_id", item.ID).
+				Str("channel_id", item.ID).
 				Bool("internal", item.Internal).
 				Int64("user_id", item.UserID).
-				Int64("conversation_id", item.ConversationID).
+				Str("conversation_id", item.ConversationID).
 				Str("type", item.Type).
 				Str("connection", item.Connection.String).
 				Msg("failed to send close conversation event to channel")
@@ -107,7 +105,7 @@ func (e *eventRouter) RouteCloseConversation(channel *models.Channel, cause stri
 	return nil
 }
 
-func (e *eventRouter) RouteCloseConversationFromFlow(conversationID *int64, cause string) error {
+func (e *eventRouter) RouteCloseConversationFromFlow(conversationID *string, cause string) error {
 	otherChannels, err := e.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, nil)
 	if err != nil {
 		return err
@@ -122,18 +120,16 @@ func (e *eventRouter) RouteCloseConversationFromFlow(conversationID *int64, caus
 				}
 				reqMessage := &pb.Message{
 					Type: "text",
-					Value: &pb.Message_TextMessage_{
-						TextMessage: &pb.Message_TextMessage{
-							Text: text,
-						},
+					Value: &pb.Message_Text{
+						Text: text,
 					},
 				}
 				if err := e.sendMessageToBotUser(nil, item, reqMessage); err != nil {
 					e.log.Warn().
-						Int64("channel_id", item.ID).
+						Str("channel_id", item.ID).
 						Bool("internal", item.Internal).
 						Int64("user_id", item.UserID).
-						Int64("conversation_id", item.ConversationID).
+						Str("conversation_id", item.ConversationID).
 						Str("type", item.Type).
 						Str("connection", item.Connection.String).
 						Msg("failed to send close conversation event to channel")
@@ -145,7 +141,7 @@ func (e *eventRouter) RouteCloseConversationFromFlow(conversationID *int64, caus
 	return nil
 }
 
-func (e *eventRouter) RouteDeclineInvite(userID, conversationID *int64) error {
+func (e *eventRouter) RouteDeclineInvite(userID *int64, conversationID *string) error {
 	otherChannels, err := e.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, nil)
 	if err != nil {
 		return err
@@ -167,10 +163,10 @@ func (e *eventRouter) RouteDeclineInvite(userID, conversationID *int64) error {
 			{
 				if err := e.sendEventToWebitelUser(nil, item, events.DeclineInvitationEventType, body); err != nil {
 					e.log.Warn().
-						Int64("channel_id", item.ID).
+						Str("channel_id", item.ID).
 						Bool("internal", item.Internal).
 						Int64("user_id", item.UserID).
-						Int64("conversation_id", item.ConversationID).
+						Str("conversation_id", item.ConversationID).
 						Str("type", item.Type).
 						Str("connection", item.Connection.String).
 						Msg("failed to send invite conversation event to channel")
@@ -182,7 +178,7 @@ func (e *eventRouter) RouteDeclineInvite(userID, conversationID *int64) error {
 	return nil
 }
 
-func (e *eventRouter) RouteInvite(conversationID, userID *int64) error {
+func (e *eventRouter) RouteInvite(conversationID *string, userID *int64) error {
 	otherChannels, err := e.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, nil)
 	if err != nil {
 		return err
@@ -206,10 +202,10 @@ func (e *eventRouter) RouteInvite(conversationID, userID *int64) error {
 			{
 				if err := e.sendEventToWebitelUser(nil, item, events.InviteConversationEventType, body); err != nil {
 					e.log.Warn().
-						Int64("channel_id", item.ID).
+						Str("channel_id", item.ID).
 						Bool("internal", item.Internal).
 						Int64("user_id", item.UserID).
-						Int64("conversation_id", item.ConversationID).
+						Str("conversation_id", item.ConversationID).
 						Str("type", item.Type).
 						Str("connection", item.Connection.String).
 						Msg("failed to send invite conversation event to channel")
@@ -221,7 +217,7 @@ func (e *eventRouter) RouteInvite(conversationID, userID *int64) error {
 	return nil
 }
 
-func (e *eventRouter) SendInviteToWebitelUser(domainID, conversationID, userID, inviteID *int64) error {
+func (e *eventRouter) SendInviteToWebitelUser(domainID *int64, conversationID *string, userID *int64, inviteID *string) error {
 	body, _ := json.Marshal(events.UserInvitationEvent{
 		BaseEvent: events.BaseEvent{
 			ConversationID: *conversationID,
@@ -241,7 +237,7 @@ func (e *eventRouter) SendInviteToWebitelUser(domainID, conversationID, userID, 
 	return nil
 }
 
-func (e *eventRouter) SendDeclineInviteToWebitelUser(domainID, conversationID, userID, inviteID *int64) error {
+func (e *eventRouter) SendDeclineInviteToWebitelUser(domainID *int64, conversationID *string, userID *int64, inviteID *string) error {
 	body, _ := json.Marshal(events.DeclineInvitationEvent{
 		BaseEvent: events.BaseEvent{
 			ConversationID: *conversationID,
@@ -262,7 +258,7 @@ func (e *eventRouter) SendDeclineInviteToWebitelUser(domainID, conversationID, u
 	return nil
 }
 
-func (e *eventRouter) RouteJoinConversation(channelID, conversationID *int64) error {
+func (e *eventRouter) RouteJoinConversation(channelID, conversationID *string) error {
 	otherChannels, err := e.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, channelID)
 	if err != nil {
 		return err
@@ -283,10 +279,10 @@ func (e *eventRouter) RouteJoinConversation(channelID, conversationID *int64) er
 			{
 				if err := e.sendEventToWebitelUser(nil, item, events.JoinConversationEventType, body); err != nil {
 					e.log.Warn().
-						Int64("channel_id", item.ID).
+						Str("channel_id", item.ID).
 						Bool("internal", item.Internal).
 						Int64("user_id", item.UserID).
-						Int64("conversation_id", item.ConversationID).
+						Str("conversation_id", item.ConversationID).
 						Str("type", item.Type).
 						Str("connection", item.Connection.String).
 						Msg("failed to send join conversation event to channel")
@@ -298,7 +294,7 @@ func (e *eventRouter) RouteJoinConversation(channelID, conversationID *int64) er
 	return nil
 }
 
-func (e *eventRouter) RouteLeaveConversation(channelID, conversationID *int64) error {
+func (e *eventRouter) RouteLeaveConversation(channelID, conversationID *string) error {
 	otherChannels, err := e.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, channelID)
 	if err != nil {
 		return err
@@ -319,10 +315,10 @@ func (e *eventRouter) RouteLeaveConversation(channelID, conversationID *int64) e
 			{
 				if err := e.sendEventToWebitelUser(nil, item, events.JoinConversationEventType, body); err != nil {
 					e.log.Warn().
-						Int64("channel_id", item.ID).
+						Str("channel_id", item.ID).
 						Bool("internal", item.Internal).
 						Int64("user_id", item.UserID).
-						Int64("conversation_id", item.ConversationID).
+						Str("conversation_id", item.ConversationID).
 						Str("type", item.Type).
 						Str("connection", item.Connection.String).
 						Msg("failed to send leave conversation event to channel")
@@ -354,7 +350,7 @@ func (e *eventRouter) RouteMessage(channel *models.Channel, message *pb.Message)
 		// ToChannelID:    item.ID,
 		MessageID: message.Id,
 		Type:      message.Type,
-		Value:     []byte(message.GetTextMessage().GetText()),
+		Value:     []byte(message.GetText()),
 	})
 	for _, item := range otherChannels {
 		var err error
@@ -371,10 +367,10 @@ func (e *eventRouter) RouteMessage(channel *models.Channel, message *pb.Message)
 		}
 		if err != nil {
 			e.log.Warn().
-				Int64("channel_id", item.ID).
+				Str("channel_id", item.ID).
 				Bool("internal", item.Internal).
 				Int64("user_id", item.UserID).
-				Int64("conversation_id", item.ConversationID).
+				Str("conversation_id", item.ConversationID).
 				Str("type", item.Type).
 				Str("connection", item.Connection.String).
 				Msg("failed to send message to channel")
@@ -383,7 +379,7 @@ func (e *eventRouter) RouteMessage(channel *models.Channel, message *pb.Message)
 	return nil
 }
 
-func (e *eventRouter) RouteMessageFromFlow(conversationID *int64, message *pb.Message) error {
+func (e *eventRouter) RouteMessageFromFlow(conversationID *string, message *pb.Message) error {
 	otherChannels, err := e.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, nil)
 	if err != nil {
 		return err
@@ -403,10 +399,10 @@ func (e *eventRouter) RouteMessageFromFlow(conversationID *int64, message *pb.Me
 		}
 		if err != nil {
 			e.log.Error().
-				Int64("channel_id", item.ID).
+				Str("channel_id", item.ID).
 				Bool("internal", item.Internal).
 				Int64("user_id", item.UserID).
-				Int64("conversation_id", item.ConversationID).
+				Str("conversation_id", item.ConversationID).
 				Str("type", item.Type).
 				Str("connection", item.Connection.String).
 				Msg(err.Error())

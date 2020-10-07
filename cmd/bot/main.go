@@ -131,7 +131,7 @@ func NewLogger(logLevel string) (*zerolog.Logger, error) {
 		return nil, err
 	}
 
-	l := zerolog.New(os.Stdout)
+	l := zerolog.New(os.Stdout).With().Timestamp().Logger()
 	l = l.Level(lvl)
 
 	return &l, nil

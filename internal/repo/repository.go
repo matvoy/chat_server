@@ -21,20 +21,20 @@ type Repository interface {
 	WithTransaction(txFunc func(*sql.Tx) error) (err error)
 	CreateConversationTx(ctx context.Context, tx boil.ContextExecutor, c *models.Conversation) error
 	CreateMessageTx(ctx context.Context, tx boil.ContextExecutor, m *models.Message) error
-	GetChannelByIDTx(ctx context.Context, tx boil.ContextExecutor, id int64) (*models.Channel, error)
+	GetChannelByIDTx(ctx context.Context, tx boil.ContextExecutor, id string) (*models.Channel, error)
 	GetChannelsTx(
 		ctx context.Context,
 		tx boil.ContextExecutor,
 		userID *int64,
-		conversationID *int64,
+		conversationID *string,
 		connection *string,
 		internal *bool,
-		exceptID *int64,
+		exceptID *string,
 	) ([]*models.Channel, error)
-	CloseChannelTx(ctx context.Context, tx boil.ContextExecutor, id int64) error
+	CloseChannelTx(ctx context.Context, tx boil.ContextExecutor, id string) error
 	CreateChannelTx(ctx context.Context, tx boil.ContextExecutor, c *models.Channel) error
-	CloseChannelsTx(ctx context.Context, tx boil.ContextExecutor, conversationID int64) error
-	DeleteInviteTx(ctx context.Context, tx boil.ContextExecutor, inviteID int64) error
+	CloseChannelsTx(ctx context.Context, tx boil.ContextExecutor, conversationID string) error
+	DeleteInviteTx(ctx context.Context, tx boil.ContextExecutor, inviteID string) error
 }
 
 type ProfileRepository interface {
@@ -46,25 +46,25 @@ type ProfileRepository interface {
 }
 
 type ConversationRepository interface {
-	CloseConversation(ctx context.Context, id int64) error
-	GetConversations(ctx context.Context, id int64, size, page int32, fields, sort []string, domainID int64) ([]*Conversation, error)
+	CloseConversation(ctx context.Context, id string) error
+	GetConversations(ctx context.Context, id string, size, page int32, fields, sort []string, domainID int64) ([]*Conversation, error)
 	CreateConversation(ctx context.Context, c *models.Conversation) error
-	GetConversationByID(ctx context.Context, id int64) (*Conversation, error)
+	GetConversationByID(ctx context.Context, id string) (*Conversation, error)
 }
 
 type ChannelRepository interface {
-	CloseChannel(ctx context.Context, id int64) error
-	CloseChannels(ctx context.Context, conversationID int64) error
+	CloseChannel(ctx context.Context, id string) error
+	CloseChannels(ctx context.Context, conversationID string) error
 	GetChannels(
 		ctx context.Context,
 		userID *int64,
-		conversationID *int64,
+		conversationID *string,
 		connection *string,
 		internal *bool,
-		exceptID *int64,
+		exceptID *string,
 	) ([]*models.Channel, error)
 	CreateChannel(ctx context.Context, c *models.Channel) error
-	GetChannelByID(ctx context.Context, id int64) (*models.Channel, error)
+	GetChannelByID(ctx context.Context, id string) (*models.Channel, error)
 }
 
 type ClientRepository interface {
@@ -76,11 +76,11 @@ type ClientRepository interface {
 
 type InviteRepository interface {
 	CreateInvite(ctx context.Context, m *models.Invite) error
-	DeleteInvite(ctx context.Context, inviteID int64) error
-	GetInviteByID(ctx context.Context, id int64) (*models.Invite, error)
+	DeleteInvite(ctx context.Context, inviteID string) error
+	GetInviteByID(ctx context.Context, id string) (*models.Invite, error)
 }
 
 type MessageRepository interface {
 	CreateMessage(ctx context.Context, m *models.Message) error
-	GetMessages(ctx context.Context, id int64, size, page int32, fields, sort []string, conversationID int64) ([]*models.Message, error)
+	GetMessages(ctx context.Context, id int64, size, page int32, fields, sort []string, conversationID string) ([]*models.Message, error)
 }

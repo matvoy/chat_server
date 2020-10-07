@@ -96,7 +96,7 @@ func (b *botService) sendMessageTelegram(req *pb.SendMessageRequest) error {
 	if err != nil {
 		return err
 	}
-	msg := tgbotapi.NewMessage(id, req.GetMessage().GetTextMessage().GetText())
+	msg := tgbotapi.NewMessage(id, req.GetMessage().GetText())
 	// msg.ReplyToMessageID = update.Message.MessageID
 	_, err = b.telegramBots[req.ProfileId].Send(msg)
 	if err != nil {
@@ -115,16 +115,6 @@ func (b *botService) TelegramWebhookHandler(w http.ResponseWriter, r *http.Reque
 	update := &telegramBody{}
 	if err := json.NewDecoder(r.Body).Decode(update); err != nil {
 		log.Error().Msgf("could not decode request body: %s", err)
-		return
-	}
-	if update.Message.Photo != nil {
-		file, err := b.telegramBots[profileID].GetFileDirectURL(
-			update.Message.Photo[len(update.Message.Photo)-1].FileID,
-		)
-		if err != nil {
-			return
-		}
-		fmt.Println(file)
 		return
 	}
 
@@ -189,19 +179,51 @@ func (b *botService) TelegramWebhookHandler(w http.ResponseWriter, r *http.Reque
 		// 	}
 		// }
 	} else {
-		textMessage := &pbchat.Message{
-			Type: "text",
-			Value: &pbchat.Message_TextMessage_{
-				TextMessage: &pbchat.Message_TextMessage{
-					Text: update.Message.Text,
-				},
-			},
-		}
 		message := &pbchat.SendMessageRequest{
-			Message:   textMessage,
+			// Message:   textMessage,
 			ChannelId: resCheck.ChannelId,
 			FromFlow:  false,
 		}
+		// if update.Message.Photo != nil {
+		// 	fileURL, err := b.telegramBots[profileID].GetFileDirectURL(
+		// 		update.Message.Photo[len(update.Message.Photo)-1].FileID,
+		// 	)
+		// 	if err != nil {
+		// 		log.Error().Msg(err.Error())
+		// 		return
+		// 	}
+		// 	fileRes, err := http.Get(fileURL)
+		// 	if err != nil {
+		// 		log.Error().Msg(err.Error())
+		// 		return
+		// 	}
+		// 	defer fileRes.Body.Close()
+		// 	if fileRes.StatusCode != 200 {
+		// 		log.Error().Int("status", fileRes.StatusCode).Msgf("failed to download image")
+		// 		return
+		// 	}
+		// 	f, err := ioutil.ReadAll(fileRes.Body)
+		// 	// m, _, err := image.Decode(fileRes.Body)
+		// 	// if err != nil {
+		// 	// 	log.Error().Msg(err.Error())
+		// 	// 	return
+		// 	// }
+		// 	fileMessage := &pbchat.Message{
+		// 		Type: "text",
+		// 		Value: &pbchat.Message_Text{
+		// 			Text: update.Message.Text,
+		// 		},
+		// 	}
+		// } else {
+		textMessage := &pbchat.Message{
+			Type: "text",
+			Value: &pbchat.Message_Text{
+				Text: update.Message.Text,
+			},
+		}
+		message.Message = textMessage
+		// }
+
 		_, err := b.client.SendMessage(context.Background(), message)
 		if err != nil {
 			b.log.Error().Msg(err.Error())

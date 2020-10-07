@@ -31,10 +31,10 @@ func (c BreakBridgeCause) String() string {
 }
 
 type Client interface {
-	SendMessage(conversationID int64, message *pb.Message) error
-	Init(conversationID, profileID, domainID int64, message *pb.Message) error
-	BreakBridge(conversationID int64, cause BreakBridgeCause) error
-	CloseConversation(conversationID int64) error
+	SendMessage(conversationID string, message *pb.Message) error
+	Init(conversationID string, profileID, domainID int64, message *pb.Message) error
+	BreakBridge(conversationID string, cause BreakBridgeCause) error
+	CloseConversation(conversationID string) error
 }
 
 type flowClient struct {
@@ -55,7 +55,7 @@ func NewClient(
 	}
 }
 
-func (s *flowClient) SendMessage(conversationID int64, message *pb.Message) error {
+func (s *flowClient) SendMessage(conversationID string, message *pb.Message) error {
 	confirmationID, err := s.chatCache.ReadConfirmation(conversationID)
 	if err != nil {
 		return err
@@ -64,17 +64,15 @@ func (s *flowClient) SendMessage(conversationID int64, message *pb.Message) erro
 		return nil
 	}
 	s.log.Debug().
-		Int64("conversation_id", conversationID).
+		Str("conversation_id", conversationID).
 		Str("confirmation_id", string(confirmationID)).
 		Msg("send confirmed messages")
 	messages := []*pbmanager.Message{
 		{
 			Id:   message.GetId(),
 			Type: message.GetType(),
-			Value: &pbmanager.Message_TextMessage_{
-				TextMessage: &pbmanager.Message_TextMessage{
-					Text: message.GetTextMessage().GetText(),
-				},
+			Value: &pbmanager.Message_Text{
+				Text: message.GetText(),
 			},
 		},
 	}
@@ -127,9 +125,9 @@ func (s *flowClient) SendMessage(conversationID int64, message *pb.Message) erro
 	// return nil
 }
 
-func (s *flowClient) Init(conversationID, profileID, domainID int64, message *pb.Message) error {
+func (s *flowClient) Init(conversationID string, profileID, domainID int64, message *pb.Message) error {
 	s.log.Debug().
-		Int64("conversation_id", conversationID).
+		Str("conversation_id", conversationID).
 		Int64("profile_id", profileID).
 		Int64("domain_id", domainID).
 		Msg("init conversation")
@@ -140,10 +138,8 @@ func (s *flowClient) Init(conversationID, profileID, domainID int64, message *pb
 		Message: &pbmanager.Message{
 			Id:   message.GetId(),
 			Type: message.GetType(),
-			Value: &pbmanager.Message_TextMessage_{
-				TextMessage: &pbmanager.Message_TextMessage{
-					Text: "start", //req.GetMessage().GetTextMessage().GetText(),
-				},
+			Value: &pbmanager.Message_Text{
+				Text: "start", //req.GetMessage().GetTextMessage().GetText(),
 			},
 		},
 	}
@@ -165,7 +161,7 @@ func (s *flowClient) Init(conversationID, profileID, domainID int64, message *pb
 	return nil
 }
 
-func (s *flowClient) CloseConversation(conversationID int64) error {
+func (s *flowClient) CloseConversation(conversationID string) error {
 	nodeID, err := s.chatCache.ReadConversationNode(conversationID)
 	if err != nil {
 		return err
@@ -191,7 +187,7 @@ func (s *flowClient) CloseConversation(conversationID int64) error {
 	return nil
 }
 
-func (s *flowClient) BreakBridge(conversationID int64, cause BreakBridgeCause) error {
+func (s *flowClient) BreakBridge(conversationID string, cause BreakBridgeCause) error {
 	nodeID, err := s.chatCache.ReadConversationNode(conversationID)
 	if err != nil {
 		return err
@@ -215,7 +211,7 @@ func (s *flowClient) BreakBridge(conversationID int64, cause BreakBridgeCause) e
 	return nil
 }
 
-func (s *flowClient) initCallWrapper(conversationID int64) func(client.CallFunc) client.CallFunc {
+func (s *flowClient) initCallWrapper(conversationID string) func(client.CallFunc) client.CallFunc {
 	return func(next client.CallFunc) client.CallFunc {
 		return func(ctx context.Context, node *registry.Node, req client.Request, rsp interface{}, opts client.CallOptions) error {
 			s.log.Trace().

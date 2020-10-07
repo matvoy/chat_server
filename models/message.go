@@ -25,8 +25,8 @@ import (
 // Message is an object representing the database table.
 type Message struct {
 	ID             int64       `boil:"id" json:"id" toml:"id" yaml:"id"`
-	ChannelID      null.Int64  `boil:"channel_id" json:"channel_id,omitempty" toml:"channel_id" yaml:"channel_id,omitempty"`
-	ConversationID int64       `boil:"conversation_id" json:"conversation_id" toml:"conversation_id" yaml:"conversation_id"`
+	ChannelID      null.String `boil:"channel_id" json:"channel_id,omitempty" toml:"channel_id" yaml:"channel_id,omitempty"`
+	ConversationID string      `boil:"conversation_id" json:"conversation_id" toml:"conversation_id" yaml:"conversation_id"`
 	Text           null.String `boil:"text" json:"text,omitempty" toml:"text" yaml:"text,omitempty"`
 	CreatedAt      null.Time   `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
 	UpdatedAt      null.Time   `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
@@ -56,41 +56,18 @@ var MessageColumns = struct {
 
 // Generated where
 
-type whereHelpernull_Int64 struct{ field string }
-
-func (w whereHelpernull_Int64) EQ(x null.Int64) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, false, x)
-}
-func (w whereHelpernull_Int64) NEQ(x null.Int64) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, true, x)
-}
-func (w whereHelpernull_Int64) IsNull() qm.QueryMod    { return qmhelper.WhereIsNull(w.field) }
-func (w whereHelpernull_Int64) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
-func (w whereHelpernull_Int64) LT(x null.Int64) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LT, x)
-}
-func (w whereHelpernull_Int64) LTE(x null.Int64) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LTE, x)
-}
-func (w whereHelpernull_Int64) GT(x null.Int64) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GT, x)
-}
-func (w whereHelpernull_Int64) GTE(x null.Int64) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GTE, x)
-}
-
 var MessageWhere = struct {
 	ID             whereHelperint64
-	ChannelID      whereHelpernull_Int64
-	ConversationID whereHelperint64
+	ChannelID      whereHelpernull_String
+	ConversationID whereHelperstring
 	Text           whereHelpernull_String
 	CreatedAt      whereHelpernull_Time
 	UpdatedAt      whereHelpernull_Time
 	Type           whereHelperstring
 }{
 	ID:             whereHelperint64{field: "\"chat\".\"message\".\"id\""},
-	ChannelID:      whereHelpernull_Int64{field: "\"chat\".\"message\".\"channel_id\""},
-	ConversationID: whereHelperint64{field: "\"chat\".\"message\".\"conversation_id\""},
+	ChannelID:      whereHelpernull_String{field: "\"chat\".\"message\".\"channel_id\""},
+	ConversationID: whereHelperstring{field: "\"chat\".\"message\".\"conversation_id\""},
 	Text:           whereHelpernull_String{field: "\"chat\".\"message\".\"text\""},
 	CreatedAt:      whereHelpernull_Time{field: "\"chat\".\"message\".\"created_at\""},
 	UpdatedAt:      whereHelpernull_Time{field: "\"chat\".\"message\".\"updated_at\""},

@@ -34,12 +34,16 @@ message Message {
   int64 id = 1;
   string type = 2;
 
-  message TextMessage {
-      string text = 1;
+  message File {
+    int64 id = 1;
+    string url = 2;
+    string mime_type = 3;
   }
 
+
   oneof value {
-      TextMessage text_message = 3;
+      string text = 3;
+      File file = 4;
   }
 }
 
@@ -53,7 +57,7 @@ message Profile {
 }
 
 message Conversation {
-  int64 id = 1;
+  string id = 1;
   string title = 2;
   int64 created_at = 3;
   int64 closed_at = 4;
@@ -63,7 +67,7 @@ message Conversation {
 }
 
 message Member {
-  int64 channel_id = 1;
+  string channel_id = 1;
   int64 user_id = 2;  
   string type = 3;
   string username = 4;
@@ -74,7 +78,7 @@ message Member {
 }
 
 message Channel {
-  int64 id = 1;
+  string id = 1;
   string type = 2;
   int64 created_at = 3;
   int64 closed_at = 4;
@@ -94,7 +98,7 @@ message User {
 
 message HistoryMessage {
   int64 id = 1;
-  int64 channel_id = 2;
+  string channel_id = 2;
   // int64 conversation_id = 3;
   string text = 4;
   string type = 5;
@@ -103,7 +107,7 @@ message HistoryMessage {
 }
 
 message WaitMessageRequest {
-  int64 conversation_id = 1;
+  string conversation_id = 1;
   string confirmation_id = 2;
 }
 
@@ -121,16 +125,16 @@ message CheckSessionRequest {
 
 message CheckSessionResponse {
   bool exists = 1;
-  int64 channel_id = 2;
+  string channel_id = 2;
   int64 client_id = 3;
 }
 
 message SendMessageRequest {
   // User from = 1;
   Message message = 1;
-  int64 channel_id = 2;
+  string channel_id = 2;
   bool from_flow = 3;
-  int64 conversation_id = 4;
+  string conversation_id = 4;
 }
 
 message SendMessageResponse {
@@ -142,13 +146,13 @@ message StartConversationRequest {
 }
 
 message StartConversationResponse {
-  int64 conversation_id = 1;
-  int64 channel_id = 2;
+  string conversation_id = 1;
+  string channel_id = 2;
 }
 
 message CloseConversationRequest {
-  int64 conversation_id = 1;
-  int64 closer_channel_id = 2;
+  string conversation_id = 1;
+  string closer_channel_id = 2;
   bool from_flow = 3;
   string cause = 4;
 }
@@ -157,18 +161,18 @@ message CloseConversationResponse {
 }
 
 message JoinConversationRequest {
-  int64 invite_id = 1;
+  string invite_id = 1;
   // User user = 1;
   // int64 conversation_id = 2;
 }
 
 message JoinConversationResponse {
-  int64 channel_id = 1;
+  string channel_id = 1;
 }
 
 message LeaveConversationRequest {
-  int64 channel_id = 1;
-  int64 conversation_id = 2;
+  string channel_id = 1;
+  string conversation_id = 2;
 }
 
 message LeaveConversationResponse {
@@ -176,20 +180,20 @@ message LeaveConversationResponse {
 
 message InviteToConversationRequest {
   User user = 1;
-  int64 conversation_id = 2;
-  int64 inviter_channel_id = 3;
+  string conversation_id = 2;
+  string inviter_channel_id = 3;
   int64 timeout_sec = 4;
   int64 domain_id = 5;
 }
 
 message InviteToConversationResponse {
-  int64 invite_id = 1;
+  string invite_id = 1;
 }
 
 message DeclineInvitationRequest {
-  int64 invite_id = 1;
+  string invite_id = 1;
   int64 user_id = 2;
-  int64 conversation_id = 3;
+  string conversation_id = 3;
 }
 
 message DeclineInvitationResponse {
@@ -248,7 +252,7 @@ message UpdateProfileResponse {
 }
 
 message GetConversationByIDRequest {
-  int64 id = 1;
+  string id = 1;
 }
 
 message GetConversationByIDResponse {
@@ -257,7 +261,7 @@ message GetConversationByIDResponse {
 
 message GetConversationsRequest {
   // ----- Base Filters ---------------------------
-  int64 id = 1;
+  string id = 1;
   // ----- Object-Specific Filters ------------------
   int64 domain_id = 3;
   // ----- Search Options -------------------------
@@ -277,7 +281,7 @@ message GetHistoryMessagesRequest {
   // ----- Base Filters ---------------------------
   int64 id = 1;
   // ----- Object-Specific Filters ------------------
-  int64 conversation_id = 2;
+  string conversation_id = 2;
   // ----- Search Options -------------------------
   repeated string fields = 4; // select: output (fields,...)
   repeated string sort = 5;   // select: order by (fields,...)

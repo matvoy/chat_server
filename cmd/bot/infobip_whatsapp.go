@@ -198,7 +198,7 @@ func (b *botService) sendMessageInfobipWA(req *pb.SendMessageRequest) error {
 	body, err := json.Marshal(SendMessageWARequest{
 		ScenarioKey: profile.scenarioKey,
 		WhatsApp: &WhatsAppMessage{
-			Text: "webitel " + req.GetMessage().GetTextMessage().GetText(),
+			Text: "webitel " + req.GetMessage().GetText(),
 		},
 		Destinations: []*Destination{{
 			To: &NumberDestination{
@@ -284,10 +284,8 @@ func (b *botService) InfobipWAWebhookHandler(w http.ResponseWriter, r *http.Requ
 	} else {
 		textMessage := &pbchat.Message{
 			Type: strings.ToLower(update.Results[0].Message.Type),
-			Value: &pbchat.Message_TextMessage_{
-				TextMessage: &pbchat.Message_TextMessage{
-					Text: strings.TrimPrefix(update.Results[0].Message.Text, "webitel "),
-				},
+			Value: &pbchat.Message_Text{
+				Text: strings.TrimPrefix(update.Results[0].Message.Text, "webitel "),
 			},
 		}
 		message := &pbchat.SendMessageRequest{

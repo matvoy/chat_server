@@ -24,9 +24,9 @@ import (
 
 // Channel is an object representing the database table.
 type Channel struct {
-	ID             int64       `boil:"id" json:"id" toml:"id" yaml:"id"`
+	ID             string      `boil:"id" json:"id" toml:"id" yaml:"id"`
 	Type           string      `boil:"type" json:"type" toml:"type" yaml:"type"`
-	ConversationID int64       `boil:"conversation_id" json:"conversation_id" toml:"conversation_id" yaml:"conversation_id"`
+	ConversationID string      `boil:"conversation_id" json:"conversation_id" toml:"conversation_id" yaml:"conversation_id"`
 	UserID         int64       `boil:"user_id" json:"user_id" toml:"user_id" yaml:"user_id"`
 	Connection     null.String `boil:"connection" json:"connection,omitempty" toml:"connection" yaml:"connection,omitempty"`
 	CreatedAt      null.Time   `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
@@ -62,29 +62,6 @@ var ChannelColumns = struct {
 
 // Generated where
 
-type whereHelperint64 struct{ field string }
-
-func (w whereHelperint64) EQ(x int64) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.EQ, x) }
-func (w whereHelperint64) NEQ(x int64) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.NEQ, x) }
-func (w whereHelperint64) LT(x int64) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.LT, x) }
-func (w whereHelperint64) LTE(x int64) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.LTE, x) }
-func (w whereHelperint64) GT(x int64) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.GT, x) }
-func (w whereHelperint64) GTE(x int64) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.GTE, x) }
-func (w whereHelperint64) IN(slice []int64) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereIn(fmt.Sprintf("%s IN ?", w.field), values...)
-}
-func (w whereHelperint64) NIN(slice []int64) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereNotIn(fmt.Sprintf("%s NOT IN ?", w.field), values...)
-}
-
 type whereHelperstring struct{ field string }
 
 func (w whereHelperstring) EQ(x string) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.EQ, x) }
@@ -101,6 +78,29 @@ func (w whereHelperstring) IN(slice []string) qm.QueryMod {
 	return qm.WhereIn(fmt.Sprintf("%s IN ?", w.field), values...)
 }
 func (w whereHelperstring) NIN(slice []string) qm.QueryMod {
+	values := make([]interface{}, 0, len(slice))
+	for _, value := range slice {
+		values = append(values, value)
+	}
+	return qm.WhereNotIn(fmt.Sprintf("%s NOT IN ?", w.field), values...)
+}
+
+type whereHelperint64 struct{ field string }
+
+func (w whereHelperint64) EQ(x int64) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.EQ, x) }
+func (w whereHelperint64) NEQ(x int64) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.NEQ, x) }
+func (w whereHelperint64) LT(x int64) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.LT, x) }
+func (w whereHelperint64) LTE(x int64) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.LTE, x) }
+func (w whereHelperint64) GT(x int64) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.GT, x) }
+func (w whereHelperint64) GTE(x int64) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.GTE, x) }
+func (w whereHelperint64) IN(slice []int64) qm.QueryMod {
+	values := make([]interface{}, 0, len(slice))
+	for _, value := range slice {
+		values = append(values, value)
+	}
+	return qm.WhereIn(fmt.Sprintf("%s IN ?", w.field), values...)
+}
+func (w whereHelperint64) NIN(slice []int64) qm.QueryMod {
 	values := make([]interface{}, 0, len(slice))
 	for _, value := range slice {
 		values = append(values, value)
@@ -164,9 +164,9 @@ func (w whereHelperbool) GT(x bool) qm.QueryMod  { return qmhelper.Where(w.field
 func (w whereHelperbool) GTE(x bool) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.GTE, x) }
 
 var ChannelWhere = struct {
-	ID             whereHelperint64
+	ID             whereHelperstring
 	Type           whereHelperstring
-	ConversationID whereHelperint64
+	ConversationID whereHelperstring
 	UserID         whereHelperint64
 	Connection     whereHelpernull_String
 	CreatedAt      whereHelpernull_Time
@@ -174,9 +174,9 @@ var ChannelWhere = struct {
 	ClosedAt       whereHelpernull_Time
 	DomainID       whereHelperint64
 }{
-	ID:             whereHelperint64{field: "\"chat\".\"channel\".\"id\""},
+	ID:             whereHelperstring{field: "\"chat\".\"channel\".\"id\""},
 	Type:           whereHelperstring{field: "\"chat\".\"channel\".\"type\""},
-	ConversationID: whereHelperint64{field: "\"chat\".\"channel\".\"conversation_id\""},
+	ConversationID: whereHelperstring{field: "\"chat\".\"channel\".\"conversation_id\""},
 	UserID:         whereHelperint64{field: "\"chat\".\"channel\".\"user_id\""},
 	Connection:     whereHelpernull_String{field: "\"chat\".\"channel\".\"connection\""},
 	CreatedAt:      whereHelpernull_Time{field: "\"chat\".\"channel\".\"created_at\""},
@@ -210,8 +210,8 @@ type channelL struct{}
 
 var (
 	channelAllColumns            = []string{"id", "type", "conversation_id", "user_id", "connection", "created_at", "internal", "closed_at", "domain_id"}
-	channelColumnsWithoutDefault = []string{"type", "conversation_id", "user_id", "connection", "created_at", "internal", "closed_at", "domain_id"}
-	channelColumnsWithDefault    = []string{"id"}
+	channelColumnsWithoutDefault = []string{"id", "type", "conversation_id", "user_id", "connection", "created_at", "internal", "closed_at", "domain_id"}
+	channelColumnsWithDefault    = []string{}
 	channelPrimaryKeyColumns     = []string{"id"}
 )
 
@@ -905,7 +905,7 @@ func Channels(mods ...qm.QueryMod) channelQuery {
 
 // FindChannel retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindChannel(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCols ...string) (*Channel, error) {
+func FindChannel(ctx context.Context, exec boil.ContextExecutor, iD string, selectCols ...string) (*Channel, error) {
 	channelObj := &Channel{}
 
 	sel := "*"
@@ -1413,7 +1413,7 @@ func (o *ChannelSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor)
 }
 
 // ChannelExists checks if the Channel row exists.
-func ChannelExists(ctx context.Context, exec boil.ContextExecutor, iD int64) (bool, error) {
+func ChannelExists(ctx context.Context, exec boil.ContextExecutor, iD string) (bool, error) {
 	var exists bool
 	sql := "select exists(select 1 from \"chat\".\"channel\" where \"id\"=$1 limit 1)"
 

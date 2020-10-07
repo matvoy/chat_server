@@ -24,8 +24,8 @@ import (
 
 // Invite is an object representing the database table.
 type Invite struct {
-	ID             int64       `boil:"id" json:"id" toml:"id" yaml:"id"`
-	ConversationID int64       `boil:"conversation_id" json:"conversation_id" toml:"conversation_id" yaml:"conversation_id"`
+	ID             string      `boil:"id" json:"id" toml:"id" yaml:"id"`
+	ConversationID string      `boil:"conversation_id" json:"conversation_id" toml:"conversation_id" yaml:"conversation_id"`
 	UserID         int64       `boil:"user_id" json:"user_id" toml:"user_id" yaml:"user_id"`
 	Title          null.String `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
 	TimeoutSec     int64       `boil:"timeout_sec" json:"timeout_sec" toml:"timeout_sec" yaml:"timeout_sec"`
@@ -51,14 +51,14 @@ var InviteColumns = struct {
 // Generated where
 
 var InviteWhere = struct {
-	ID             whereHelperint64
-	ConversationID whereHelperint64
+	ID             whereHelperstring
+	ConversationID whereHelperstring
 	UserID         whereHelperint64
 	Title          whereHelpernull_String
 	TimeoutSec     whereHelperint64
 }{
-	ID:             whereHelperint64{field: "\"chat\".\"invite\".\"id\""},
-	ConversationID: whereHelperint64{field: "\"chat\".\"invite\".\"conversation_id\""},
+	ID:             whereHelperstring{field: "\"chat\".\"invite\".\"id\""},
+	ConversationID: whereHelperstring{field: "\"chat\".\"invite\".\"conversation_id\""},
 	UserID:         whereHelperint64{field: "\"chat\".\"invite\".\"user_id\""},
 	Title:          whereHelpernull_String{field: "\"chat\".\"invite\".\"title\""},
 	TimeoutSec:     whereHelperint64{field: "\"chat\".\"invite\".\"timeout_sec\""},
@@ -86,8 +86,8 @@ type inviteL struct{}
 
 var (
 	inviteAllColumns            = []string{"id", "conversation_id", "user_id", "title", "timeout_sec"}
-	inviteColumnsWithoutDefault = []string{"conversation_id", "user_id", "title"}
-	inviteColumnsWithDefault    = []string{"id", "timeout_sec"}
+	inviteColumnsWithoutDefault = []string{"id", "conversation_id", "user_id", "title"}
+	inviteColumnsWithDefault    = []string{"timeout_sec"}
 	invitePrimaryKeyColumns     = []string{"id"}
 )
 
@@ -539,7 +539,7 @@ func Invites(mods ...qm.QueryMod) inviteQuery {
 
 // FindInvite retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindInvite(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCols ...string) (*Invite, error) {
+func FindInvite(ctx context.Context, exec boil.ContextExecutor, iD string, selectCols ...string) (*Invite, error) {
 	inviteObj := &Invite{}
 
 	sel := "*"
@@ -1033,7 +1033,7 @@ func (o *InviteSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) 
 }
 
 // InviteExists checks if the Invite row exists.
-func InviteExists(ctx context.Context, exec boil.ContextExecutor, iD int64) (bool, error) {
+func InviteExists(ctx context.Context, exec boil.ContextExecutor, iD string) (bool, error) {
 	var exists bool
 	sql := "select exists(select 1 from \"chat\".\"invite\" where \"id\"=$1 limit 1)"
 

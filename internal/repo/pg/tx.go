@@ -44,7 +44,7 @@ func (repo *PgRepository) CreateMessageTx(ctx context.Context, tx boil.ContextEx
 	return nil
 }
 
-func (repo *PgRepository) GetChannelByIDTx(ctx context.Context, tx boil.ContextExecutor, id int64) (*models.Channel, error) {
+func (repo *PgRepository) GetChannelByIDTx(ctx context.Context, tx boil.ContextExecutor, id string) (*models.Channel, error) {
 	result, err := models.Channels(
 		models.ChannelWhere.ID.EQ(id),
 		qm.Load(models.ChannelRels.Conversation),
@@ -64,10 +64,10 @@ func (repo *PgRepository) GetChannelsTx(
 	ctx context.Context,
 	tx boil.ContextExecutor,
 	userID *int64,
-	conversationID *int64,
+	conversationID *string,
 	connection *string,
 	internal *bool,
-	exceptID *int64,
+	exceptID *string,
 ) ([]*models.Channel, error) {
 	query := make([]qm.QueryMod, 0, 6)
 	query = append(query, models.ChannelWhere.ClosedAt.IsNull())
@@ -97,7 +97,7 @@ func (repo *PgRepository) GetChannelsTx(
 func (repo *PgRepository) CloseChannelTx(
 	ctx context.Context,
 	tx boil.ContextExecutor,
-	id int64) error {
+	id string) error {
 	result, err := models.Channels(models.ChannelWhere.ID.EQ(id)).
 		One(ctx, tx)
 	if err != nil {
@@ -125,7 +125,7 @@ func (repo *PgRepository) CreateChannelTx(
 	return nil
 }
 
-func (repo *PgRepository) CloseChannelsTx(ctx context.Context, tx boil.ContextExecutor, conversationID int64) error {
+func (repo *PgRepository) CloseChannelsTx(ctx context.Context, tx boil.ContextExecutor, conversationID string) error {
 	_, err := models.Channels(models.ChannelWhere.ConversationID.EQ(conversationID)).
 		UpdateAll(ctx, tx, models.M{
 			"closed_at": null.Time{
@@ -136,7 +136,7 @@ func (repo *PgRepository) CloseChannelsTx(ctx context.Context, tx boil.ContextEx
 	return err
 }
 
-func (repo *PgRepository) DeleteInviteTx(ctx context.Context, tx boil.ContextExecutor, inviteID int64) error {
+func (repo *PgRepository) DeleteInviteTx(ctx context.Context, tx boil.ContextExecutor, inviteID string) error {
 	_, err := models.Invites(models.InviteWhere.ID.EQ(inviteID)).DeleteAll(ctx, tx)
 	return err
 }

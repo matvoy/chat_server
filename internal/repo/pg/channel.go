@@ -7,12 +7,13 @@ import (
 
 	"github.com/matvoy/chat_server/models"
 
+	"github.com/google/uuid"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
-func (repo *PgRepository) GetChannelByID(ctx context.Context, id int64) (*models.Channel, error) {
+func (repo *PgRepository) GetChannelByID(ctx context.Context, id string) (*models.Channel, error) {
 	result, err := models.Channels(
 		models.ChannelWhere.ID.EQ(id),
 		qm.Load(models.ChannelRels.Conversation),
@@ -31,10 +32,10 @@ func (repo *PgRepository) GetChannelByID(ctx context.Context, id int64) (*models
 func (repo *PgRepository) GetChannels(
 	ctx context.Context,
 	userID *int64,
-	conversationID *int64,
+	conversationID *string,
 	connection *string,
 	internal *bool,
-	exceptID *int64,
+	exceptID *string,
 ) ([]*models.Channel, error) {
 	query := make([]qm.QueryMod, 0, 6)
 	query = append(query, models.ChannelWhere.ClosedAt.IsNull())
@@ -62,13 +63,14 @@ func (repo *PgRepository) GetChannels(
 }
 
 func (repo *PgRepository) CreateChannel(ctx context.Context, c *models.Channel) error {
+	c.ID = uuid.New().String()
 	if err := c.Insert(ctx, repo.db, boil.Infer()); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *PgRepository) CloseChannel(ctx context.Context, id int64) error {
+func (repo *PgRepository) CloseChannel(ctx context.Context, id string) error {
 	result, err := models.Channels(models.ChannelWhere.ID.EQ(id)).
 		One(ctx, repo.db)
 	if err != nil {
@@ -86,7 +88,7 @@ func (repo *PgRepository) CloseChannel(ctx context.Context, id int64) error {
 	return err
 }
 
-func (repo *PgRepository) CloseChannels(ctx context.Context, conversationID int64) error {
+func (repo *PgRepository) CloseChannels(ctx context.Context, conversationID string) error {
 	_, err := models.Channels(models.ChannelWhere.ConversationID.EQ(conversationID)).
 		UpdateAll(ctx, repo.db, models.M{
 			"closed_at": null.Time{

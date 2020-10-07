@@ -12,7 +12,7 @@ import (
 	"github.com/volatiletech/null/v8"
 )
 
-func (s *chatService) closeConversation(ctx context.Context, conversationID *int64) error {
+func (s *chatService) closeConversation(ctx context.Context, conversationID *string) error {
 	if err := s.repo.WithTransaction(func(tx *sql.Tx) error {
 		if err := s.repo.CloseConversation(ctx, *conversationID); err != nil {
 			return err
@@ -134,7 +134,7 @@ func transformConversationsFromRepoModel(conversations []*repo.Conversation) []*
 func transformMessageFromRepoModel(message *models.Message) *pb.HistoryMessage {
 	result := &pb.HistoryMessage{
 		Id:        message.ID,
-		ChannelId: message.ChannelID.Int64,
+		ChannelId: message.ChannelID.String,
 		// ConversationId: message.ConversationID,
 		Type: message.Type,
 		Text: message.Text.String,
