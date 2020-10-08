@@ -25,6 +25,7 @@ import (
 type Service interface {
 	GetConversationByID(ctx context.Context, req *pb.GetConversationByIDRequest, res *pb.GetConversationByIDResponse) error
 	GetConversations(ctx context.Context, req *pb.GetConversationsRequest, res *pb.GetConversationsResponse) error
+	GetProfileByID(ctx context.Context, req *pb.GetProfileByIDRequest, res *pb.GetProfileByIDResponse) error
 	GetProfiles(ctx context.Context, req *pb.GetProfilesRequest, res *pb.GetProfilesResponse) error
 	CreateProfile(ctx context.Context, req *pb.CreateProfileRequest, res *pb.CreateProfileResponse) error
 	UpdateProfile(ctx context.Context, req *pb.UpdateProfileRequest, res *pb.UpdateProfileResponse) error
@@ -62,7 +63,7 @@ func NewChatService(
 	storageClient pbstorage.FileService,
 	chatCache cache.ChatCache,
 	eventRouter event.Router,
-) *chatService {
+) Service {
 	return &chatService{
 		repo,
 		log,
@@ -217,10 +218,15 @@ func (s *chatService) CloseConversation(
 		Str("closer_channel_id", req.GetCloserChannelId()).
 		Msg("close conversation")
 	conversationID := req.GetConversationId()
+	if conversationID == "" {
+		return errors.BadRequest("conversation_id not found", "")
+	}
 	if req.FromFlow {
-		s.chatCache.DeleteCachedMessages(conversationID)
-		s.chatCache.DeleteConfirmation(conversationID)
-		s.chatCache.DeleteConversationNode(conversationID)
+		// s.chatCache.DeleteCachedMessages(conversationID)
+		go func() {
+			s.chatCache.DeleteConfirmation(conversationID)
+			s.chatCache.DeleteConversationNode(conversationID)
+		}()
 		if err := s.eventRouter.RouteCloseConversationFromFlow(&conversationID, req.GetCause()); err != nil {
 			s.log.Error().Msg(err.Error())
 			return err
@@ -269,7 +275,7 @@ func (s *chatService) JoinConversation(
 		if err := s.repo.CreateChannelTx(ctx, tx, channel); err != nil {
 			return err
 		}
-		if err := s.repo.DeleteInviteTx(ctx, tx, req.GetInviteId()); err != nil {
+		if err := s.repo.CloseInviteTx(ctx, tx, req.GetInviteId()); err != nil {
 			return err
 		}
 		res.ChannelId = channel.ID
@@ -280,6 +286,7 @@ func (s *chatService) JoinConversation(
 	}
 	if err := s.eventRouter.RouteJoinConversation(&channel.ID, &invite.ConversationID); err != nil {
 		s.log.Warn().Msg(err.Error())
+		return err
 	}
 	return nil
 }
@@ -295,13 +302,15 @@ func (s *chatService) LeaveConversation(
 		Str("channel_id", channelID).
 		Str("conversation_id", conversationID).
 		Msg("leave conversation")
-
-	if err := s.repo.CloseChannel(ctx, channelID); err != nil {
+	ch, err := s.repo.CloseChannel(ctx, channelID)
+	if err != nil {
 		s.log.Error().Msg(err.Error())
 		return err
 	}
-	if err := s.flowClient.BreakBridge(conversationID, flow.LeaveConversationCause); err != nil {
-		return err
+	if ch.FlowBridge {
+		if err := s.flowClient.BreakBridge(conversationID, flow.LeaveConversationCause); err != nil {
+			return err
+		}
 	}
 	if err := s.eventRouter.RouteLeaveConversation(&channelID, &conversationID); err != nil {
 		s.log.Warn().Msg(err.Error())
@@ -326,6 +335,7 @@ func (s *chatService) InviteToConversation(
 		Int64("user.id", req.GetUser().GetUserId()).
 		Bool("user.internal", req.GetUser().GetInternal()).
 		Str("conversation_id", req.GetConversationId()).
+		Str("inviter_channel_id", req.GetInviterChannelId()).
 		Int64("domain_id", req.GetDomainId()).
 		Msg("invite to conversation")
 	domainID := req.GetDomainId()
@@ -333,6 +343,12 @@ func (s *chatService) InviteToConversation(
 		ConversationID: req.GetConversationId(),
 		UserID:         req.GetUser().GetUserId(),
 		TimeoutSec:     req.GetTimeoutSec(),
+	}
+	if req.GetInviterChannelId() != "" {
+		invite.InviterChannelID = null.String{
+			req.GetInviterChannelId(),
+			true,
+		}
 	}
 	if err := s.repo.CreateInvite(ctx, invite); err != nil {
 		s.log.Error().Msg(err.Error())
@@ -357,13 +373,15 @@ func (s *chatService) InviteToConversation(
 					Int64("user_id", invite.UserID).
 					Str("conversation_id", invite.ConversationID).
 					Msg("autodecline invitation")
-				if err := s.flowClient.BreakBridge(req.GetConversationId(), flow.TimeoutCause); err != nil {
-					s.log.Error().Msg(err.Error())
+				if req.GetInviterChannelId() == "" {
+					if err := s.flowClient.BreakBridge(req.GetConversationId(), flow.TimeoutCause); err != nil {
+						s.log.Error().Msg(err.Error())
+					}
 				}
 				if err := s.eventRouter.SendDeclineInviteToWebitelUser(&domainID, &invite.ConversationID, &invite.UserID, &invite.ID); err != nil {
 					s.log.Error().Msg(err.Error())
 				}
-				if err := s.repo.DeleteInvite(context.Background(), val.ID); err != nil {
+				if err := s.repo.CloseInvite(context.Background(), val.ID); err != nil {
 					s.log.Error().Msg(err.Error())
 				}
 			}
@@ -391,12 +409,12 @@ func (s *chatService) DeclineInvitation(
 		s.log.Error().Msg(err.Error())
 		return err
 	}
-	if invite.TimeoutSec != 0 {
+	if invite.InviterChannelID == (null.String{}) {
 		if err := s.flowClient.BreakBridge(conversationID, flow.DeclineInvitationCause); err != nil {
 			return err
 		}
 	}
-	if err := s.repo.DeleteInvite(ctx, req.GetInviteId()); err != nil {
+	if err := s.repo.CloseInvite(ctx, req.GetInviteId()); err != nil {
 		s.log.Error().Msg(err.Error())
 		return err
 	}
@@ -469,7 +487,8 @@ func (s *chatService) CheckSession(ctx context.Context, req *pb.CheckSessionRequ
 		s.log.Error().Msg(err.Error())
 		return err
 	}
-	channel, err := s.repo.GetChannels(ctx, &client.ID, nil, &profileStr, func() *bool { b := false; return &b }(), nil)
+	externalBool := false
+	channel, err := s.repo.GetChannels(ctx, &client.ID, nil, &profileStr, &externalBool, nil)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
 		return err

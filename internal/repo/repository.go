@@ -34,7 +34,7 @@ type Repository interface {
 	CloseChannelTx(ctx context.Context, tx boil.ContextExecutor, id string) error
 	CreateChannelTx(ctx context.Context, tx boil.ContextExecutor, c *models.Channel) error
 	CloseChannelsTx(ctx context.Context, tx boil.ContextExecutor, conversationID string) error
-	DeleteInviteTx(ctx context.Context, tx boil.ContextExecutor, inviteID string) error
+	CloseInviteTx(ctx context.Context, tx boil.ContextExecutor, inviteID string) error
 }
 
 type ProfileRepository interface {
@@ -53,7 +53,7 @@ type ConversationRepository interface {
 }
 
 type ChannelRepository interface {
-	CloseChannel(ctx context.Context, id string) error
+	CloseChannel(ctx context.Context, id string) (*models.Channel, error)
 	CloseChannels(ctx context.Context, conversationID string) error
 	GetChannels(
 		ctx context.Context,
@@ -76,7 +76,7 @@ type ClientRepository interface {
 
 type InviteRepository interface {
 	CreateInvite(ctx context.Context, m *models.Invite) error
-	DeleteInvite(ctx context.Context, inviteID string) error
+	CloseInvite(ctx context.Context, inviteID string) error
 	GetInviteByID(ctx context.Context, id string) (*models.Invite, error)
 }
 

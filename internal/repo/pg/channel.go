@@ -70,22 +70,22 @@ func (repo *PgRepository) CreateChannel(ctx context.Context, c *models.Channel) 
 	return nil
 }
 
-func (repo *PgRepository) CloseChannel(ctx context.Context, id string) error {
+func (repo *PgRepository) CloseChannel(ctx context.Context, id string) (*models.Channel, error) {
 	result, err := models.Channels(models.ChannelWhere.ID.EQ(id)).
 		One(ctx, repo.db)
 	if err != nil {
 		repo.log.Warn().Msg(err.Error())
 		if err == sql.ErrNoRows {
-			return nil
+			return nil, nil
 		}
-		return err
+		return nil, err
 	}
 	result.ClosedAt = null.Time{
 		Valid: true,
 		Time:  time.Now(),
 	}
 	_, err = result.Update(ctx, repo.db, boil.Infer())
-	return err
+	return result, err
 }
 
 func (repo *PgRepository) CloseChannels(ctx context.Context, conversationID string) error {

@@ -24,44 +24,59 @@ import (
 
 // Invite is an object representing the database table.
 type Invite struct {
-	ID             string      `boil:"id" json:"id" toml:"id" yaml:"id"`
-	ConversationID string      `boil:"conversation_id" json:"conversation_id" toml:"conversation_id" yaml:"conversation_id"`
-	UserID         int64       `boil:"user_id" json:"user_id" toml:"user_id" yaml:"user_id"`
-	Title          null.String `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
-	TimeoutSec     int64       `boil:"timeout_sec" json:"timeout_sec" toml:"timeout_sec" yaml:"timeout_sec"`
+	ID               string      `boil:"id" json:"id" toml:"id" yaml:"id"`
+	ConversationID   string      `boil:"conversation_id" json:"conversation_id" toml:"conversation_id" yaml:"conversation_id"`
+	UserID           int64       `boil:"user_id" json:"user_id" toml:"user_id" yaml:"user_id"`
+	Title            null.String `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
+	TimeoutSec       int64       `boil:"timeout_sec" json:"timeout_sec" toml:"timeout_sec" yaml:"timeout_sec"`
+	InviterChannelID null.String `boil:"inviter_channel_id" json:"inviter_channel_id,omitempty" toml:"inviter_channel_id" yaml:"inviter_channel_id,omitempty"`
+	ClosedAt         null.Time   `boil:"closed_at" json:"closed_at,omitempty" toml:"closed_at" yaml:"closed_at,omitempty"`
+	CreatedAt        null.Time   `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
 
 	R *inviteR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L inviteL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var InviteColumns = struct {
-	ID             string
-	ConversationID string
-	UserID         string
-	Title          string
-	TimeoutSec     string
+	ID               string
+	ConversationID   string
+	UserID           string
+	Title            string
+	TimeoutSec       string
+	InviterChannelID string
+	ClosedAt         string
+	CreatedAt        string
 }{
-	ID:             "id",
-	ConversationID: "conversation_id",
-	UserID:         "user_id",
-	Title:          "title",
-	TimeoutSec:     "timeout_sec",
+	ID:               "id",
+	ConversationID:   "conversation_id",
+	UserID:           "user_id",
+	Title:            "title",
+	TimeoutSec:       "timeout_sec",
+	InviterChannelID: "inviter_channel_id",
+	ClosedAt:         "closed_at",
+	CreatedAt:        "created_at",
 }
 
 // Generated where
 
 var InviteWhere = struct {
-	ID             whereHelperstring
-	ConversationID whereHelperstring
-	UserID         whereHelperint64
-	Title          whereHelpernull_String
-	TimeoutSec     whereHelperint64
+	ID               whereHelperstring
+	ConversationID   whereHelperstring
+	UserID           whereHelperint64
+	Title            whereHelpernull_String
+	TimeoutSec       whereHelperint64
+	InviterChannelID whereHelpernull_String
+	ClosedAt         whereHelpernull_Time
+	CreatedAt        whereHelpernull_Time
 }{
-	ID:             whereHelperstring{field: "\"chat\".\"invite\".\"id\""},
-	ConversationID: whereHelperstring{field: "\"chat\".\"invite\".\"conversation_id\""},
-	UserID:         whereHelperint64{field: "\"chat\".\"invite\".\"user_id\""},
-	Title:          whereHelpernull_String{field: "\"chat\".\"invite\".\"title\""},
-	TimeoutSec:     whereHelperint64{field: "\"chat\".\"invite\".\"timeout_sec\""},
+	ID:               whereHelperstring{field: "\"chat\".\"invite\".\"id\""},
+	ConversationID:   whereHelperstring{field: "\"chat\".\"invite\".\"conversation_id\""},
+	UserID:           whereHelperint64{field: "\"chat\".\"invite\".\"user_id\""},
+	Title:            whereHelpernull_String{field: "\"chat\".\"invite\".\"title\""},
+	TimeoutSec:       whereHelperint64{field: "\"chat\".\"invite\".\"timeout_sec\""},
+	InviterChannelID: whereHelpernull_String{field: "\"chat\".\"invite\".\"inviter_channel_id\""},
+	ClosedAt:         whereHelpernull_Time{field: "\"chat\".\"invite\".\"closed_at\""},
+	CreatedAt:        whereHelpernull_Time{field: "\"chat\".\"invite\".\"created_at\""},
 }
 
 // InviteRels is where relationship names are stored.
@@ -85,8 +100,8 @@ func (*inviteR) NewStruct() *inviteR {
 type inviteL struct{}
 
 var (
-	inviteAllColumns            = []string{"id", "conversation_id", "user_id", "title", "timeout_sec"}
-	inviteColumnsWithoutDefault = []string{"id", "conversation_id", "user_id", "title"}
+	inviteAllColumns            = []string{"id", "conversation_id", "user_id", "title", "timeout_sec", "inviter_channel_id", "closed_at", "created_at"}
+	inviteColumnsWithoutDefault = []string{"id", "conversation_id", "user_id", "title", "inviter_channel_id", "closed_at", "created_at"}
 	inviteColumnsWithDefault    = []string{"timeout_sec"}
 	invitePrimaryKeyColumns     = []string{"id"}
 )
@@ -571,6 +586,13 @@ func (o *Invite) Insert(ctx context.Context, exec boil.ContextExecutor, columns 
 	}
 
 	var err error
+	if !boil.TimestampsAreSkipped(ctx) {
+		currTime := time.Now().In(boil.GetLocation())
+
+		if queries.MustTime(o.CreatedAt).IsZero() {
+			queries.SetScanner(&o.CreatedAt, currTime)
+		}
+	}
 
 	if err := o.doBeforeInsertHooks(ctx, exec); err != nil {
 		return err
@@ -775,6 +797,13 @@ func (o InviteSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, c
 func (o *Invite) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no invite provided for upsert")
+	}
+	if !boil.TimestampsAreSkipped(ctx) {
+		currTime := time.Now().In(boil.GetLocation())
+
+		if queries.MustTime(o.CreatedAt).IsZero() {
+			queries.SetScanner(&o.CreatedAt, currTime)
+		}
 	}
 
 	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {

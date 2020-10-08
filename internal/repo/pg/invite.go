@@ -3,10 +3,12 @@ package pg
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/matvoy/chat_server/models"
 
 	"github.com/google/uuid"
+	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
@@ -35,7 +37,14 @@ func (repo *PgRepository) CreateInvite(ctx context.Context, m *models.Invite) er
 	return nil
 }
 
-func (repo *PgRepository) DeleteInvite(ctx context.Context, inviteID string) error {
-	_, err := models.Invites(models.InviteWhere.ID.EQ(inviteID)).DeleteAll(ctx, repo.db)
+func (repo *PgRepository) CloseInvite(ctx context.Context, inviteID string) error {
+	// _, err := models.Invites(models.InviteWhere.ID.EQ(inviteID)).DeleteAll(ctx, repo.db)
+	_, err := models.Invites(models.InviteWhere.ID.EQ(inviteID)).
+		UpdateAll(ctx, repo.db, models.M{
+			"closed_at": null.Time{
+				Valid: true,
+				Time:  time.Now(),
+			},
+		})
 	return err
 }

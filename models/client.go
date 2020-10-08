@@ -27,7 +27,7 @@ type Client struct {
 	ID         int64       `boil:"id" json:"id" toml:"id" yaml:"id"`
 	Name       null.String `boil:"name" json:"name,omitempty" toml:"name" yaml:"name,omitempty"`
 	Number     null.String `boil:"number" json:"number,omitempty" toml:"number" yaml:"number,omitempty"`
-	JoinedAt   null.Time   `boil:"joined_at" json:"joined_at,omitempty" toml:"joined_at" yaml:"joined_at,omitempty"`
+	CreatedAt  null.Time   `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
 	ActivityAt null.Time   `boil:"activity_at" json:"activity_at,omitempty" toml:"activity_at" yaml:"activity_at,omitempty"`
 	ExternalID null.String `boil:"external_id" json:"external_id,omitempty" toml:"external_id" yaml:"external_id,omitempty"`
 	FirstName  null.String `boil:"first_name" json:"first_name,omitempty" toml:"first_name" yaml:"first_name,omitempty"`
@@ -41,7 +41,7 @@ var ClientColumns = struct {
 	ID         string
 	Name       string
 	Number     string
-	JoinedAt   string
+	CreatedAt  string
 	ActivityAt string
 	ExternalID string
 	FirstName  string
@@ -50,7 +50,7 @@ var ClientColumns = struct {
 	ID:         "id",
 	Name:       "name",
 	Number:     "number",
-	JoinedAt:   "joined_at",
+	CreatedAt:  "created_at",
 	ActivityAt: "activity_at",
 	ExternalID: "external_id",
 	FirstName:  "first_name",
@@ -63,7 +63,7 @@ var ClientWhere = struct {
 	ID         whereHelperint64
 	Name       whereHelpernull_String
 	Number     whereHelpernull_String
-	JoinedAt   whereHelpernull_Time
+	CreatedAt  whereHelpernull_Time
 	ActivityAt whereHelpernull_Time
 	ExternalID whereHelpernull_String
 	FirstName  whereHelpernull_String
@@ -72,7 +72,7 @@ var ClientWhere = struct {
 	ID:         whereHelperint64{field: "\"chat\".\"client\".\"id\""},
 	Name:       whereHelpernull_String{field: "\"chat\".\"client\".\"name\""},
 	Number:     whereHelpernull_String{field: "\"chat\".\"client\".\"number\""},
-	JoinedAt:   whereHelpernull_Time{field: "\"chat\".\"client\".\"joined_at\""},
+	CreatedAt:  whereHelpernull_Time{field: "\"chat\".\"client\".\"created_at\""},
 	ActivityAt: whereHelpernull_Time{field: "\"chat\".\"client\".\"activity_at\""},
 	ExternalID: whereHelpernull_String{field: "\"chat\".\"client\".\"external_id\""},
 	FirstName:  whereHelpernull_String{field: "\"chat\".\"client\".\"first_name\""},
@@ -96,8 +96,8 @@ func (*clientR) NewStruct() *clientR {
 type clientL struct{}
 
 var (
-	clientAllColumns            = []string{"id", "name", "number", "joined_at", "activity_at", "external_id", "first_name", "last_name"}
-	clientColumnsWithoutDefault = []string{"name", "number", "joined_at", "activity_at", "external_id", "first_name", "last_name"}
+	clientAllColumns            = []string{"id", "name", "number", "created_at", "activity_at", "external_id", "first_name", "last_name"}
+	clientColumnsWithoutDefault = []string{"name", "number", "created_at", "activity_at", "external_id", "first_name", "last_name"}
 	clientColumnsWithDefault    = []string{"id"}
 	clientPrimaryKeyColumns     = []string{"id"}
 )
@@ -417,6 +417,13 @@ func (o *Client) Insert(ctx context.Context, exec boil.ContextExecutor, columns 
 	}
 
 	var err error
+	if !boil.TimestampsAreSkipped(ctx) {
+		currTime := time.Now().In(boil.GetLocation())
+
+		if queries.MustTime(o.CreatedAt).IsZero() {
+			queries.SetScanner(&o.CreatedAt, currTime)
+		}
+	}
 
 	if err := o.doBeforeInsertHooks(ctx, exec); err != nil {
 		return err
@@ -621,6 +628,13 @@ func (o ClientSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, c
 func (o *Client) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("models: no client provided for upsert")
+	}
+	if !boil.TimestampsAreSkipped(ctx) {
+		currTime := time.Now().In(boil.GetLocation())
+
+		if queries.MustTime(o.CreatedAt).IsZero() {
+			queries.SetScanner(&o.CreatedAt, currTime)
+		}
 	}
 
 	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {

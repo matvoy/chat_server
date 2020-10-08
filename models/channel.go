@@ -33,6 +33,7 @@ type Channel struct {
 	Internal       bool        `boil:"internal" json:"internal" toml:"internal" yaml:"internal"`
 	ClosedAt       null.Time   `boil:"closed_at" json:"closed_at,omitempty" toml:"closed_at" yaml:"closed_at,omitempty"`
 	DomainID       int64       `boil:"domain_id" json:"domain_id" toml:"domain_id" yaml:"domain_id"`
+	FlowBridge     bool        `boil:"flow_bridge" json:"flow_bridge" toml:"flow_bridge" yaml:"flow_bridge"`
 
 	R *channelR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L channelL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -48,6 +49,7 @@ var ChannelColumns = struct {
 	Internal       string
 	ClosedAt       string
 	DomainID       string
+	FlowBridge     string
 }{
 	ID:             "id",
 	Type:           "type",
@@ -58,6 +60,7 @@ var ChannelColumns = struct {
 	Internal:       "internal",
 	ClosedAt:       "closed_at",
 	DomainID:       "domain_id",
+	FlowBridge:     "flow_bridge",
 }
 
 // Generated where
@@ -173,6 +176,7 @@ var ChannelWhere = struct {
 	Internal       whereHelperbool
 	ClosedAt       whereHelpernull_Time
 	DomainID       whereHelperint64
+	FlowBridge     whereHelperbool
 }{
 	ID:             whereHelperstring{field: "\"chat\".\"channel\".\"id\""},
 	Type:           whereHelperstring{field: "\"chat\".\"channel\".\"type\""},
@@ -183,6 +187,7 @@ var ChannelWhere = struct {
 	Internal:       whereHelperbool{field: "\"chat\".\"channel\".\"internal\""},
 	ClosedAt:       whereHelpernull_Time{field: "\"chat\".\"channel\".\"closed_at\""},
 	DomainID:       whereHelperint64{field: "\"chat\".\"channel\".\"domain_id\""},
+	FlowBridge:     whereHelperbool{field: "\"chat\".\"channel\".\"flow_bridge\""},
 }
 
 // ChannelRels is where relationship names are stored.
@@ -209,9 +214,9 @@ func (*channelR) NewStruct() *channelR {
 type channelL struct{}
 
 var (
-	channelAllColumns            = []string{"id", "type", "conversation_id", "user_id", "connection", "created_at", "internal", "closed_at", "domain_id"}
+	channelAllColumns            = []string{"id", "type", "conversation_id", "user_id", "connection", "created_at", "internal", "closed_at", "domain_id", "flow_bridge"}
 	channelColumnsWithoutDefault = []string{"id", "type", "conversation_id", "user_id", "connection", "created_at", "internal", "closed_at", "domain_id"}
-	channelColumnsWithDefault    = []string{}
+	channelColumnsWithDefault    = []string{"flow_bridge"}
 	channelPrimaryKeyColumns     = []string{"id"}
 )
 

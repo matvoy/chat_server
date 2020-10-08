@@ -139,7 +139,14 @@ func (repo *PgRepository) CloseChannelsTx(ctx context.Context, tx boil.ContextEx
 	return err
 }
 
-func (repo *PgRepository) DeleteInviteTx(ctx context.Context, tx boil.ContextExecutor, inviteID string) error {
-	_, err := models.Invites(models.InviteWhere.ID.EQ(inviteID)).DeleteAll(ctx, tx)
+func (repo *PgRepository) CloseInviteTx(ctx context.Context, tx boil.ContextExecutor, inviteID string) error {
+	// _, err := models.Invites(models.InviteWhere.ID.EQ(inviteID)).DeleteAll(ctx, tx)
+	_, err := models.Invites(models.InviteWhere.ID.EQ(inviteID)).
+		UpdateAll(ctx, repo.db, models.M{
+			"closed_at": null.Time{
+				Valid: true,
+				Time:  time.Now(),
+			},
+		})
 	return err
 }
