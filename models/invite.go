@@ -32,6 +32,7 @@ type Invite struct {
 	InviterChannelID null.String `boil:"inviter_channel_id" json:"inviter_channel_id,omitempty" toml:"inviter_channel_id" yaml:"inviter_channel_id,omitempty"`
 	ClosedAt         null.Time   `boil:"closed_at" json:"closed_at,omitempty" toml:"closed_at" yaml:"closed_at,omitempty"`
 	CreatedAt        null.Time   `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
+	DomainID         int64       `boil:"domain_id" json:"domain_id" toml:"domain_id" yaml:"domain_id"`
 
 	R *inviteR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L inviteL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -46,6 +47,7 @@ var InviteColumns = struct {
 	InviterChannelID string
 	ClosedAt         string
 	CreatedAt        string
+	DomainID         string
 }{
 	ID:               "id",
 	ConversationID:   "conversation_id",
@@ -55,6 +57,7 @@ var InviteColumns = struct {
 	InviterChannelID: "inviter_channel_id",
 	ClosedAt:         "closed_at",
 	CreatedAt:        "created_at",
+	DomainID:         "domain_id",
 }
 
 // Generated where
@@ -68,6 +71,7 @@ var InviteWhere = struct {
 	InviterChannelID whereHelpernull_String
 	ClosedAt         whereHelpernull_Time
 	CreatedAt        whereHelpernull_Time
+	DomainID         whereHelperint64
 }{
 	ID:               whereHelperstring{field: "\"chat\".\"invite\".\"id\""},
 	ConversationID:   whereHelperstring{field: "\"chat\".\"invite\".\"conversation_id\""},
@@ -77,6 +81,7 @@ var InviteWhere = struct {
 	InviterChannelID: whereHelpernull_String{field: "\"chat\".\"invite\".\"inviter_channel_id\""},
 	ClosedAt:         whereHelpernull_Time{field: "\"chat\".\"invite\".\"closed_at\""},
 	CreatedAt:        whereHelpernull_Time{field: "\"chat\".\"invite\".\"created_at\""},
+	DomainID:         whereHelperint64{field: "\"chat\".\"invite\".\"domain_id\""},
 }
 
 // InviteRels is where relationship names are stored.
@@ -100,8 +105,8 @@ func (*inviteR) NewStruct() *inviteR {
 type inviteL struct{}
 
 var (
-	inviteAllColumns            = []string{"id", "conversation_id", "user_id", "title", "timeout_sec", "inviter_channel_id", "closed_at", "created_at"}
-	inviteColumnsWithoutDefault = []string{"id", "conversation_id", "user_id", "title", "inviter_channel_id", "closed_at", "created_at"}
+	inviteAllColumns            = []string{"id", "conversation_id", "user_id", "title", "timeout_sec", "inviter_channel_id", "closed_at", "created_at", "domain_id"}
+	inviteColumnsWithoutDefault = []string{"id", "conversation_id", "user_id", "title", "inviter_channel_id", "closed_at", "created_at", "domain_id"}
 	inviteColumnsWithDefault    = []string{"timeout_sec"}
 	invitePrimaryKeyColumns     = []string{"id"}
 )

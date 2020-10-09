@@ -31,9 +31,9 @@ type Router interface {
 	RouteInvite(conversationID *string, userID *int64) error
 	RouteJoinConversation(channelID, conversationID *string) error
 	RouteLeaveConversation(channelID, conversationID *string) error
-	RouteMessage(channel *models.Channel, message *pb.Message) error
+	RouteMessage(channel *models.Channel, message *pb.Message) (bool, error)
 	RouteMessageFromFlow(conversationID *string, message *pb.Message) error
-	SendInviteToWebitelUser(domainID *int64, conversationID *string, userID *int64, inviteID *string) error
+	SendInviteToWebitelUser(conversation *repo.Conversation, domainID *int64, conversationID *string, userID *int64, inviteID *string) error
 	SendDeclineInviteToWebitelUser(domainID *int64, conversationID *string, userID *int64, inviteID *string) error
 }
 
@@ -54,7 +54,7 @@ func NewRouter(
 }
 
 func (e *eventRouter) RouteCloseConversation(channel *models.Channel, cause string) error {
-	otherChannels, err := e.repo.GetChannels(context.Background(), nil, &channel.ConversationID, nil, nil, &channel.ID)
+	otherChannels, err := e.repo.GetChannels(context.Background(), nil, &channel.ConversationID, nil, nil, nil) //&channel.ID)
 	if err != nil {
 		return err
 	}
@@ -217,14 +217,42 @@ func (e *eventRouter) RouteInvite(conversationID *string, userID *int64) error {
 	return nil
 }
 
-func (e *eventRouter) SendInviteToWebitelUser(domainID *int64, conversationID *string, userID *int64, inviteID *string) error {
-	body, _ := json.Marshal(events.UserInvitationEvent{
+func (e *eventRouter) SendInviteToWebitelUser(conversation *repo.Conversation, domainID *int64, conversationID *string, userID *int64, inviteID *string) error {
+	mes := events.UserInvitationEvent{
 		BaseEvent: events.BaseEvent{
 			ConversationID: *conversationID,
 			Timestamp:      time.Now().Unix() * 1000,
 		},
 		InviteID: *inviteID,
-	})
+		Conversation: events.Conversation{
+			ID:       conversation.ID,
+			DomainID: conversation.DomainID,
+		},
+	}
+	if conversation.CreatedAt != nil {
+		mes.CreatedAt = conversation.CreatedAt.Unix() * 1000
+	}
+	if conversation.CreatedAt != nil {
+		mes.ClosedAt = conversation.ClosedAt.Unix() * 1000
+	}
+	if conversation.Title != nil {
+		mes.Title = *conversation.Title
+	}
+	if memLen := len(conversation.Members); memLen > 0 {
+		mes.Members = make([]*events.Member, 0, memLen)
+		for _, item := range conversation.Members {
+			mes.Members = append(mes.Members, &events.Member{
+				ChannelID: item.ChannelID,
+				UserID:    item.UserID,
+				Username:  item.Username,
+				Type:      item.Type,
+				Internal:  item.Internal,
+				Firstname: item.Firstname,
+				Lastname:  item.Lastname,
+			})
+		}
+	}
+	body, _ := json.Marshal(mes)
 	msg := &broker.Message{
 		Header: map[string]string{
 			"content_type": "text/json",
@@ -259,7 +287,7 @@ func (e *eventRouter) SendDeclineInviteToWebitelUser(domainID *int64, conversati
 }
 
 func (e *eventRouter) RouteJoinConversation(channelID, conversationID *string) error {
-	otherChannels, err := e.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, channelID)
+	otherChannels, err := e.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, nil) //channelID)
 	if err != nil {
 		return err
 	}
@@ -285,7 +313,7 @@ func (e *eventRouter) RouteJoinConversation(channelID, conversationID *string) e
 						Str("conversation_id", item.ConversationID).
 						Str("type", item.Type).
 						Str("connection", item.Connection.String).
-						Msg("failed to send join conversation event to channel")
+						Msgf("failed to send join conversation event to channel: %s", err.Error())
 				}
 			}
 		default:
@@ -295,7 +323,7 @@ func (e *eventRouter) RouteJoinConversation(channelID, conversationID *string) e
 }
 
 func (e *eventRouter) RouteLeaveConversation(channelID, conversationID *string) error {
-	otherChannels, err := e.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, channelID)
+	otherChannels, err := e.repo.GetChannels(context.Background(), nil, conversationID, nil, nil, nil) //channelID)
 	if err != nil {
 		return err
 	}
@@ -330,16 +358,16 @@ func (e *eventRouter) RouteLeaveConversation(channelID, conversationID *string) 
 	return nil
 }
 
-func (e *eventRouter) RouteMessage(channel *models.Channel, message *pb.Message) error {
-	otherChannels, err := e.repo.GetChannels(context.Background(), nil, &channel.ConversationID, nil, nil, &channel.ID)
+func (e *eventRouter) RouteMessage(channel *models.Channel, message *pb.Message) (bool, error) {
+	otherChannels, err := e.repo.GetChannels(context.Background(), nil, &channel.ConversationID, nil, nil, nil) //&channel.ID)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if otherChannels == nil {
 		// if !channel.Internal {
 		// 	return e.flowClient.SendMessage(channel.ConversationID, reqMessage)
 		// }
-		return nil
+		return false, nil
 	}
 	body, _ := json.Marshal(events.MessageEvent{
 		BaseEvent: events.BaseEvent{
@@ -350,17 +378,22 @@ func (e *eventRouter) RouteMessage(channel *models.Channel, message *pb.Message)
 		// ToChannelID:    item.ID,
 		MessageID: message.Id,
 		Type:      message.Type,
-		Value:     []byte(message.GetText()),
+		Value:     message.GetText(),
 	})
+	flag := false
 	for _, item := range otherChannels {
 		var err error
 		switch item.Type {
 		case "webitel":
 			{
+				flag = true
 				err = e.sendEventToWebitelUser(channel, item, events.MessageEventType, body)
 			}
 		case "telegram", "infobip-whatsapp":
 			{
+				if channel.ID == item.ID {
+					continue
+				}
 				err = e.sendMessageToBotUser(channel, item, message)
 			}
 		default:
@@ -376,7 +409,7 @@ func (e *eventRouter) RouteMessage(channel *models.Channel, message *pb.Message)
 				Msg("failed to send message to channel")
 		}
 	}
-	return nil
+	return flag, nil
 }
 
 func (e *eventRouter) RouteMessageFromFlow(conversationID *string, message *pb.Message) error {

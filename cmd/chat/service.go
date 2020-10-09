@@ -143,12 +143,15 @@ func (s *chatService) SendMessage(
 			Text: message.Text.String,
 		},
 	}
-	if !channel.Internal {
-		return s.flowClient.SendMessage(channel.ConversationID, reqMessage)
-	}
-	if err := s.eventRouter.RouteMessage(channel, reqMessage); err != nil {
+	sent, err := s.eventRouter.RouteMessage(channel, reqMessage)
+	if err != nil {
 		s.log.Warn().Msg(err.Error())
 		return err
+	}
+	if !channel.Internal && !sent {
+		if s.flowClient.SendMessage(channel.ConversationID, reqMessage); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -242,8 +245,10 @@ func (s *chatService) CloseConversation(
 		s.log.Warn().Msg(err.Error())
 		return err
 	}
-	if !closerChannel.Internal {
-		return s.flowClient.CloseConversation(closerChannel.ConversationID)
+	if !closerChannel.Internal || closerChannel.FlowBridge {
+		if err := s.flowClient.CloseConversation(closerChannel.ConversationID); err != nil {
+			return err
+		}
 	}
 	return s.closeConversation(ctx, &conversationID)
 }
@@ -270,6 +275,10 @@ func (s *chatService) JoinConversation(
 		Internal:       true,
 		ConversationID: invite.ConversationID,
 		UserID:         invite.UserID,
+		DomainID:       invite.DomainID,
+	}
+	if invite.InviterChannelID == (null.String{}) {
+		channel.FlowBridge = true
 	}
 	if err := s.repo.WithTransaction(func(tx *sql.Tx) error {
 		if err := s.repo.CreateChannelTx(ctx, tx, channel); err != nil {
@@ -343,6 +352,7 @@ func (s *chatService) InviteToConversation(
 		ConversationID: req.GetConversationId(),
 		UserID:         req.GetUser().GetUserId(),
 		TimeoutSec:     req.GetTimeoutSec(),
+		DomainID:       domainID,
 	}
 	if req.GetInviterChannelId() != "" {
 		invite.InviterChannelID = null.String{
@@ -354,7 +364,12 @@ func (s *chatService) InviteToConversation(
 		s.log.Error().Msg(err.Error())
 		return err
 	}
-	if err := s.eventRouter.SendInviteToWebitelUser(&domainID, &invite.ConversationID, &invite.UserID, &invite.ID); err != nil {
+	conversation, err := s.repo.GetConversationByID(ctx, req.GetConversationId())
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	if err := s.eventRouter.SendInviteToWebitelUser(conversation, &domainID, &invite.ConversationID, &invite.UserID, &invite.ID); err != nil {
 		s.log.Warn().Msg(err.Error())
 		return err
 	}
@@ -409,8 +424,11 @@ func (s *chatService) DeclineInvitation(
 		s.log.Error().Msg(err.Error())
 		return err
 	}
+	if invite == nil {
+		return errors.BadRequest("invite not found", "")
+	}
 	if invite.InviterChannelID == (null.String{}) {
-		if err := s.flowClient.BreakBridge(conversationID, flow.DeclineInvitationCause); err != nil {
+		if err := s.flowClient.BreakBridge(invite.ConversationID, flow.DeclineInvitationCause); err != nil {
 			return err
 		}
 	}
@@ -418,7 +436,7 @@ func (s *chatService) DeclineInvitation(
 		s.log.Error().Msg(err.Error())
 		return err
 	}
-	if err := s.eventRouter.RouteDeclineInvite(&userID, &conversationID); err != nil {
+	if err := s.eventRouter.RouteDeclineInvite(&invite.UserID, &invite.ConversationID); err != nil {
 		s.log.Warn().Msg(err.Error())
 		return err
 	}

@@ -13,7 +13,7 @@ import (
 )
 
 func (repo *PgRepository) GetInviteByID(ctx context.Context, id string) (*models.Invite, error) {
-	result, err := models.Invites(models.InviteWhere.ID.EQ(id)).
+	result, err := models.Invites(models.InviteWhere.ID.EQ(id), models.InviteWhere.ClosedAt.IsNull()).
 		One(ctx, repo.db)
 	if err != nil {
 		repo.log.Warn().Msg(err.Error())
