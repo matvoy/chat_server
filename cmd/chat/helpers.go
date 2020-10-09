@@ -5,9 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 
-	pb "github.com/matvoy/chat_server/api/proto/chat"
 	"github.com/matvoy/chat_server/internal/repo"
 	"github.com/matvoy/chat_server/models"
+
+	pb "github.com/webitel/protos/chat"
 
 	"github.com/volatiletech/null/v8"
 )

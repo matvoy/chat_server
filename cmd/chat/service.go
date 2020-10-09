@@ -7,15 +7,15 @@ import (
 	"strconv"
 	"time"
 
-	pbbot "github.com/matvoy/chat_server/api/proto/bot"
-	pb "github.com/matvoy/chat_server/api/proto/chat"
-	pbstorage "github.com/matvoy/chat_server/api/proto/storage"
 	"github.com/matvoy/chat_server/internal/auth"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 	event "github.com/matvoy/chat_server/internal/event_router"
 	"github.com/matvoy/chat_server/internal/flow"
 	"github.com/matvoy/chat_server/internal/repo"
 	"github.com/matvoy/chat_server/models"
+	pbbot "github.com/webitel/protos/bot"
+	pb "github.com/webitel/protos/chat"
+	pbstorage "github.com/webitel/protos/storage"
 
 	"github.com/micro/go-micro/v2/errors"
 	"github.com/rs/zerolog"

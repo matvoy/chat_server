@@ -6,15 +6,16 @@ import (
 	"os"
 
 	pbauth "github.com/matvoy/chat_server/api/proto/auth"
-	pbbot "github.com/matvoy/chat_server/api/proto/bot"
-	pb "github.com/matvoy/chat_server/api/proto/chat"
-	pbmanager "github.com/matvoy/chat_server/api/proto/flow_manager"
-	pbstorage "github.com/matvoy/chat_server/api/proto/storage"
 	"github.com/matvoy/chat_server/internal/auth"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 	event "github.com/matvoy/chat_server/internal/event_router"
 	"github.com/matvoy/chat_server/internal/flow"
 	"github.com/matvoy/chat_server/internal/repo/pg"
+
+	pbbot "github.com/webitel/protos/bot"
+	pb "github.com/webitel/protos/chat"
+	pbstorage "github.com/webitel/protos/storage"
+	pbmanager "github.com/webitel/protos/workflow"
 
 	_ "github.com/lib/pq"
 	"github.com/micro/cli/v2"

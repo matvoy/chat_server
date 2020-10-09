@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"time"
 
-	pbbot "github.com/matvoy/chat_server/api/proto/bot"
-	pb "github.com/matvoy/chat_server/api/proto/chat"
 	"github.com/matvoy/chat_server/internal/repo"
 	"github.com/matvoy/chat_server/models"
 	"github.com/matvoy/chat_server/pkg/events"
+
+	pbbot "github.com/webitel/protos/bot"
+	pb "github.com/webitel/protos/chat"
 
 	"github.com/micro/go-micro/v2/broker"
 	"github.com/rs/zerolog"

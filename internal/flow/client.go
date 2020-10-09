@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 
-	pb "github.com/matvoy/chat_server/api/proto/chat"
-	pbmanager "github.com/matvoy/chat_server/api/proto/flow_manager"
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
+
+	pb "github.com/webitel/protos/chat"
+	pbmanager "github.com/webitel/protos/workflow"
 
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/client/selector"
