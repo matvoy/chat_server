@@ -264,11 +264,13 @@ message GetConversationsRequest {
   string id = 1;
   // ----- Object-Specific Filters ------------------
   int64 domain_id = 3;
+  int64 user_id = 4;
+  bool active = 5;
   // ----- Search Options -------------------------
-  repeated string fields = 4; // select: output (fields,...)
-  repeated string sort = 5;   // select: order by (fields,...)
-  int32 page = 6;             // select: offset {page}
-  int32 size = 7;             // select: limit {size}
+  repeated string fields = 6; // select: output (fields,...)
+  repeated string sort = 7;   // select: order by (fields,...)
+  int32 page = 8;             // select: offset {page}
+  int32 size = 9;             // select: limit {size}
 }
 
 message GetConversationsResponse {

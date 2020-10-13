@@ -47,7 +47,17 @@ type ProfileRepository interface {
 
 type ConversationRepository interface {
 	CloseConversation(ctx context.Context, id string) error
-	GetConversations(ctx context.Context, id string, size, page int32, fields, sort []string, domainID int64) ([]*Conversation, error)
+	GetConversations(
+		ctx context.Context,
+		id string,
+		size int32,
+		page int32,
+		fields []string,
+		sort []string,
+		domainID int64,
+		active bool,
+		userID int64,
+	) ([]*Conversation, error)
 	CreateConversation(ctx context.Context, c *models.Conversation) error
 	GetConversationByID(ctx context.Context, id string) (*Conversation, error)
 }

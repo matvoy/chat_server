@@ -105,9 +105,19 @@ func (r *PgRepository) CloseConversation(ctx context.Context, id string) error {
 	return err
 }
 
-func (r *PgRepository) GetConversations(ctx context.Context, id string, size, page int32, fields, sort []string, domainID int64) ([]*repo.Conversation, error) {
-	query := make([]qm.QueryMod, 0, 6)
-	query = append(query, qm.Load(models.ConversationRels.Channels))
+func (r *PgRepository) GetConversations(
+	ctx context.Context,
+	id string,
+	size int32,
+	page int32,
+	fields []string,
+	sort []string,
+	domainID int64,
+	active bool,
+	userID int64,
+) ([]*repo.Conversation, error) {
+	query := make([]qm.QueryMod, 0, 8)
+	// query = append(query, qm.Load(models.ConversationRels.Channels))
 	if size != 0 {
 		query = append(query, qm.Limit(int(size)))
 	} else {
@@ -130,12 +140,23 @@ func (r *PgRepository) GetConversations(ctx context.Context, id string, size, pa
 	if domainID != 0 {
 		query = append(query, models.ConversationWhere.DomainID.EQ(domainID))
 	}
+	if active {
+		query = append(query, models.ConversationWhere.ClosedAt.IsNull())
+	}
+	if userID != 0 {
+		query = append(query, qm.Load(models.ConversationRels.Channels, models.ChannelWhere.UserID.EQ(userID)))
+	} else {
+		query = append(query, qm.Load(models.ConversationRels.Channels))
+	}
 	conversations, err := models.Conversations(query...).All(ctx, r.db)
 	if err != nil {
 		return nil, err
 	}
 	result := make([]*repo.Conversation, 0, len(conversations))
 	for _, c := range conversations {
+		if len(c.R.Channels) == 0 {
+			continue
+		}
 		members := make([]*repo.Member, 0, len(c.R.Channels))
 		for _, ch := range c.R.Channels {
 			if !ch.Internal {

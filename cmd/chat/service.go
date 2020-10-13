@@ -555,6 +555,8 @@ func (s *chatService) GetConversations(ctx context.Context, req *pb.GetConversat
 		req.GetFields(),
 		req.GetSort(),
 		req.GetDomainId(),
+		req.GetActive(),
+		req.GetUserId(),
 	)
 	if err != nil {
 		s.log.Error().Msg(err.Error())
