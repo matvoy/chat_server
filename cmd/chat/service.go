@@ -535,6 +535,9 @@ func (s *chatService) GetConversationByID(ctx context.Context, req *pb.GetConver
 		s.log.Error().Msg(err.Error())
 		return err
 	}
+	if conversation == nil {
+		return nil
+	}
 	res.Item = transformConversationFromRepoModel(conversation)
 	return nil
 }

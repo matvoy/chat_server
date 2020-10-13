@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"os"
 
 	pbauth "github.com/matvoy/chat_server/api/proto/auth"
@@ -28,12 +27,8 @@ import (
 )
 
 type Config struct {
-	LogLevel   string
-	DBHost     string
-	DBUser     string
-	DBName     string
-	DBSSLMode  string
-	DBPassword string
+	LogLevel string
+	DBSource string
 }
 
 var (
@@ -69,47 +64,49 @@ func main() {
 				Value:   "debug",
 				Usage:   "Log Level",
 			},
-			&cli.StringFlag{
-				Name:    "db_host",
-				EnvVars: []string{"DB_HOST"},
-				Usage:   "DB Host",
-			},
-			&cli.StringFlag{
-				Name:    "db_user",
-				EnvVars: []string{"DB_USER"},
-				Usage:   "DB User",
-			},
-			&cli.StringFlag{
-				Name:    "db_name",
-				EnvVars: []string{"DB_NAME"},
-				Usage:   "DB Name",
-			},
-			&cli.StringFlag{
-				Name:    "db_sslmode",
-				EnvVars: []string{"DB_SSLMODE"},
-				Value:   "disable",
-				Usage:   "DB SSL Mode",
-			},
-			&cli.StringFlag{
-				Name:    "db_password",
-				EnvVars: []string{"DB_PASSWORD"},
-				Usage:   "DB Password",
-			},
+			// &cli.StringFlag{
+			// 	Name:    "db_host",
+			// 	EnvVars: []string{"DB_HOST"},
+			// 	Usage:   "DB Host",
+			// },
+			// &cli.StringFlag{
+			// 	Name:    "db_user",
+			// 	EnvVars: []string{"DB_USER"},
+			// 	Usage:   "DB User",
+			// },
+			// &cli.StringFlag{
+			// 	Name:    "db_name",
+			// 	EnvVars: []string{"DB_NAME"},
+			// 	Usage:   "DB Name",
+			// },
+			// &cli.StringFlag{
+			// 	Name:    "db_sslmode",
+			// 	EnvVars: []string{"DB_SSLMODE"},
+			// 	Value:   "disable",
+			// 	Usage:   "DB SSL Mode",
+			// },
+			// &cli.StringFlag{
+			// 	Name:    "db_password",
+			// 	EnvVars: []string{"DB_PASSWORD"},
+			// 	Usage:   "DB Password",
+			// },WEBITEL_DBO_ADDRESS
 			&cli.Uint64Flag{
 				Name:    "conversation_timeout_sec",
 				EnvVars: []string{"CONVERSATION_TIMEOUT_SEC"},
 				Usage:   "Conversation timeout. sec",
+			},
+			&cli.StringFlag{
+				Name:    "webitel_dbo_address",
+				EnvVars: []string{"WEBITEL_DBO_ADDRESS"},
+				Value:   "disable",
+				Usage:   "DB Connection string",
 			},
 		),
 	)
 	service.Init(
 		micro.Action(func(c *cli.Context) error {
 			cfg.LogLevel = c.String("log_level")
-			cfg.DBHost = c.String("db_host")
-			cfg.DBUser = c.String("db_user")
-			cfg.DBName = c.String("db_name")
-			cfg.DBSSLMode = c.String("db_sslmode")
-			cfg.DBPassword = c.String("db_password")
+			cfg.DBSource = c.String("webitel_dbo_address")
 			redisTable = c.String("store_table")
 			timeout = 600 //c.Uint64("conversation_timeout_sec")
 			var err error
@@ -149,7 +146,7 @@ func main() {
 		return
 	}
 
-	db, err := sql.Open("postgres", DbSource(cfg.DBHost, cfg.DBUser, cfg.DBName, cfg.DBPassword, cfg.DBSSLMode))
+	db, err := sql.Open("postgres", cfg.DBSource) //DbSource(cfg.DBHost, cfg.DBUser, cfg.DBName, cfg.DBPassword, cfg.DBSSLMode))
 	if err != nil {
 		logger.Fatal().
 			Str("app", "failed to connect db").
@@ -158,11 +155,7 @@ func main() {
 	}
 
 	logger.Debug().
-		Str("cfg.DBHost", cfg.DBHost).
-		Str("cfg.DBUser", cfg.DBUser).
-		Str("cfg.DBName", cfg.DBName).
-		Str("cfg.DBPassword", cfg.DBPassword).
-		Str("cfg.DBSSLMode", cfg.DBSSLMode).
+		Str("cfg.DBSource", cfg.DBSource).
 		Msg("db connected")
 
 	repo := pg.NewPgRepository(db, logger)
@@ -186,13 +179,13 @@ func main() {
 	}
 }
 
-func DbSource(host, user, dbName, password, sslMode string) string {
-	dbinfo := fmt.Sprintf("host=%s user=%s dbname=%s sslmode=%s", host, user, dbName, sslMode)
-	if password != "" {
-		dbinfo += fmt.Sprintf(" password=%s", password)
-	}
-	return dbinfo
-}
+// func DbSource(host, user, dbName, password, sslMode string) string {
+// 	dbinfo := fmt.Sprintf("host=%s user=%s dbname=%s sslmode=%s", host, user, dbName, sslMode)
+// 	if password != "" {
+// 		dbinfo += fmt.Sprintf(" password=%s", password)
+// 	}
+// 	return dbinfo
+// }
 
 func NewLogger(logLevel string) (*zerolog.Logger, error) {
 	lvl, err := zerolog.ParseLevel(logLevel)
