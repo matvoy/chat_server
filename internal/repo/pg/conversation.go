@@ -116,8 +116,8 @@ func (r *PgRepository) GetConversations(
 	active bool,
 	userID int64,
 ) ([]*repo.Conversation, error) {
-	query := make([]qm.QueryMod, 0, 8)
-	// query = append(query, qm.Load(models.ConversationRels.Channels))
+	query := make([]qm.QueryMod, 0, 9)
+	query = append(query, qm.Load(models.ConversationRels.Channels))
 	if size != 0 {
 		query = append(query, qm.Limit(int(size)))
 	} else {
@@ -144,10 +144,30 @@ func (r *PgRepository) GetConversations(
 		query = append(query, models.ConversationWhere.ClosedAt.IsNull())
 	}
 	if userID != 0 {
-		query = append(query, qm.Load(models.ConversationRels.Channels, models.ChannelWhere.UserID.EQ(userID)))
-	} else {
-		query = append(query, qm.Load(models.ConversationRels.Channels))
+		channels, err := models.Channels(
+			models.ChannelWhere.UserID.EQ(userID),
+			qm.Select("conversation_id"),
+			qm.Distinct("conversation_id"),
+		).All(ctx, r.db)
+		if err != nil {
+			return nil, err
+		}
+		if len(channels) > 0 {
+			ids := make([]string, 0, len(channels))
+			for _, item := range channels {
+				ids = append(ids, item.ConversationID)
+			}
+			query = append(query, models.ConversationWhere.ID.IN(ids))
+		}
 	}
+	// var conversations models.ConversationSlice
+	// err := queries.Raw(`select c.*
+	// from chat.conversation c
+	// where c.id in (
+	// 	select distinct ch.conversation_id
+	// 	from chat.channel ch
+	// 	where ch.user_id = 10
+	// ) `).Bind(ctx, r.db, &conversations)
 	conversations, err := models.Conversations(query...).All(ctx, r.db)
 	if err != nil {
 		return nil, err
