@@ -1,15 +1,15 @@
-package repo
+package boilrepo
 
 import (
 	"context"
 	"database/sql"
 
+	pb "github.com/matvoy/chat_server/api/proto/chat"
 	"github.com/matvoy/chat_server/models"
 
+	"github.com/rs/zerolog"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 )
-
-// TODO TRANSFORM TO DOMAIN MODELS
 
 type Repository interface {
 	ProfileRepository
@@ -57,9 +57,9 @@ type ConversationRepository interface {
 		domainID int64,
 		active bool,
 		userID int64,
-	) ([]*Conversation, error)
+	) ([]*pb.Conversation, error)
 	CreateConversation(ctx context.Context, c *models.Conversation) error
-	GetConversationByID(ctx context.Context, id string) (*Conversation, error)
+	GetConversationByID(ctx context.Context, id string) (*pb.Conversation, error)
 }
 
 type ChannelRepository interface {
@@ -93,4 +93,16 @@ type InviteRepository interface {
 type MessageRepository interface {
 	CreateMessage(ctx context.Context, m *models.Message) error
 	GetMessages(ctx context.Context, id int64, size, page int32, fields, sort []string, conversationID string) ([]*models.Message, error)
+}
+
+type boilerRepository struct {
+	db  *sql.DB
+	log *zerolog.Logger
+}
+
+func NewRepository(db *sql.DB, log *zerolog.Logger) Repository {
+	return &boilerRepository{
+		db,
+		log,
+	}
 }

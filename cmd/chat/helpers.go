@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 
 	pb "github.com/matvoy/chat_server/api/proto/chat"
-	"github.com/matvoy/chat_server/internal/repo"
 	"github.com/matvoy/chat_server/models"
 
 	"github.com/volatiletech/null/v8"
@@ -90,46 +89,46 @@ func (s *chatService) createClient(ctx context.Context, req *pb.CheckSessionRequ
 	return
 }
 
-func transformConversationFromRepoModel(c *repo.Conversation) *pb.Conversation {
-	result := &pb.Conversation{
-		Id:       c.ID,
-		Title:    *c.Title,
-		DomainId: c.DomainID,
-	}
-	if c.CreatedAt != nil {
-		result.CreatedAt = c.CreatedAt.Unix() * 1000
-	}
-	if c.ClosedAt != nil {
-		result.ClosedAt = c.ClosedAt.Unix() * 1000
-	}
-	if c.UpdatedAt != nil {
-		result.UpdatedAt = c.UpdatedAt.Unix() * 1000
-	}
-	members := make([]*pb.Member, 0, len(c.Members))
-	for _, item := range c.Members {
-		members = append(members, &pb.Member{
-			ChannelId: item.ChannelID,
-			UserId:    item.UserID,
-			Username:  item.Username,
-			Type:      item.Type,
-			Internal:  item.Internal,
-			Firstname: item.Firstname,
-			Lastname:  item.Lastname,
-		})
-	}
-	result.Members = members
-	return result
-}
+// func transformConversationFromRepoModel(c *repo.Conversation) *pb.Conversation {
+// 	result := &pb.Conversation{
+// 		Id:       c.ID,
+// 		Title:    *c.Title,
+// 		DomainId: c.DomainID,
+// 	}
+// 	if c.CreatedAt != nil {
+// 		result.CreatedAt = c.CreatedAt.Unix() * 1000
+// 	}
+// 	if c.ClosedAt != nil {
+// 		result.ClosedAt = c.ClosedAt.Unix() * 1000
+// 	}
+// 	if c.UpdatedAt != nil {
+// 		result.UpdatedAt = c.UpdatedAt.Unix() * 1000
+// 	}
+// 	members := make([]*pb.Member, 0, len(c.Members))
+// 	for _, item := range c.Members {
+// 		members = append(members, &pb.Member{
+// 			ChannelId: item.ChannelID,
+// 			UserId:    item.UserID,
+// 			Username:  item.Username,
+// 			Type:      item.Type,
+// 			Internal:  item.Internal,
+// 			Firstname: item.Firstname,
+// 			Lastname:  item.Lastname,
+// 		})
+// 	}
+// 	result.Members = members
+// 	return result
+// }
 
-func transformConversationsFromRepoModel(conversations []*repo.Conversation) []*pb.Conversation {
-	result := make([]*pb.Conversation, 0, len(conversations))
-	var tmp *pb.Conversation
-	for _, item := range conversations {
-		tmp = transformConversationFromRepoModel(item)
-		result = append(result, tmp)
-	}
-	return result
-}
+// func transformConversationsFromRepoModel(conversations []*repo.Conversation) []*pb.Conversation {
+// 	result := make([]*pb.Conversation, 0, len(conversations))
+// 	var tmp *pb.Conversation
+// 	for _, item := range conversations {
+// 		tmp = transformConversationFromRepoModel(item)
+// 		result = append(result, tmp)
+// 	}
+// 	return result
+// }
 
 func transformMessageFromRepoModel(message *models.Message) *pb.HistoryMessage {
 	result := &pb.HistoryMessage{

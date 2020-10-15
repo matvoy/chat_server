@@ -1,4 +1,4 @@
-package pg
+package boilrepo
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
-func (repo *PgRepository) GetProfileByID(ctx context.Context, id int64) (*models.Profile, error) {
+func (repo *boilerRepository) GetProfileByID(ctx context.Context, id int64) (*models.Profile, error) {
 	result, err := models.Profiles(models.ProfileWhere.ID.EQ(id)).
 		One(ctx, repo.db)
 	if err != nil {
@@ -23,7 +23,7 @@ func (repo *PgRepository) GetProfileByID(ctx context.Context, id int64) (*models
 	return result, nil
 }
 
-func (repo *PgRepository) GetProfiles(ctx context.Context, id int64, size, page int32, fields, sort []string, profileType string, domainID int64) ([]*models.Profile, error) {
+func (repo *boilerRepository) GetProfiles(ctx context.Context, id int64, size, page int32, fields, sort []string, profileType string, domainID int64) ([]*models.Profile, error) {
 	query := make([]qm.QueryMod, 0, 8)
 	if size != 0 {
 		query = append(query, qm.Limit(int(size)))
@@ -53,7 +53,7 @@ func (repo *PgRepository) GetProfiles(ctx context.Context, id int64, size, page 
 	return models.Profiles(query...).All(ctx, repo.db)
 }
 
-func (repo *PgRepository) CreateProfile(ctx context.Context, p *models.Profile) error {
+func (repo *boilerRepository) CreateProfile(ctx context.Context, p *models.Profile) error {
 	p.ID = 0
 	if err := p.Insert(ctx, repo.db, boil.Infer()); err != nil {
 		return err
@@ -61,14 +61,14 @@ func (repo *PgRepository) CreateProfile(ctx context.Context, p *models.Profile) 
 	return nil
 }
 
-func (repo *PgRepository) UpdateProfile(ctx context.Context, p *models.Profile) error {
+func (repo *boilerRepository) UpdateProfile(ctx context.Context, p *models.Profile) error {
 	if _, err := p.Update(ctx, repo.db, boil.Infer()); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *PgRepository) DeleteProfile(ctx context.Context, id int64) error {
+func (repo *boilerRepository) DeleteProfile(ctx context.Context, id int64) error {
 	_, err := models.Profiles(models.ProfileWhere.ID.EQ(id)).DeleteAll(ctx, repo.db)
 	return err
 }

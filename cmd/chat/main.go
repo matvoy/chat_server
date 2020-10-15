@@ -13,7 +13,7 @@ import (
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 	event "github.com/matvoy/chat_server/internal/event_router"
 	"github.com/matvoy/chat_server/internal/flow"
-	"github.com/matvoy/chat_server/internal/repo/pg"
+	pg "github.com/matvoy/chat_server/internal/repo/boiler"
 
 	_ "github.com/lib/pq"
 	"github.com/micro/cli/v2"
@@ -158,7 +158,7 @@ func main() {
 		Str("cfg.DBSource", cfg.DBSource).
 		Msg("db connected")
 
-	repo := pg.NewPgRepository(db, logger)
+	repo := pg.NewRepository(db, logger)
 	cache := cache.NewChatCache(service.Options().Store)
 	flow := flow.NewClient(logger, flowClient, cache)
 	auth := auth.NewClient(logger, cache, authClient)

@@ -8,7 +8,7 @@ import (
 
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
 	pb "github.com/matvoy/chat_server/api/proto/chat"
-	"github.com/matvoy/chat_server/internal/repo"
+	pg "github.com/matvoy/chat_server/internal/repo/boiler"
 	"github.com/matvoy/chat_server/models"
 	"github.com/matvoy/chat_server/pkg/events"
 
@@ -20,7 +20,7 @@ type eventRouter struct {
 	botClient pbbot.BotService
 	// flowClient flow.Client
 	broker broker.Broker
-	repo   repo.Repository
+	repo   pg.Repository
 	log    *zerolog.Logger
 }
 
@@ -33,7 +33,7 @@ type Router interface {
 	RouteLeaveConversation(channelID, conversationID *string) error
 	RouteMessage(channel *models.Channel, message *pb.Message) (bool, error)
 	RouteMessageFromFlow(conversationID *string, message *pb.Message) error
-	SendInviteToWebitelUser(conversation *repo.Conversation, domainID *int64, conversationID *string, userID *int64, inviteID *string) error
+	SendInviteToWebitelUser(conversation *pb.Conversation, domainID *int64, conversationID *string, userID *int64, inviteID *string) error
 	SendDeclineInviteToWebitelUser(domainID *int64, conversationID *string, userID *int64, inviteID *string) error
 }
 
@@ -41,7 +41,7 @@ func NewRouter(
 	botClient pbbot.BotService,
 	// flowClient flow.Client,
 	broker broker.Broker,
-	repo repo.Repository,
+	repo pg.Repository,
 	log *zerolog.Logger,
 ) Router {
 	return &eventRouter{
@@ -217,7 +217,7 @@ func (e *eventRouter) RouteInvite(conversationID *string, userID *int64) error {
 	return nil
 }
 
-func (e *eventRouter) SendInviteToWebitelUser(conversation *repo.Conversation, domainID *int64, conversationID *string, userID *int64, inviteID *string) error {
+func (e *eventRouter) SendInviteToWebitelUser(conversation *pb.Conversation, domainID *int64, conversationID *string, userID *int64, inviteID *string) error {
 	mes := events.UserInvitationEvent{
 		BaseEvent: events.BaseEvent{
 			ConversationID: *conversationID,
@@ -225,25 +225,29 @@ func (e *eventRouter) SendInviteToWebitelUser(conversation *repo.Conversation, d
 		},
 		InviteID: *inviteID,
 		Conversation: events.Conversation{
-			ID:       conversation.ID,
-			DomainID: conversation.DomainID,
+			ID:        conversation.Id,
+			DomainID:  conversation.DomainId,
+			CreatedAt: conversation.CreatedAt,
+			UpdatedAt: conversation.UpdatedAt,
+			ClosedAt:  conversation.ClosedAt,
+			Title:     conversation.Title,
 		},
 	}
-	if conversation.CreatedAt != nil {
-		mes.CreatedAt = conversation.CreatedAt.Unix() * 1000
-	}
-	if conversation.CreatedAt != nil {
-		mes.ClosedAt = conversation.ClosedAt.Unix() * 1000
-	}
-	if conversation.Title != nil {
-		mes.Title = *conversation.Title
-	}
+	// if conversation.CreatedAt != 0 {
+	// 	mes.CreatedAt = conversation.CreatedAt.Unix() * 1000
+	// }
+	// if conversation.ClosedAt != nil {
+	// 	mes.ClosedAt = conversation.ClosedAt.Unix() * 1000
+	// }
+	// if conversation.Title != nil {
+	// 	mes.Title = *conversation.Title
+	// }
 	if memLen := len(conversation.Members); memLen > 0 {
 		mes.Members = make([]*events.Member, 0, memLen)
 		for _, item := range conversation.Members {
 			mes.Members = append(mes.Members, &events.Member{
-				ChannelID: item.ChannelID,
-				UserID:    item.UserID,
+				ChannelID: item.ChannelId,
+				UserID:    item.UserId,
 				Username:  item.Username,
 				Type:      item.Type,
 				Internal:  item.Internal,

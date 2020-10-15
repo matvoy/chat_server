@@ -1,11 +1,11 @@
-package pg
+package boilrepo
 
 import (
 	"context"
 	"database/sql"
 	"time"
 
-	"github.com/matvoy/chat_server/internal/repo"
+	pb "github.com/matvoy/chat_server/api/proto/chat"
 	"github.com/matvoy/chat_server/models"
 
 	"github.com/google/uuid"
@@ -14,7 +14,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
-// func (repo *PgRepository) GetConversationBySessionID(ctx context.Context, sessionID string) (*models.Conversation, error) {
+// func (repo *boilerRepository) GetConversationBySessionID(ctx context.Context, sessionID string) (*models.Conversation, error) {
 // 	result, err := models.Conversations(qm.Where("LOWER(session_id) like ?", strings.ToLower(sessionID)), qm.Where("closed_at is null")).
 // 		One(ctx, repo.db)
 // 	if err != nil {
@@ -27,7 +27,7 @@ import (
 // 	return result, nil
 // }
 
-func (r *PgRepository) GetConversationByID(ctx context.Context, id string) (*repo.Conversation, error) {
+func (r *boilerRepository) GetConversationByID(ctx context.Context, id string) (*pb.Conversation, error) {
 	c, err := models.Conversations(
 		models.ConversationWhere.ID.EQ(id),
 		qm.Load(models.ConversationRels.Channels),
@@ -39,16 +39,16 @@ func (r *PgRepository) GetConversationByID(ctx context.Context, id string) (*rep
 		}
 		return nil, err
 	}
-	members := make([]*repo.Member, 0, len(c.R.Channels))
+	members := make([]*pb.Member, 0, len(c.R.Channels))
 	for _, ch := range c.R.Channels {
 		if !ch.Internal {
 			client, err := models.Clients(models.ClientWhere.ID.EQ(ch.UserID)).One(ctx, r.db)
 			if err != nil {
 				return nil, err
 			}
-			members = append(members, &repo.Member{
-				ChannelID: ch.ID,
-				UserID:    ch.UserID,
+			members = append(members, &pb.Member{
+				ChannelId: ch.ID,
+				UserId:    ch.UserID,
 				Type:      ch.Type,
 				Username:  client.Name.String,
 				Firstname: client.FirstName.String,
@@ -56,28 +56,32 @@ func (r *PgRepository) GetConversationByID(ctx context.Context, id string) (*rep
 				Internal:  ch.Internal,
 			})
 		} else {
-			members = append(members, &repo.Member{
-				ChannelID: ch.ID,
-				UserID:    ch.UserID,
+			members = append(members, &pb.Member{
+				ChannelId: ch.ID,
+				UserId:    ch.UserID,
 				Type:      ch.Type,
 				Internal:  ch.Internal,
 			})
 		}
 
 	}
-	conv := &repo.Conversation{
-		ID:        c.ID,
-		Title:     &c.Title.String,
-		CreatedAt: &c.CreatedAt.Time,
-		ClosedAt:  &c.ClosedAt.Time,
-		UpdatedAt: &c.UpdatedAt.Time,
-		DomainID:  c.DomainID,
+	conv := &pb.Conversation{
+		Id:        c.ID,
+		Title:     c.Title.String,
+		CreatedAt: c.CreatedAt.Time.Unix() * 1000,
+		DomainId:  c.DomainID,
 		Members:   members,
+	}
+	if c.ClosedAt != (null.Time{}) {
+		conv.ClosedAt = c.ClosedAt.Time.Unix() * 1000
+	}
+	if c.UpdatedAt != (null.Time{}) {
+		conv.UpdatedAt = c.UpdatedAt.Time.Unix() * 1000
 	}
 	return conv, nil
 }
 
-func (r *PgRepository) CreateConversation(ctx context.Context, c *models.Conversation) error {
+func (r *boilerRepository) CreateConversation(ctx context.Context, c *models.Conversation) error {
 	c.ID = uuid.New().String()
 	if err := c.Insert(ctx, r.db, boil.Infer()); err != nil {
 		return err
@@ -85,7 +89,7 @@ func (r *PgRepository) CreateConversation(ctx context.Context, c *models.Convers
 	return nil
 }
 
-func (r *PgRepository) CloseConversation(ctx context.Context, id string) error {
+func (r *boilerRepository) CloseConversation(ctx context.Context, id string) error {
 	// result, err := models.Conversations(qm.Where("LOWER(session_id) like ?", strings.ToLower(sessionID)), qm.Where("closed_at is null")).
 	// 	One(ctx, repo.db)
 	result, err := models.Conversations(models.ConversationWhere.ID.EQ(id)).
@@ -105,7 +109,7 @@ func (r *PgRepository) CloseConversation(ctx context.Context, id string) error {
 	return err
 }
 
-func (r *PgRepository) GetConversations(
+func (r *boilerRepository) GetConversations(
 	ctx context.Context,
 	id string,
 	size int32,
@@ -115,7 +119,7 @@ func (r *PgRepository) GetConversations(
 	domainID int64,
 	active bool,
 	userID int64,
-) ([]*repo.Conversation, error) {
+) ([]*pb.Conversation, error) {
 	query := make([]qm.QueryMod, 0, 9)
 	query = append(query, qm.Load(models.ConversationRels.Channels))
 	if size != 0 {
@@ -172,43 +176,47 @@ func (r *PgRepository) GetConversations(
 	if err != nil {
 		return nil, err
 	}
-	result := make([]*repo.Conversation, 0, len(conversations))
+	result := make([]*pb.Conversation, 0, len(conversations))
 	for _, c := range conversations {
 		if len(c.R.Channels) == 0 {
 			continue
 		}
-		members := make([]*repo.Member, 0, len(c.R.Channels))
+		members := make([]*pb.Member, 0, len(c.R.Channels))
 		for _, ch := range c.R.Channels {
 			if !ch.Internal {
 				client, err := models.Clients(models.ClientWhere.ID.EQ(ch.UserID)).One(ctx, r.db)
 				if err != nil {
 					return nil, err
 				}
-				members = append(members, &repo.Member{
-					ChannelID: ch.ID,
-					UserID:    ch.UserID,
+				members = append(members, &pb.Member{
+					ChannelId: ch.ID,
+					UserId:    ch.UserID,
 					Type:      ch.Type,
 					Username:  client.Name.String,
 					Firstname: client.FirstName.String,
 					Lastname:  client.LastName.String,
 				})
 			} else {
-				members = append(members, &repo.Member{
-					ChannelID: ch.ID,
-					UserID:    ch.UserID,
+				members = append(members, &pb.Member{
+					ChannelId: ch.ID,
+					UserId:    ch.UserID,
 				})
 			}
-
 		}
-		result = append(result, &repo.Conversation{
-			ID:        c.ID,
-			Title:     &c.Title.String,
-			CreatedAt: &c.CreatedAt.Time,
-			ClosedAt:  &c.ClosedAt.Time,
-			UpdatedAt: &c.UpdatedAt.Time,
-			DomainID:  c.DomainID,
+		conv := &pb.Conversation{
+			Id:        c.ID,
+			Title:     c.Title.String,
+			CreatedAt: c.CreatedAt.Time.Unix() * 1000,
+			DomainId:  c.DomainID,
 			Members:   members,
-		})
+		}
+		if c.ClosedAt != (null.Time{}) {
+			conv.ClosedAt = c.ClosedAt.Time.Unix() * 1000
+		}
+		if c.UpdatedAt != (null.Time{}) {
+			conv.UpdatedAt = c.UpdatedAt.Time.Unix() * 1000
+		}
+		result = append(result, conv)
 	}
 	return result, nil
 }

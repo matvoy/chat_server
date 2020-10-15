@@ -1,4 +1,4 @@
-package pg
+package boilrepo
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
-func (repo *PgRepository) GetClientByID(ctx context.Context, id int64) (*models.Client, error) {
+func (repo *boilerRepository) GetClientByID(ctx context.Context, id int64) (*models.Client, error) {
 	result, err := models.Clients(models.ClientWhere.ID.EQ(id)).
 		One(ctx, repo.db)
 	if err != nil {
@@ -24,7 +24,7 @@ func (repo *PgRepository) GetClientByID(ctx context.Context, id int64) (*models.
 	return result, nil
 }
 
-func (repo *PgRepository) GetClientByExternalID(ctx context.Context, externalID string) (*models.Client, error) {
+func (repo *boilerRepository) GetClientByExternalID(ctx context.Context, externalID string) (*models.Client, error) {
 	result, err := models.Clients(qm.Where("LOWER(external_id) like ?", strings.ToLower(externalID))).
 		One(ctx, repo.db)
 	if err != nil {
@@ -37,13 +37,13 @@ func (repo *PgRepository) GetClientByExternalID(ctx context.Context, externalID 
 	return result, nil
 }
 
-func (repo *PgRepository) CreateClient(ctx context.Context, c *models.Client) error {
+func (repo *boilerRepository) CreateClient(ctx context.Context, c *models.Client) error {
 	if err := c.Insert(ctx, repo.db, boil.Infer()); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *PgRepository) GetClients(ctx context.Context, limit, offset int) ([]*models.Client, error) {
+func (repo *boilerRepository) GetClients(ctx context.Context, limit, offset int) ([]*models.Client, error) {
 	return models.Clients(qm.Limit(limit), qm.Offset(offset)).All(ctx, repo.db)
 }

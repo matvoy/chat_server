@@ -1,4 +1,4 @@
-package pg
+package boilrepo
 
 import (
 	"context"
@@ -9,14 +9,14 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
-func (repo *PgRepository) CreateMessage(ctx context.Context, m *models.Message) error {
+func (repo *boilerRepository) CreateMessage(ctx context.Context, m *models.Message) error {
 	if err := m.Insert(ctx, repo.db, boil.Infer()); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *PgRepository) GetMessages(ctx context.Context, id int64, size, page int32, fields, sort []string, conversationID string) ([]*models.Message, error) {
+func (repo *boilerRepository) GetMessages(ctx context.Context, id int64, size, page int32, fields, sort []string, conversationID string) ([]*models.Message, error) {
 	query := make([]qm.QueryMod, 0, 6)
 	if size != 0 {
 		query = append(query, qm.Limit(int(size)))

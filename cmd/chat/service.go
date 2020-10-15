@@ -14,7 +14,7 @@ import (
 	cache "github.com/matvoy/chat_server/internal/chat_cache"
 	event "github.com/matvoy/chat_server/internal/event_router"
 	"github.com/matvoy/chat_server/internal/flow"
-	"github.com/matvoy/chat_server/internal/repo"
+	pg "github.com/matvoy/chat_server/internal/repo/boiler"
 	"github.com/matvoy/chat_server/models"
 
 	"github.com/micro/go-micro/v2/errors"
@@ -44,7 +44,7 @@ type Service interface {
 }
 
 type chatService struct {
-	repo          repo.Repository
+	repo          pg.Repository
 	log           *zerolog.Logger
 	flowClient    flow.Client
 	authClient    auth.Client
@@ -55,7 +55,7 @@ type chatService struct {
 }
 
 func NewChatService(
-	repo repo.Repository,
+	repo pg.Repository,
 	log *zerolog.Logger,
 	flowClient flow.Client,
 	authClient auth.Client,
@@ -538,7 +538,7 @@ func (s *chatService) GetConversationByID(ctx context.Context, req *pb.GetConver
 	if conversation == nil {
 		return nil
 	}
-	res.Item = transformConversationFromRepoModel(conversation)
+	res.Item = conversation
 	return nil
 }
 
@@ -565,7 +565,7 @@ func (s *chatService) GetConversations(ctx context.Context, req *pb.GetConversat
 		s.log.Error().Msg(err.Error())
 		return err
 	}
-	res.Items = transformConversationsFromRepoModel(conversations)
+	res.Items = conversations
 	return nil
 }
 
