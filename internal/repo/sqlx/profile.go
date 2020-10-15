@@ -27,16 +27,17 @@ func (repo *sqlxRepository) GetProfiles(ctx context.Context, id int64, size, pag
 
 func (repo *sqlxRepository) CreateProfile(ctx context.Context, p *Profile) error {
 	p.ID = 0
-	res, err := repo.db.NamedExecContext(ctx, `insert into chat.profile (name, schema_id, type, variables, domain_id)
-	values (:name, :schema_id, :type, :variables, :domain_id)`, *p)
+	stmt, err := repo.db.PrepareNamed(`insert into chat.profile (name, schema_id, type, variables, domain_id)
+	values (:name, :schema_id, :type, :variables, :domain_id)`)
 	if err != nil {
 		return err
 	}
-	lastID, err := res.LastInsertId()
+	var id int64
+	err = stmt.GetContext(ctx, &id, *p)
 	if err != nil {
 		return err
 	}
-	p.ID = lastID
+	p.ID = id
 	return nil
 }
 

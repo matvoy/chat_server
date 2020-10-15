@@ -38,15 +38,16 @@ func (repo *sqlxRepository) CreateClient(ctx context.Context, c *Client) error {
 		time.Now(),
 		true,
 	}
-	res, err := repo.db.NamedExecContext(ctx, `insert into chat.client (name, number, created_at, external_id, first_name, last_name)
-	values (:name, :number, :created_at, :external_id, :first_name, :last_name)`, *c)
+	stmt, err := repo.db.PrepareNamed(`insert into chat.client (name, number, created_at, external_id, first_name, last_name)
+	values (:name, :number, :created_at, :external_id, :first_name, :last_name)`)
 	if err != nil {
 		return err
 	}
-	lastID, err := res.LastInsertId()
+	var id int64
+	err = stmt.GetContext(ctx, &id, *c)
 	if err != nil {
 		return err
 	}
-	c.ID = lastID
+	c.ID = id
 	return nil
 }

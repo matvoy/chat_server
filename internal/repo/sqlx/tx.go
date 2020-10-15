@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -49,16 +50,17 @@ func (repo *sqlxRepository) CreateMessageTx(ctx context.Context, tx *sqlx.Tx, m 
 	}
 	m.CreatedAt = tmp
 	m.UpdatedAt = tmp
-	res, err := tx.NamedExecContext(ctx, `insert into chat.message (channel_id, conversation_id, text, variables, created_at, updated_at, type)
-	values (:channel_id, :conversation_id, :text, :variables, :created_at, :updated_at, :type)`, *m)
+	stmt, err := tx.PrepareNamed(`insert into chat.message (channel_id, conversation_id, text, created_at, updated_at, type)
+	values (:channel_id, :conversation_id, :text, :created_at, :updated_at, :type)`)
 	if err != nil {
 		return err
 	}
-	lastID, err := res.LastInsertId()
+	var id int64
+	err = stmt.GetContext(ctx, &id, *m)
 	if err != nil {
 		return err
 	}
-	m.ID = lastID
+	m.ID = id
 	return nil
 }
 
@@ -92,7 +94,7 @@ func (repo *sqlxRepository) GetChannelsTx(
 		queryArgs = append(queryArgs, *userID)
 	}
 	if conversationID != nil {
-		queryStrings = append(queryStrings, "conversation")
+		queryStrings = append(queryStrings, "conversation_id")
 		queryArgs = append(queryArgs, *conversationID)
 	}
 	if connection != nil {
@@ -108,11 +110,12 @@ func (repo *sqlxRepository) GetChannelsTx(
 		queryArgs = append(queryArgs, *exceptID)
 	}
 	if len(queryArgs) > 0 {
-		where := ""
+		where := " closed_at is null and"
 		for i, _ := range queryArgs {
-			where = where + fmt.Sprintf("%s=$%v", queryStrings[i], i+1)
+			where = where + fmt.Sprintf(" %s=$%v and", queryStrings[i], i+1)
 		}
-		err := tx.SelectContext(ctx, &result, fmt.Sprintf("SELECT * FROM chat.channel where %s", where), queryArgs...)
+		where = strings.TrimRight(where, " and")
+		err := tx.SelectContext(ctx, &result, fmt.Sprintf("SELECT * FROM chat.channel where%s", where), queryArgs...)
 		return result, err
 	}
 	err := tx.SelectContext(ctx, &result, "SELECT * FROM chat.channel")

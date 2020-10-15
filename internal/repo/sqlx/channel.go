@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -38,7 +39,7 @@ func (repo *sqlxRepository) GetChannels(
 		queryArgs = append(queryArgs, *userID)
 	}
 	if conversationID != nil {
-		queryStrings = append(queryStrings, "conversation")
+		queryStrings = append(queryStrings, "conversation_id")
 		queryArgs = append(queryArgs, *conversationID)
 	}
 	if connection != nil {
@@ -54,11 +55,12 @@ func (repo *sqlxRepository) GetChannels(
 		queryArgs = append(queryArgs, *exceptID)
 	}
 	if len(queryArgs) > 0 {
-		where := ""
+		where := " closed_at is null and"
 		for i, _ := range queryArgs {
-			where = where + fmt.Sprintf("%s=$%v", queryStrings[i], i+1)
+			where = where + fmt.Sprintf(" %s=$%v and", queryStrings[i], i+1)
 		}
-		err := repo.db.SelectContext(ctx, &result, fmt.Sprintf("SELECT * FROM chat.channel where %s", where), queryArgs...)
+		where = strings.TrimRight(where, " and")
+		err := repo.db.SelectContext(ctx, &result, fmt.Sprintf("SELECT * FROM chat.channel where%s", where), queryArgs...)
 		return result, err
 	}
 	err := repo.db.SelectContext(ctx, &result, "SELECT * FROM chat.channel")

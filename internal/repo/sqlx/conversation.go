@@ -99,7 +99,7 @@ func (repo *sqlxRepository) GetConversations(
 	result := make([]*pb.Conversation, 0, len(conversations))
 	for _, c := range conversations {
 		channels := []*Channel{}
-		err := repo.db.SelectContext(ctx, &channels, "SELECT * FROM chat.channel where conversation_id=$1", id)
+		err := repo.db.SelectContext(ctx, &channels, "SELECT * FROM chat.channel where conversation_id=$1", c.ID)
 		if err != nil {
 			repo.log.Warn().Msg(err.Error())
 			if err == sql.ErrNoRows {
