@@ -3,6 +3,7 @@ package sqlxrepo
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,7 +31,36 @@ func (repo *sqlxRepository) GetChannels(
 	exceptID *string,
 ) ([]*Channel, error) {
 	result := []*Channel{}
-	// TO DO FILTERS
+	queryStrings := make([]string, 0, 5)
+	queryArgs := make([]interface{}, 0, 5)
+	if userID != nil {
+		queryStrings = append(queryStrings, "user_id")
+		queryArgs = append(queryArgs, *userID)
+	}
+	if conversationID != nil {
+		queryStrings = append(queryStrings, "conversation")
+		queryArgs = append(queryArgs, *conversationID)
+	}
+	if connection != nil {
+		queryStrings = append(queryStrings, "connection")
+		queryArgs = append(queryArgs, *connection)
+	}
+	if internal != nil {
+		queryStrings = append(queryStrings, "internal")
+		queryArgs = append(queryArgs, *internal)
+	}
+	if exceptID != nil {
+		queryStrings = append(queryStrings, "except_id")
+		queryArgs = append(queryArgs, *exceptID)
+	}
+	if len(queryArgs) > 0 {
+		where := ""
+		for i, _ := range queryArgs {
+			where = where + fmt.Sprintf("%s=$%v", queryStrings[i], i+1)
+		}
+		err := repo.db.SelectContext(ctx, &result, fmt.Sprintf("SELECT * FROM chat.channel where %s", where), queryArgs...)
+		return result, err
+	}
 	err := repo.db.SelectContext(ctx, &result, "SELECT * FROM chat.channel")
 	return result, err
 }

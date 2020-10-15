@@ -23,8 +23,7 @@ func (repo *sqlxRepository) GetInviteByID(ctx context.Context, id string) (*Invi
 
 func (repo *sqlxRepository) GetInvites(ctx context.Context, userID int64) ([]*Invite, error) {
 	result := []*Invite{}
-	// TO DO FILTERS
-	err := repo.db.SelectContext(ctx, &result, "SELECT * FROM chat.invite")
+	err := repo.db.SelectContext(ctx, &result, "SELECT * FROM chat.invite where user_id=$1", userID)
 	return result, err
 }
 
