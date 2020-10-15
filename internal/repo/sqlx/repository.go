@@ -16,6 +16,7 @@ type Repository interface {
 	ClientRepository
 	InviteRepository
 	MessageRepository
+	GetWebitelUserByID(ctx context.Context, id int64) (*WebitelUser, error)
 	WithTransaction(txFunc func(*sqlx.Tx) error) (err error)
 	CreateConversationTx(ctx context.Context, tx *sqlx.Tx, c *Conversation) error
 	CreateMessageTx(ctx context.Context, tx *sqlx.Tx, m *Message) error

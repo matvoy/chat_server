@@ -30,13 +30,17 @@ func (repo *sqlxRepository) GetConversationByID(ctx context.Context, id string) 
 	}
 	members := make([]*pb.Member, 0, len(channels))
 	for _, ch := range channels {
-		members = append(members, &pb.Member{
-			ChannelId: ch.ID,
-			UserId:    ch.UserID,
-			Type:      ch.Type,
-			Username:  ch.Name,
-			Internal:  ch.Internal,
-		})
+		tmp := &pb.Member{
+			// ChannelId: ch.ID,
+			UserId:   ch.UserID,
+			Type:     ch.Type,
+			Username: ch.Name,
+			Internal: ch.Internal,
+		}
+		if ch.UpdatedAt.Valid {
+			tmp.UpdatedAt = ch.UpdatedAt.Time.Unix() * 1000
+		}
+		members = append(members, tmp)
 	}
 	result := &pb.Conversation{
 		Id:        conversation.ID,
@@ -99,6 +103,7 @@ func (repo *sqlxRepository) GetConversations(
 	result := make([]*pb.Conversation, 0, len(conversations))
 	for _, c := range conversations {
 		channels := []*Channel{}
+		selfChannelID := ""
 		err := repo.db.SelectContext(ctx, &channels, "SELECT * FROM chat.channel where conversation_id=$1", c.ID)
 		if err != nil {
 			repo.log.Warn().Msg(err.Error())
@@ -112,19 +117,28 @@ func (repo *sqlxRepository) GetConversations(
 		}
 		members := make([]*pb.Member, 0, len(channels))
 		for _, ch := range channels {
-			members = append(members, &pb.Member{
-				ChannelId: ch.ID,
-				UserId:    ch.UserID,
-				Type:      ch.Type,
-				Username:  ch.Name,
-			})
+			if ch.UserID == userID && ch.Type == "webitel" {
+				selfChannelID = ch.ID
+			}
+			tmp := &pb.Member{
+				// ChannelId: ch.ID,
+				UserId:   ch.UserID,
+				Type:     ch.Type,
+				Username: ch.Name,
+				Internal: ch.Internal,
+			}
+			if ch.UpdatedAt.Valid {
+				tmp.UpdatedAt = ch.UpdatedAt.Time.Unix() * 1000
+			}
+			members = append(members, tmp)
 		}
 		conv := &pb.Conversation{
-			Id:        c.ID,
-			Title:     c.Title.String,
-			CreatedAt: c.CreatedAt.Time.Unix() * 1000,
-			DomainId:  c.DomainID,
-			Members:   members,
+			Id:            c.ID,
+			Title:         c.Title.String,
+			CreatedAt:     c.CreatedAt.Time.Unix() * 1000,
+			DomainId:      c.DomainID,
+			Members:       members,
+			SelfChannelId: selfChannelID,
 		}
 		if c.ClosedAt != (sql.NullTime{}) {
 			conv.ClosedAt = c.ClosedAt.Time.Unix() * 1000

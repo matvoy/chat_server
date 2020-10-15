@@ -65,6 +65,8 @@ type Invite struct {
 type Message struct {
 	ID             int64          `db:"id" json:"id"`
 	ChannelID      sql.NullString `db:"channel_id" json:"channel_id,omitempty"`
+	UserID         int64          `db:"user_id" json:"user_id,omitempty"`
+	UserType       string         `db:"user_type" json:"user_type,omitempty"`
 	ConversationID string         `db:"conversation_id" json:"conversation_id"`
 	Text           sql.NullString `db:"text" json:"text,omitempty"`
 	CreatedAt      sql.NullTime   `db:"created_at" json:"created_at,omitempty"`
@@ -80,4 +82,9 @@ type Profile struct {
 	Variables types.JSONText `db:"variables" json:"variables"`
 	DomainID  int64          `db:"domain_id" json:"domain_id"`
 	CreatedAt sql.NullTime   `db:"created_at" json:"created_at,omitempty"`
+}
+
+type WebitelUser struct {
+	ID   int64  `db:"id" json:"id"`
+	Name string `db:"name" json:"name"`
 }

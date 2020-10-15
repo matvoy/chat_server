@@ -165,6 +165,7 @@ func (s *chatService) StartConversation(
 		Str("user.connection", req.GetUser().GetConnection()).
 		Str("user.type", req.GetUser().GetType()).
 		Int64("user.id", req.GetUser().GetUserId()).
+		Str("username", req.GetUsername()).
 		Bool("user.internal", req.GetUser().GetInternal()).
 		Msg("start conversation")
 	channel := &pg.Channel{
@@ -177,6 +178,7 @@ func (s *chatService) StartConversation(
 		},
 		Internal: req.GetUser().GetInternal(),
 		DomainID: req.GetDomainId(),
+		Name:     req.GetUsername(),
 	}
 	conversation := &pg.Conversation{
 		DomainID: req.GetDomainId(),
@@ -269,12 +271,22 @@ func (s *chatService) JoinConversation(
 		s.log.Warn().Msg("invitation not found")
 		return errors.BadRequest("invitation not found", "")
 	}
+	user, err := s.repo.GetWebitelUserByID(ctx, invite.UserID)
+	if err != nil {
+		s.log.Error().Msg(err.Error())
+		return err
+	}
+	if user == nil {
+		s.log.Warn().Msg("user not found")
+		return errors.BadRequest("user not found", "")
+	}
 	channel := &pg.Channel{
 		Type:           "webitel",
 		Internal:       true,
 		ConversationID: invite.ConversationID,
 		UserID:         invite.UserID,
 		DomainID:       invite.DomainID,
+		Name:           user.Name,
 	}
 	if invite.InviterChannelID == (sql.NullString{}) {
 		channel.FlowBridge = true
@@ -292,7 +304,7 @@ func (s *chatService) JoinConversation(
 		s.log.Error().Msg(err.Error())
 		return err
 	}
-	if err := s.eventRouter.RouteJoinConversation(&channel.ID, &invite.ConversationID); err != nil {
+	if err := s.eventRouter.RouteJoinConversation(channel, &invite.ConversationID); err != nil {
 		s.log.Warn().Msg(err.Error())
 		return err
 	}
@@ -320,7 +332,7 @@ func (s *chatService) LeaveConversation(
 			return err
 		}
 	}
-	if err := s.eventRouter.RouteLeaveConversation(&channelID, &conversationID); err != nil {
+	if err := s.eventRouter.RouteLeaveConversation(ch, &conversationID); err != nil {
 		s.log.Warn().Msg(err.Error())
 		return err
 	}
@@ -345,6 +357,7 @@ func (s *chatService) InviteToConversation(
 		Str("conversation_id", req.GetConversationId()).
 		Str("inviter_channel_id", req.GetInviterChannelId()).
 		Int64("domain_id", req.GetDomainId()).
+		Int64("timeout_sec", req.GetTimeoutSec()).
 		Msg("invite to conversation")
 	domainID := req.GetDomainId()
 	invite := &pg.Invite{
