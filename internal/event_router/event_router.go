@@ -8,8 +8,7 @@ import (
 
 	pbbot "github.com/matvoy/chat_server/api/proto/bot"
 	pb "github.com/matvoy/chat_server/api/proto/chat"
-	pg "github.com/matvoy/chat_server/internal/repo/boiler"
-	"github.com/matvoy/chat_server/models"
+	pg "github.com/matvoy/chat_server/internal/repo/sqlx"
 	"github.com/matvoy/chat_server/pkg/events"
 
 	"github.com/micro/go-micro/v2/broker"
@@ -25,13 +24,13 @@ type eventRouter struct {
 }
 
 type Router interface {
-	RouteCloseConversation(channel *models.Channel, cause string) error
+	RouteCloseConversation(channel *pg.Channel, cause string) error
 	RouteCloseConversationFromFlow(conversationID *string, cause string) error
 	RouteDeclineInvite(userID *int64, conversationID *string) error
 	RouteInvite(conversationID *string, userID *int64) error
 	RouteJoinConversation(channelID, conversationID *string) error
 	RouteLeaveConversation(channelID, conversationID *string) error
-	RouteMessage(channel *models.Channel, message *pb.Message) (bool, error)
+	RouteMessage(channel *pg.Channel, message *pb.Message) (bool, error)
 	RouteMessageFromFlow(conversationID *string, message *pb.Message) error
 	SendInviteToWebitelUser(conversation *pb.Conversation, domainID *int64, conversationID *string, userID *int64, inviteID *string) error
 	SendDeclineInviteToWebitelUser(domainID *int64, conversationID *string, userID *int64, inviteID *string) error
@@ -53,7 +52,7 @@ func NewRouter(
 	}
 }
 
-func (e *eventRouter) RouteCloseConversation(channel *models.Channel, cause string) error {
+func (e *eventRouter) RouteCloseConversation(channel *pg.Channel, cause string) error {
 	otherChannels, err := e.repo.GetChannels(context.Background(), nil, &channel.ConversationID, nil, nil, nil) //&channel.ID)
 	if err != nil {
 		return err
@@ -362,7 +361,7 @@ func (e *eventRouter) RouteLeaveConversation(channelID, conversationID *string) 
 	return nil
 }
 
-func (e *eventRouter) RouteMessage(channel *models.Channel, message *pb.Message) (bool, error) {
+func (e *eventRouter) RouteMessage(channel *pg.Channel, message *pb.Message) (bool, error) {
 	otherChannels, err := e.repo.GetChannels(context.Background(), nil, &channel.ConversationID, nil, nil, nil) //&channel.ID)
 	if err != nil {
 		return false, err

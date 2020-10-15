@@ -6,6 +6,15 @@ import (
 	"github.com/jmoiron/sqlx/types"
 )
 
+var (
+	channelAllColumns      = []string{"id", "type", "conversation_id", "user_id", "connection", "created_at", "internal", "closed_at", "updated_at", "domain_id", "flow_bridge", "name"}
+	clientAllColumns       = []string{"id", "name", "number", "created_at", "activity_at", "external_id", "first_name", "last_name"}
+	conversationAllColumns = []string{"id", "title", "created_at", "closed_at", "updated_at", "domain_id"}
+	inviteAllColumns       = []string{"id", "conversation_id", "user_id", "title", "timeout_sec", "inviter_channel_id", "closed_at", "created_at", "domain_id"}
+	messageAllColumns      = []string{"id", "channel_id", "conversation_id", "text", "created_at", "updated_at", "type"}
+	profileAllColumns      = []string{"id", "name", "schema_id", "type", "variables", "domain_id"}
+)
+
 type Channel struct {
 	ID             string         `sql:"id" json:"id"`
 	Type           string         `sql:"type" json:"type"`
@@ -15,8 +24,10 @@ type Channel struct {
 	CreatedAt      sql.NullTime   `sql:"created_at" json:"created_at,omitempty"`
 	Internal       bool           `sql:"internal" json:"internal"`
 	ClosedAt       sql.NullTime   `sql:"closed_at" json:"closed_at,omitempty"`
+	UpdatedAt      sql.NullTime   `sql:"updated_at" json:"updated_at,omitempty"`
 	DomainID       int64          `sql:"domain_id" json:"domain_id"`
 	FlowBridge     bool           `sql:"flow_bridge" json:"flow_bridge"`
+	Name           string         `sql:"name" json:"name"`
 }
 
 type Client struct {
