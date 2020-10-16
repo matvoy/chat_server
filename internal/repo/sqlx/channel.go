@@ -103,6 +103,10 @@ func (repo *sqlxRepository) CreateChannel(ctx context.Context, c *Channel) error
 		:flow_bridge,
 		:name
 		)`, *c)
+	if err != nil {
+		return err
+	}
+	_, err = repo.db.ExecContext(ctx, `update chat.conversation set updated_at=$1 where id=$2`, tmp, c.ConversationID)
 	return err
 }
 
@@ -116,10 +120,15 @@ func (repo *sqlxRepository) CloseChannel(ctx context.Context, id string) (*Chann
 		}
 		return nil, err
 	}
-	_, err = repo.db.ExecContext(ctx, `update chat.channel set closed_at=$1 where id=$2`, sql.NullTime{
+	tmp := sql.NullTime{
 		Valid: true,
 		Time:  time.Now(),
-	}, id)
+	}
+	_, err = repo.db.ExecContext(ctx, `update chat.channel set closed_at=$1 where id=$2`, tmp, id)
+	if err != nil {
+		return nil, err
+	}
+	_, err = repo.db.ExecContext(ctx, `update chat.conversation set updated_at=$1 where id=$2`, tmp, result.ConversationID)
 	return result, err
 }
 

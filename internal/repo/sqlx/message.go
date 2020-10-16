@@ -25,7 +25,12 @@ func (repo *sqlxRepository) CreateMessage(ctx context.Context, m *Message) error
 		return err
 	}
 	m.ID = id
-	return nil
+	_, err = repo.db.ExecContext(ctx, `update chat.conversation set updated_at=$1 where id=$2`, tmp, m.ConversationID)
+	if err != nil {
+		return err
+	}
+	_, err = repo.db.ExecContext(ctx, `update chat.channel set updated_at=$1 where id=$2`, tmp, m.ChannelID)
+	return err
 }
 
 func (repo *sqlxRepository) GetMessages(ctx context.Context, id int64, size, page int32, fields, sort []string, conversationID string) ([]*Message, error) {
